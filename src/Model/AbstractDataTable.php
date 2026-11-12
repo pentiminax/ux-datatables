@@ -187,12 +187,27 @@ abstract class AbstractDataTable
         return $response;
     }
 
+    /**
+     * @deprecated since 1.6, use getConfiguredDataTable() to read the table or render_datatable() to render it. Removed in 2.0.
+     */
     public function prepareForRendering(): void
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "getConfiguredDataTable()" to read the table or "render_datatable()" to render it. Removed in 2.0.', __METHOD__);
+
+        $this->prepareDataTableForRendering();
+    }
+
+    /**
+     * Prepares the table for rendering, once, and returns it.
+     *
+     * @internal
+     */
+    public function prepareDataTableForRendering(): DataTable
     {
         $this->initialize();
 
         if ($this->renderingPrepared) {
-            return;
+            return $this->table;
         }
 
         $renderingPreparer = $this->infrastructure()->renderingPreparer;
@@ -211,13 +226,18 @@ abstract class AbstractDataTable
         }
 
         $this->renderingPrepared = true;
-    }
-
-    public function getDataTable(): DataTable
-    {
-        $this->prepareForRendering();
 
         return $this->table;
+    }
+
+    /**
+     * @deprecated since 1.6, use getConfiguredDataTable() to read the table or render_datatable() to render it. Removed in 2.0.
+     */
+    public function getDataTable(): DataTable
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "getConfiguredDataTable()" to read the table or "render_datatable()" to render it. Removed in 2.0.', __METHOD__);
+
+        return $this->prepareDataTableForRendering();
     }
 
     public function getConfiguredDataTable(): DataTable

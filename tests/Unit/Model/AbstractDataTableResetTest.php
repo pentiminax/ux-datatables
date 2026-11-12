@@ -45,19 +45,19 @@ final class AbstractDataTableResetTest extends TestCase
         );
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
 
-        $this->assertSame([['id' => 1]], $table->getDataTable()->getOption('data'));
+        $this->assertSame([['id' => 1]], $table->prepareDataTableForRendering()->getOption('data'));
 
         $rows = [['id' => 2]];
 
         $this->assertSame(
             [['id' => 1]],
-            $table->getDataTable()->getOption('data'),
+            $table->prepareDataTableForRendering()->getOption('data'),
             'Without a reset the first request\'s rows stay frozen on the shared instance.',
         );
 
         $table->resetDataTableState();
 
-        $this->assertSame([['id' => 2]], $table->getDataTable()->getOption('data'));
+        $this->assertSame([['id' => 2]], $table->prepareDataTableForRendering()->getOption('data'));
     }
 
     #[Test]
@@ -66,11 +66,11 @@ final class AbstractDataTableResetTest extends TestCase
         $table = new ConfigurableDataTable([TextColumn::new('id')]);
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
 
-        $first = $table->getDataTable();
+        $first = $table->prepareDataTableForRendering();
 
         $table->resetDataTableState();
 
-        $this->assertNotSame($first, $table->getDataTable());
+        $this->assertNotSame($first, $table->prepareDataTableForRendering());
     }
 
     #[Test]
@@ -151,12 +151,12 @@ final class AbstractDataTableResetTest extends TestCase
         $table = new ConfigurableDataTable([TextColumn::new('id')]);
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
 
-        $table->getDataTable();
+        $table->prepareDataTableForRendering();
         $table->resetDataTableState();
 
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
 
-        $this->assertNotNull($table->getDataTable());
+        $this->assertNotNull($table->prepareDataTableForRendering());
     }
 
     /**
@@ -183,11 +183,11 @@ final class AbstractDataTableResetTest extends TestCase
         };
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
 
-        $first = $table->getDataTable();
+        $first = $table->prepareDataTableForRendering();
 
         $table->resetDataTableState();
 
-        $this->assertNotSame($first, $table->getDataTable());
+        $this->assertNotSame($first, $table->prepareDataTableForRendering());
         $this->assertFalse($table->resetCalled);
     }
 
@@ -226,7 +226,7 @@ final class AbstractDataTableResetTest extends TestCase
      */
     private function rowActions(ConfigurableDataTable $table): ?array
     {
-        $data = $table->getDataTable()->getOption('data');
+        $data = $table->prepareDataTableForRendering()->getOption('data');
 
         return $data[0][ActionRowDataResolver::ROW_ACTIONS_KEY] ?? null;
     }

@@ -66,7 +66,7 @@ class DataTablesExtension extends AbstractExtension
             throw new AccessDeniedException('Access to this DataTable is denied.');
         }
 
-        $dataTable = $table->getDataTable();
+        $dataTable = $table->prepareDataTableForRendering();
 
         $originalColumns = array_values($dataTable->getColumns());
         $columns         = $this->columnResolver->filterStaticPermissions($originalColumns, $dataTableClass);

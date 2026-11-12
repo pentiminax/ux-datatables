@@ -229,7 +229,7 @@ final class RenderingPreparer
             return false;
         }
 
-        $table->apiPlatformServerSide();
+        $table->markApiPlatformServerSide();
         // The Stimulus adapter used to force serverSide on the payload; nothing does it now.
         $table->serverSide();
         $table->ajaxRequestData(
