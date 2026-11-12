@@ -35,6 +35,14 @@ final class DataSourceFeatureGuard
         DataSourceFeature::Summaries,
     ];
 
+    /** Row scope and identifier collection are probed by DataSourceCapability, never through the match arms below. */
+    private const QUERY_FEATURES = [
+        DataSourceFeature::SearchBuilder,
+        DataSourceFeature::ColumnControl,
+        DataSourceFeature::ConfiguredFilters,
+        DataSourceFeature::Summaries,
+    ];
+
     public function __construct(
         private readonly DefaultDataTableQueryIntentFactory $intentFactory = new DefaultDataTableQueryIntentFactory(),
     ) {
@@ -78,10 +86,12 @@ final class DataSourceFeatureGuard
         }
 
         if (!$provider instanceof FeatureAwareDataProviderInterface) {
+            trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Data provider "%s" is not feature aware, so the bundle assumes it supports every query feature: 2.0 requires supports(). Implement FeatureAwareDataProviderInterface.', $provider::class);
+
             return;
         }
 
-        foreach (DataSourceFeature::cases() as $feature) {
+        foreach (self::QUERY_FEATURES as $feature) {
             if ($provider->supports($feature)) {
                 continue;
             }

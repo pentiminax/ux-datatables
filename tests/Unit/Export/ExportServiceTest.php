@@ -25,6 +25,7 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use Pentiminax\UX\DataTables\Tests\Support\RecordingExporter;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -43,6 +44,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 #[CoversClass(ExportService::class)]
 final class ExportServiceTest extends TestCase
 {
+    use CollectsDeprecations;
+
     #[Test]
     public function it_exports_exportable_columns_in_table_order(): void
     {
@@ -228,9 +231,10 @@ final class ExportServiceTest extends TestCase
             },
         );
 
-        $this->send((new ExportService(new ExporterRegistry([$csv])))->export($table, $this->exportRequest()));
+        $deprecations = $this->deprecationsOf(fn () => $this->send((new ExportService(new ExporterRegistry([$csv])))->export($table, $this->exportRequest())));
 
         $this->assertSame([['email' => 'all']], $csv->rows);
+        $this->assertCount(1, array_filter($deprecations, static fn (string $message): bool => str_contains($message, 'has no row iteration')));
     }
 
     #[Test]

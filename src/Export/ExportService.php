@@ -151,9 +151,13 @@ final class ExportService
 
         $request = $request->withoutPagination();
 
-        return $provider instanceof StreamingDataProviderInterface
-            ? $provider->iterateRows($request)
-            : $provider->fetchData($request)->data;
+        if ($provider instanceof StreamingDataProviderInterface) {
+            return $provider->iterateRows($request);
+        }
+
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Exporting through data provider "%s", which has no row iteration, loads every row in memory: 2.0 requires iterateRows(). Implement StreamingDataProviderInterface.', $provider::class);
+
+        return $provider->fetchData($request)->data;
     }
 
     private function exportKeyFromRequest(Request $request): ?string

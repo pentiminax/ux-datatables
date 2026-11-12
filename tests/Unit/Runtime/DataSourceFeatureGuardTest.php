@@ -26,6 +26,7 @@ use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Pentiminax\UX\DataTables\Runtime\DataSourceFeatureGuard;
 use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
+use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -39,6 +40,8 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 #[CoversClass(DataSourceFeatureGuard::class)]
 final class DataSourceFeatureGuardTest extends TestCase
 {
+    use CollectsDeprecations;
+
     #[Test]
     #[DataProvider('apiPlatformRefusals')]
     public function it_refuses_at_render_what_an_api_platform_collection_cannot_apply(\Closure $configure, string $message): void
@@ -268,7 +271,43 @@ final class DataSourceFeatureGuardTest extends TestCase
         $runtime = $this->runtime($provider);
         $runtime->handleRequest(new Request(query: ['draw' => 1, 'filters' => ['status' => 'active']]));
 
-        $this->assertSame($provider, $runtime->getDataProvider());
+        $deprecations = $this->deprecationsOf(fn () => $this->assertSame($provider, $runtime->getDataProvider()));
+
+        $this->assertCount(1, $deprecations);
+        $this->assertStringContainsString('is not feature aware', $deprecations[0]);
+        $this->assertStringContainsString('2.0 requires supports()', $deprecations[0]);
+    }
+
+    #[Test]
+    public function it_does_not_ask_an_exhaustive_supports_about_the_row_scope_features(): void
+    {
+        $provider = new class implements DataProviderInterface, FeatureAwareDataProviderInterface {
+            public function supports(DataSourceFeature $feature): bool
+            {
+                return match ($feature) {
+                    DataSourceFeature::SearchBuilder, DataSourceFeature::ColumnControl, DataSourceFeature::ConfiguredFilters, DataSourceFeature::Summaries => true,
+                };
+            }
+
+            public function fetchData(DataTableRequest $request): DataTableResult
+            {
+                return new DataTableResult(recordsTotal: 0, recordsFiltered: 0, data: []);
+            }
+        };
+
+        $runtime = $this->runtime($provider);
+        $runtime->handleRequest(new Request(query: ['draw' => 1]));
+
+        $this->assertSame([], $this->deprecationsOf(fn () => $this->assertSame($provider, $runtime->getDataProvider())));
+    }
+
+    #[Test]
+    public function it_raises_nothing_for_a_feature_aware_provider(): void
+    {
+        $runtime = $this->runtime(new ArrayDataProvider([], new DefaultRowMapper([]), self::columns()));
+        $runtime->handleRequest(new Request(query: ['draw' => 1]));
+
+        $this->assertSame([], $this->deprecationsOf(static fn () => $runtime->getDataProvider()));
     }
 
     #[Test]
