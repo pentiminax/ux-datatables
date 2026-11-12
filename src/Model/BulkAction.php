@@ -61,11 +61,21 @@ final class BulkAction implements \JsonSerializable, ExecutableActionInterface
         return $this;
     }
 
-    public function setClassName(string $className): self
+    public function className(string $className): self
     {
         $this->className = $className;
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use className() instead. Removed in 2.0.
+     */
+    public function setClassName(string $className): self
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "className()" instead.', __METHOD__);
+
+        return $this->className($className);
     }
 
     public function icon(string|Icon $icon): self
@@ -162,9 +172,9 @@ final class BulkAction implements \JsonSerializable, ExecutableActionInterface
      *
      * Without a subject resolver, the attribute is evaluated once before the batch starts. With a
      * resolver, it is evaluated again for every selected entity, and the resolver always receives
-     * the entity itself — never a raw array row, unlike {@see Action::setPermission()}.
+     * the entity itself — never a raw array row, unlike {@see Action::permission()}.
      */
-    public function setPermission(string|Expression $attribute, ?callable $subjectResolver = null): self
+    public function permission(string|Expression $attribute, ?callable $subjectResolver = null): self
     {
         $this->permission                = $attribute;
         $this->permissionSubjectResolver = null === $subjectResolver
@@ -172,6 +182,16 @@ final class BulkAction implements \JsonSerializable, ExecutableActionInterface
             : ($subjectResolver instanceof \Closure ? $subjectResolver : $subjectResolver(...));
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use permission() instead. Removed in 2.0.
+     */
+    public function setPermission(string|Expression $attribute, ?callable $subjectResolver = null): self
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "permission()" instead.', __METHOD__);
+
+        return $this->permission($attribute, $subjectResolver);
     }
 
     public function getPermission(): string|Expression|null

@@ -149,13 +149,13 @@ use Pentiminax\UX\DataTables\Column\EmailColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 
 $nameColumn = TextColumn::new('name', 'Name')
-    ->setClassName('fw-bold')
-    ->setOrderable(true)
-    ->setSearchable(true)
-    ->setWidth('200px');
+    ->className('fw-bold')
+    ->orderable(true)
+    ->searchable(true)
+    ->width('200px');
 
 $emailColumn = EmailColumn::new('email', 'Email')
-    ->setOrderable(true);
+    ->orderable(true);
 ```
 
 ## Doctrine-Backed Tables

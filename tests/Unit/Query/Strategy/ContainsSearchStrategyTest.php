@@ -64,7 +64,7 @@ final class ContainsSearchStrategyTest extends TestCase
         $qb->expects($this->never())->method('setParameter');
         $qb->expects($this->never())->method('andWhere');
 
-        $column = null !== $field ? TextColumn::new($field)->setField($field) : $this->columnWithoutField();
+        $column = null !== $field ? TextColumn::new($field)->field($field) : $this->columnWithoutField();
         $search = new ColumnControlSearch($value, ColumnControlLogic::Contains, $searchType);
 
         (new ContainsSearchStrategy())->apply($qb, $column, $search, 0, 'e');
@@ -76,7 +76,7 @@ final class ContainsSearchStrategyTest extends TestCase
     public static function applied_cases(): iterable
     {
         yield 'text column uses LIKE' => [
-            TextColumn::new('name')->setField('name'),
+            TextColumn::new('name')->field('name'),
             'text',
             3,
             'foo',
@@ -85,7 +85,7 @@ final class ContainsSearchStrategyTest extends TestCase
         ];
 
         yield 'text column with like wildcards is escaped, not interpreted' => [
-            TextColumn::new('name')->setField('name'),
+            TextColumn::new('name')->field('name'),
             'text',
             3,
             '50%_off',
@@ -94,7 +94,7 @@ final class ContainsSearchStrategyTest extends TestCase
         ];
 
         yield 'text column opting out of case-insensitive search' => [
-            TextColumn::new('name')->setField('name')->setSearchNormalization(false),
+            TextColumn::new('name')->field('name')->searchNormalization(false),
             'text',
             3,
             'Foo',
@@ -103,7 +103,7 @@ final class ContainsSearchStrategyTest extends TestCase
         ];
 
         yield 'numeric column uses exact match' => [
-            NumberColumn::new('id')->setField('id'),
+            NumberColumn::new('id')->field('id'),
             'text',
             1,
             '42',
@@ -114,7 +114,7 @@ final class ContainsSearchStrategyTest extends TestCase
         // Regression guard: a numeric search type hint must force numeric (exact) handling
         // even when the column itself is not numeric.
         yield 'number search type forces exact match' => [
-            TextColumn::new('score')->setField('score'),
+            TextColumn::new('score')->field('score'),
             'number',
             2,
             '7',
@@ -169,7 +169,7 @@ final class ContainsSearchStrategyTest extends TestCase
 
         $search = new ColumnControlSearch('1.5', ColumnControlLogic::Contains, 'text');
 
-        (new ContainsSearchStrategy())->apply($qb, NumberColumn::new('age')->setField('age'), $search, 0, 'e');
+        (new ContainsSearchStrategy())->apply($qb, NumberColumn::new('age')->field('age'), $search, 0, 'e');
     }
 
     #[Test]
@@ -181,7 +181,7 @@ final class ContainsSearchStrategyTest extends TestCase
 
         $search = new ColumnControlSearch('42', ColumnControlLogic::Contains, 'text');
 
-        (new ContainsSearchStrategy())->apply($qb, NumberColumn::new('age')->setField('age'), $search, 0, 'e');
+        (new ContainsSearchStrategy())->apply($qb, NumberColumn::new('age')->field('age'), $search, 0, 'e');
     }
 
     private function columnWithoutField(): ColumnInterface

@@ -53,7 +53,7 @@ final class GlobalSearchFilterTest extends TestCase
             ->method('setParameter')
             ->with('search_param_0', '%ali%');
 
-        $column  = TextColumn::new('name', 'Name')->setField('name');
+        $column  = TextColumn::new('name', 'Name')->field('name');
         $context = $this->globalSearchContext($column, 'ali');
 
         (new GlobalSearchFilter())->apply($qb, $context);
@@ -65,7 +65,7 @@ final class GlobalSearchFilterTest extends TestCase
     public static function appliedGlobalSearches(): iterable
     {
         yield 'simple field' => [
-            TextColumn::new('name', 'Name')->setField('name'),
+            TextColumn::new('name', 'Name')->field('name'),
             'test',
             "LOWER(e.name) LIKE :search_param_0 ESCAPE '!'",
             '%test%',
@@ -73,7 +73,7 @@ final class GlobalSearchFilterTest extends TestCase
         ];
 
         yield 'field with like wildcards is escaped, not interpreted' => [
-            TextColumn::new('name', 'Name')->setField('name'),
+            TextColumn::new('name', 'Name')->field('name'),
             '50%_off',
             "LOWER(e.name) LIKE :search_param_0 ESCAPE '!'",
             '%50!%!_off%',
@@ -81,7 +81,7 @@ final class GlobalSearchFilterTest extends TestCase
         ];
 
         yield 'dot notation field' => [
-            TextColumn::new('authorName', 'Author')->setField('author.firstName'),
+            TextColumn::new('authorName', 'Author')->field('author.firstName'),
             'john',
             "LOWER(author.firstName) LIKE :search_param_0 ESCAPE '!'",
             '%john%',
@@ -158,7 +158,7 @@ final class GlobalSearchFilterTest extends TestCase
         };
 
         $filter = new GlobalSearchFilter($predicateBuilder);
-        $column = TextColumn::new('name', 'Name')->setField('name');
+        $column = TextColumn::new('name', 'Name')->field('name');
 
         $filter->apply($qb, $this->globalSearchContext($column, 'exact'));
     }
@@ -235,7 +235,7 @@ final class GlobalSearchFilterTest extends TestCase
 
         $request = new DataTableRequest(1, new Columns([]), search: new Search('42', false));
         $context = $this->context($request, [
-            TextColumn::new('name', 'Name')->setField('name'),
+            TextColumn::new('name', 'Name')->field('name'),
             NumberColumn::new('invoiceCount', 'Invoices'),
         ]);
 
@@ -282,8 +282,8 @@ final class GlobalSearchFilterTest extends TestCase
 
         $request = new DataTableRequest(1, new Columns([]), search: new Search('1', false));
         $context = $this->context($request, [
-            TextColumn::new('name', 'Name')->setField('name'),
-            BooleanColumn::new('active', 'Active')->setField('active'),
+            TextColumn::new('name', 'Name')->field('name'),
+            BooleanColumn::new('active', 'Active')->field('active'),
         ]);
 
         $this->filter()->apply($qb, $context);
@@ -310,7 +310,7 @@ final class GlobalSearchFilterTest extends TestCase
         $qb->expects($this->once())->method('andWhere')->willReturn($qb);
         $qb->expects($this->once())->method('setParameter')->with('search_param_0', '%acme%');
 
-        $column = TextColumn::new('donorProviderName', 'Donor')->setSearchField('donorProvider.name');
+        $column = TextColumn::new('donorProviderName', 'Donor')->searchField('donorProvider.name');
 
         $this->filter()->apply($qb, $this->globalSearchContext($column, 'acme'));
     }
@@ -332,7 +332,7 @@ final class GlobalSearchFilterTest extends TestCase
 
         $column = TextColumn::new('donorProviderName', 'Donor')
             ->addSearchJoin('e.donorProvider', 'dp')
-            ->setSearchField('dp.name');
+            ->searchField('dp.name');
 
         $this->filter()->apply($qb, $this->globalSearchContext($column, 'acme'));
 
@@ -355,7 +355,7 @@ final class GlobalSearchFilterTest extends TestCase
         $qb->expects($this->once())->method('andWhere')->willReturn($qb);
         $qb->expects($this->once())->method('setParameter')->with('search_param_0', '%acme%');
 
-        $column = TextColumn::new('donorProviderName', 'Donor')->setSearchPredicate(
+        $column = TextColumn::new('donorProviderName', 'Donor')->searchPredicate(
             static function (QueryBuilder $qb, string $alias, string $value, string $paramName): string {
                 $qb->setParameter($paramName, \sprintf('%%%s%%', mb_strtolower($value)));
 

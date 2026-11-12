@@ -28,28 +28,48 @@ class UrlColumn extends AbstractColumn
     public static function new(string $name, string $title = ''): static
     {
         return static::createWithType($name, $title, ColumnType::HTML)
-            ->setCustomOption(self::OPTION_IS_URL, true);
+            ->customOption(self::OPTION_IS_URL, true);
     }
 
     public function openInNewTab(): static
     {
-        $this->setCustomOption(self::OPTION_TARGET, '_blank');
+        $this->customOption(self::OPTION_TARGET, '_blank');
 
         return $this;
     }
 
+    public function displayValue(string $displayValue): static
+    {
+        $this->customOption(self::OPTION_DISPLAY_VALUE, $displayValue);
+
+        return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use displayValue() instead. Removed in 2.0.
+     */
     public function setDisplayValue(string $displayValue): static
     {
-        $this->setCustomOption(self::OPTION_DISPLAY_VALUE, $displayValue);
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "displayValue()" instead.', __METHOD__);
+
+        return $this->displayValue($displayValue);
+    }
+
+    public function defaultProtocol(string $protocol): static
+    {
+        $this->customOption(self::OPTION_DEFAULT_PROTOCOL, $this->normalizeProtocol($protocol));
 
         return $this;
     }
 
+    /**
+     * @deprecated since 1.6, use defaultProtocol() instead. Removed in 2.0.
+     */
     public function setDefaultProtocol(string $protocol): static
     {
-        $this->setCustomOption(self::OPTION_DEFAULT_PROTOCOL, $this->normalizeProtocol($protocol));
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "defaultProtocol()" instead.', __METHOD__);
 
-        return $this;
+        return $this->defaultProtocol($protocol);
     }
 
     /**
@@ -63,7 +83,7 @@ class UrlColumn extends AbstractColumn
             $normalized[] = $this->normalizeProtocol($protocol);
         }
 
-        $this->setCustomOption(self::OPTION_ALLOWED_PROTOCOLS, array_values(array_unique($normalized)));
+        $this->customOption(self::OPTION_ALLOWED_PROTOCOLS, array_values(array_unique($normalized)));
 
         return $this;
     }
@@ -102,7 +122,7 @@ class UrlColumn extends AbstractColumn
         $this->url         = null;
         $this->urlResolver = null;
 
-        $this->setCustomOption(self::OPTION_HAS_URL_RESOLVER, true);
+        $this->customOption(self::OPTION_HAS_URL_RESOLVER, true);
 
         return $this;
     }
@@ -120,14 +140,14 @@ class UrlColumn extends AbstractColumn
         $this->routeName       = null;
         $this->routeParameters = null;
 
-        $this->setCustomOption(self::OPTION_HAS_URL_RESOLVER, true);
+        $this->customOption(self::OPTION_HAS_URL_RESOLVER, true);
 
         return $this;
     }
 
     public function showExternalIcon(bool $show = true): static
     {
-        $this->setCustomOption(self::OPTION_SHOW_EXTERNAL_ICON, $show);
+        $this->customOption(self::OPTION_SHOW_EXTERNAL_ICON, $show);
 
         return $this;
     }
@@ -140,7 +160,7 @@ class UrlColumn extends AbstractColumn
      */
     public function renderEmptyAsAnchor(bool $render = true): static
     {
-        $this->setCustomOption(self::OPTION_RENDER_EMPTY_AS_ANCHOR, $render);
+        $this->customOption(self::OPTION_RENDER_EMPTY_AS_ANCHOR, $render);
 
         return $this;
     }

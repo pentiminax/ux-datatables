@@ -64,7 +64,7 @@ final class SecurityVoterTest extends TestCase
     #[Test]
     public function static_action_permission_delegates_with_null_subject(): void
     {
-        $action  = Action::edit()->setPermission('EDIT_REPORTS');
+        $action  = Action::edit()->permission('EDIT_REPORTS');
         $context = ActionPermissionContext::forRow(VoterPermissionDataTable::class, $action, ['id' => 10]);
         $token   = $this->createToken();
 
@@ -85,7 +85,7 @@ final class SecurityVoterTest extends TestCase
     public function per_row_action_permission_delegates_with_the_resolved_row_subject(): void
     {
         $source = ['owner' => 'alice'];
-        $action = Action::delete()->setPermission('DELETE_REPORT', static fn (array $row): string => $row['owner']);
+        $action = Action::delete()->permission('DELETE_REPORT', static fn (array $row): string => $row['owner']);
         $token  = $this->createToken();
 
         $decisionManager = $this->createMock(AccessDecisionManagerInterface::class);
@@ -108,7 +108,7 @@ final class SecurityVoterTest extends TestCase
     #[Test]
     public function per_row_action_resolver_is_not_called_without_row_context(): void
     {
-        $action = Action::delete()->setPermission('DELETE_REPORT', static function (): never {
+        $action = Action::delete()->permission('DELETE_REPORT', static function (): never {
             throw new \LogicException('The row resolver must not run.');
         });
 
@@ -156,6 +156,6 @@ final class VoterPermissionDataTable extends AbstractDataTable
 
     public function configureDataTable(DataTable $table): DataTable
     {
-        return null === $this->permission ? $table : $table->setPermission($this->permission);
+        return null === $this->permission ? $table : $table->permission($this->permission);
     }
 }

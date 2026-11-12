@@ -69,7 +69,7 @@ final class BulkActionTest extends TestCase
     {
         $payload = BulkAction::new('approve', 'Approve')
             ->handler(static fn () => null)
-            ->setPermission('ORDER_APPROVE')
+            ->permission('ORDER_APPROVE')
             ->chunk(500)
             ->jsonSerialize();
 
@@ -82,11 +82,11 @@ final class BulkActionTest extends TestCase
     #[Test]
     public function it_separates_a_static_permission_from_a_per_row_one(): void
     {
-        $static = BulkAction::new('approve')->setPermission('ORDER_APPROVE');
+        $static = BulkAction::new('approve')->permission('ORDER_APPROVE');
         $this->assertTrue($static->hasStaticPermission());
         $this->assertFalse($static->hasPerRowPermission());
 
-        $perRow = BulkAction::new('approve')->setPermission('ORDER_APPROVE', static fn (object $o): object => $o);
+        $perRow = BulkAction::new('approve')->permission('ORDER_APPROVE', static fn (object $o): object => $o);
         $this->assertFalse($perRow->hasStaticPermission());
         $this->assertTrue($perRow->hasPerRowPermission());
     }

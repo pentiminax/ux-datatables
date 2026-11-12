@@ -18,18 +18,38 @@ class DataTableOptions
         $this->options = $options;
     }
 
-    public function setLanguage(Language $language): static
+    public function language(Language $language): static
     {
         $this->options['language']['url'] = $language->getUrl();
 
         return $this;
     }
 
-    public function setSearch(string $search): static
+    /**
+     * @deprecated since 1.6, use language() instead. Removed in 2.0.
+     */
+    public function setLanguage(Language $language): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "language()" instead.', __METHOD__);
+
+        return $this->language($language);
+    }
+
+    public function search(string $search): static
     {
         $this->options['search']['search'] = $search;
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use search() instead. Removed in 2.0.
+     */
+    public function setSearch(string $search): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "search()" instead.', __METHOD__);
+
+        return $this->search($search);
     }
 
     /**

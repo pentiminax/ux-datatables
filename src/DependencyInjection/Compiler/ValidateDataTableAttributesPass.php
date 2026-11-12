@@ -164,7 +164,7 @@ final class ValidateDataTableAttributesPass implements CompilerPassInterface
 
     /**
      * Whether the column builds its own search condition, through a subclass overriding
-     * buildSearchPredicate() or through a setSearchPredicate() closure.
+     * buildSearchPredicate() or through a searchPredicate() closure.
      */
     private static function buildsItsOwnSearchPredicate(ColumnInterface $column): bool
     {

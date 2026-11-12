@@ -11,10 +11,13 @@ use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 
 final readonly class BooleanMutationContextResolver
 {
+    private AuthorizationChecker $permissionChecker;
+
     public function __construct(
         private AjaxDataTableRegistry $registry,
-        private readonly AuthorizationChecker $permissionChecker = new AuthorizationChecker(),
+        ?AuthorizationChecker $permissionChecker = null,
     ) {
+        $this->permissionChecker = $permissionChecker ?? AuthorizationChecker::fallbackFor(self::class);
     }
 
     public function resolve(string $dataTableToken, string $field): BooleanMutationContext

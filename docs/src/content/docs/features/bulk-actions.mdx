@@ -50,7 +50,7 @@ final class OrdersDataTable extends AbstractDataTable
             BulkAction::new('approve', 'Approve')
                 ->icon(Icon::Check)
                 ->askConfirmation('Approve {count} orders?')
-                ->setPermission('ORDER_APPROVE', static fn (Order $order): Order => $order)
+                ->permission('ORDER_APPROVE', static fn (Order $order): Order => $order)
                 ->successMessage('Orders approved.')
                 ->handler(function (BulkRecords $records, BulkActionContext $context): void {
                     foreach ($records as $order) {

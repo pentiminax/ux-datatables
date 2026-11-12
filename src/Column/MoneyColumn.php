@@ -20,10 +20,10 @@ class MoneyColumn extends AbstractColumn
     public static function new(string $name, string $title = ''): static
     {
         $column = static::createWithType($name, $title, ColumnType::NUM);
-        $column->setCustomOption(self::OPTION_IS_MONEY, true);
-        $column->setCustomOption(self::OPTION_CURRENCY, 'EUR');
-        $column->setCustomOption(self::OPTION_STORED_AS_CENTS, true);
-        $column->setCustomOption(self::OPTION_DECIMALS, 2);
+        $column->customOption(self::OPTION_IS_MONEY, true);
+        $column->customOption(self::OPTION_CURRENCY, 'EUR');
+        $column->customOption(self::OPTION_STORED_AS_CENTS, true);
+        $column->customOption(self::OPTION_DECIMALS, 2);
 
         return $column;
     }
@@ -36,14 +36,14 @@ class MoneyColumn extends AbstractColumn
             throw new \InvalidArgumentException(\sprintf('The currency "%s" is not a valid ISO 4217 currency code.', $currency));
         }
 
-        $this->setCustomOption(self::OPTION_CURRENCY, $currency);
+        $this->customOption(self::OPTION_CURRENCY, $currency);
 
         return $this;
     }
 
     public function storedAsCents(bool $storedAsCents = true): static
     {
-        $this->setCustomOption(self::OPTION_STORED_AS_CENTS, $storedAsCents);
+        $this->customOption(self::OPTION_STORED_AS_CENTS, $storedAsCents);
 
         return $this;
     }
@@ -54,14 +54,14 @@ class MoneyColumn extends AbstractColumn
             throw new \InvalidArgumentException(\sprintf('The number of decimals must be between %d and %d.', self::MIN_DECIMALS, self::MAX_DECIMALS));
         }
 
-        $this->setCustomOption(self::OPTION_DECIMALS, $decimals);
+        $this->customOption(self::OPTION_DECIMALS, $decimals);
 
         return $this;
     }
 
     public function showCurrencySign(bool $show = true): static
     {
-        $this->setCustomOption(self::OPTION_SHOW_CURRENCY_SIGN, $show);
+        $this->customOption(self::OPTION_SHOW_CURRENCY_SIGN, $show);
 
         return $this;
     }

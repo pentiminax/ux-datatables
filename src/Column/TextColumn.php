@@ -15,7 +15,7 @@ class TextColumn extends AbstractColumn
 
     public function utf8(): static
     {
-        return $this->setType(match ($this->type) {
+        return $this->type(match ($this->type) {
             ColumnType::HTML, ColumnType::HTML_UTF8 => ColumnType::HTML_UTF8,
             default                                 => ColumnType::STRING_UTF8,
         });
@@ -23,7 +23,7 @@ class TextColumn extends AbstractColumn
 
     public function html(): static
     {
-        return $this->setType(match ($this->type) {
+        return $this->type(match ($this->type) {
             ColumnType::STRING_UTF8, ColumnType::HTML_UTF8 => ColumnType::HTML_UTF8,
             default                                        => ColumnType::HTML,
         });

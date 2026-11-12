@@ -43,7 +43,7 @@ final class ConcreteColumnFactoryTest extends DataTableTestCase
         yield 'boolean' => [static fn () => BooleanColumn::new('field_name', 'Field label'), ColumnType::NUM];
         yield 'date' => [static fn () => DateColumn::new('field_name', 'Field label'), ColumnType::DATE];
         yield 'number' => [static fn () => NumberColumn::new('field_name', 'Field label'), ColumnType::NUM];
-        yield 'template' => [static fn () => TemplateColumn::new('field_name', 'Field label')->setTemplate('datatable/columns/cell.html.twig'), ColumnType::HTML];
+        yield 'template' => [static fn () => TemplateColumn::new('field_name', 'Field label')->template('datatable/columns/cell.html.twig'), ColumnType::HTML];
         yield 'url' => [static fn () => UrlColumn::new('field_name', 'Field label'), ColumnType::HTML];
         yield 'email' => [static fn () => EmailColumn::new('field_name', 'Field label'), ColumnType::HTML];
         yield 'text::utf8' => [static fn () => TextColumn::new('field_name', 'Field label')->utf8(), ColumnType::STRING_UTF8];

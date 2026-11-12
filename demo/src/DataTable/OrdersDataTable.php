@@ -23,7 +23,7 @@ final class OrdersDataTable extends AbstractDataTable
         yield TextColumn::new('reference', 'Reference');
 
         yield TextColumn::new('customer', 'Customer')
-            ->setField('customer.name');
+            ->field('customer.name');
 
         yield NumberColumn::new('items', 'Items');
 
@@ -32,7 +32,7 @@ final class OrdersDataTable extends AbstractDataTable
             ->storedAsCents();
 
         yield ChoiceColumn::new('status', 'Status')
-            ->setChoices(OrderStatus::class)
+            ->choices(OrderStatus::class)
             ->renderAsBadges([
                 'pending'   => 'warning',
                 'paid'      => 'info',
@@ -42,7 +42,7 @@ final class OrdersDataTable extends AbstractDataTable
             ]);
 
         yield DateColumn::new('placedAt', 'Placed at')
-            ->setFormat('Y-m-d H:i');
+            ->format('Y-m-d H:i');
     }
 
     public function configureDataTable(DataTable $table): DataTable

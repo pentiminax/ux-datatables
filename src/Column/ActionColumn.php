@@ -33,13 +33,13 @@ class ActionColumn extends AbstractColumn implements ActionsProvidingColumnInter
         ])));
 
         if ('' !== $className) {
-            $instance->setClassName($className);
+            $instance->className($className);
         }
 
         $columnControl = $actions->getColumnControl();
 
         if (null !== $columnControl) {
-            $instance->setColumnControl($columnControl);
+            $instance->columnControl($columnControl);
         }
 
         return $instance;
@@ -48,17 +48,17 @@ class ActionColumn extends AbstractColumn implements ActionsProvidingColumnInter
     private function __construct(string $name, string $title)
     {
         $this
-            ->setName($name)
-            ->setTitle($title)
-            ->setData(ActionRowDataResolver::ROW_ACTIONS_KEY)
-            ->setDefaultContent('')
-            ->setOrderable(false)
-            ->setSearchable(false)
+            ->name($name)
+            ->title($title)
+            ->data(ActionRowDataResolver::ROW_ACTIONS_KEY)
+            ->defaultContent('')
+            ->orderable(false)
+            ->searchable(false)
             ->disableGlobalSearch()
             ->disableColumnControl()
-            ->setType(ColumnType::STRING)
-            ->setExportable(false)
-            ->setResponsivePriority(1);
+            ->type(ColumnType::STRING)
+            ->exportable(false)
+            ->responsivePriority(1);
     }
 
     public function getActions(): ?Actions

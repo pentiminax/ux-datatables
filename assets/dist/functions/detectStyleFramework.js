@@ -1,6 +1,8 @@
 import { STYLE_FRAMEWORKS } from '../types/styleFramework.js';
 let warnedDeprecatedFramework = false;
+let warnedAutodetection = false;
 export function detectStyleFramework() {
+    warnOnceAboutAutodetection();
     const sheets = [...document.styleSheets];
     for (const { key, cssPattern } of STYLE_FRAMEWORKS) {
         const matched = sheets.some((sheet) => sheet.href !== null && sheet.href.includes(cssPattern));
@@ -11,6 +13,13 @@ export function detectStyleFramework() {
     }
     console.warn('No DataTables stylesheet detected. Make sure a DataTables CSS file is loaded. Falling back to "dt".');
     return 'dt';
+}
+function warnOnceAboutAutodetection() {
+    if (warnedAutodetection) {
+        return;
+    }
+    warnedAutodetection = true;
+    console.warn('The style framework was autodetected from the page stylesheets, which is removed in 2.0. Call styleFramework() on the table or install a style kit.');
 }
 function warnOnceAboutDeprecatedFramework(key) {
     if ((key !== 'bs' && key !== 'bs4') || warnedDeprecatedFramework) {

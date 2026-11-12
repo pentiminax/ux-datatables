@@ -119,7 +119,7 @@ final class EmployeeDataTable extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield TextColumn::new('name', 'Name')
-            ->setColumnControl(['colvisDropdown']);
+            ->columnControl(['colvisDropdown']);
 
         yield TextColumn::new('office', 'Office');
     }
@@ -182,7 +182,7 @@ final class EmployeeDataTable extends AbstractDataTable
     {
         yield TextColumn::new('name', 'Name');
 
-        yield TextColumn::new('office', 'Office')->setColumnControl([
+        yield TextColumn::new('office', 'Office')->columnControl([
             [
                 'target'  => 1,
                 'content' => [SearchList::new()],
@@ -253,7 +253,7 @@ final class EmployeeDataTable extends AbstractDataTable
     {
         yield TextColumn::new('name', 'Name');
 
-        yield TextColumn::new('status', 'Status')->setColumnControl([
+        yield TextColumn::new('status', 'Status')->columnControl([
             [
                 'target'  => 1,
                 'content' => [SearchList::new()->options(EmploymentStatus::class)],
@@ -406,7 +406,7 @@ final class EmployeeDataTable extends AbstractDataTable
     public function configureActions(Actions $actions): Actions
     {
         return $actions
-            ->setColumnControl(['colvisDropdown'])
+            ->columnControl(['colvisDropdown'])
             ->add(Action::edit());
     }
 }
@@ -471,7 +471,7 @@ final class EmployeeDataTable extends AbstractDataTable
     {
         yield TextColumn::new('name', 'Name');
         yield NumberColumn::new('rating', 'Rating')
-            ->setColumnControl(['myRating']);
+            ->columnControl(['myRating']);
     }
 
     public function configureDataTable(DataTable $table): DataTable

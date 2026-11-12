@@ -108,7 +108,7 @@ final class DoctrineDataProviderSummaryTest extends TestCase
     #[Test]
     public function it_reports_no_summaries_when_no_column_declares_one(): void
     {
-        $result = $this->fetch(columns: [NumberColumn::new('amount')->setField('amount')]);
+        $result = $this->fetch(columns: [NumberColumn::new('amount')->field('amount')]);
 
         $this->assertNull($result->summaries);
     }
@@ -156,7 +156,7 @@ final class DoctrineDataProviderSummaryTest extends TestCase
     #[Test]
     public function a_search_matching_several_children_counts_each_root_once(): void
     {
-        $notes = TextColumn::new('notes')->setField('id')->setSearchField('notes.text');
+        $notes = TextColumn::new('notes')->field('id')->searchField('notes.text');
 
         $result = $this->fetch(
             request: $this->request(search: 'urgent'),
@@ -170,7 +170,7 @@ final class DoctrineDataProviderSummaryTest extends TestCase
     #[Test]
     public function it_summarizes_a_field_of_a_to_one_relation(): void
     {
-        $quota = NumberColumn::new('quota')->setField('region.quota')->summarize(new Sum());
+        $quota = NumberColumn::new('quota')->field('region.quota')->summarize(new Sum());
 
         $result = $this->fetch(columns: [$quota]);
 
@@ -180,7 +180,7 @@ final class DoctrineDataProviderSummaryTest extends TestCase
     #[Test]
     public function a_relation_already_joined_by_the_scope_does_not_clash_with_the_summary(): void
     {
-        $quota = NumberColumn::new('quota')->setField('region.quota')->summarize(new Sum());
+        $quota = NumberColumn::new('quota')->field('region.quota')->summarize(new Sum());
 
         $result = $this->fetch(
             columns: [$quota],
@@ -201,7 +201,7 @@ final class DoctrineDataProviderSummaryTest extends TestCase
     #[Test]
     public function a_summarized_to_many_field_is_rejected(): void
     {
-        $notes = TextColumn::new('notes')->setField('notes.text')->summarize(new Count());
+        $notes = TextColumn::new('notes')->field('notes.text')->summarize(new Count());
 
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('crosses a to-many association');
@@ -254,7 +254,7 @@ final class DoctrineDataProviderSummaryTest extends TestCase
                     return [];
                 }
             },
-            columns: [NumberColumn::new('orderId')->setField('orderId')->summarize(new Sum())],
+            columns: [NumberColumn::new('orderId')->field('orderId')->summarize(new Sum())],
         ))->fetchData($this->request());
     }
 
@@ -264,7 +264,7 @@ final class DoctrineDataProviderSummaryTest extends TestCase
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('The column "virtual" cannot be summarized on the server because "virtual" is not a mapped field');
 
-        $this->fetch(columns: [NumberColumn::new('virtual')->setField('virtual')->summarize(new Sum())]);
+        $this->fetch(columns: [NumberColumn::new('virtual')->field('virtual')->summarize(new Sum())]);
     }
 
     /**
@@ -272,7 +272,7 @@ final class DoctrineDataProviderSummaryTest extends TestCase
      */
     private function fetch(?DataTableRequest $request = null, ?array $columns = null, ?Filters $filters = null, ?callable $scope = null): \Pentiminax\UX\DataTables\Model\DataTableResult
     {
-        $columns ??= [TextColumn::new('status')->setField('status'), $this->amountColumn()];
+        $columns ??= [TextColumn::new('status')->field('status'), $this->amountColumn()];
         $request ??= $this->request();
 
         $provider = new DoctrineDataProvider(
@@ -299,7 +299,7 @@ final class DoctrineDataProviderSummaryTest extends TestCase
 
     private function amountColumn(): NumberColumn
     {
-        return NumberColumn::new('amount')->setField('amount')->summarize(new Sum(), new Average(), new Min(), new Max(), new Count());
+        return NumberColumn::new('amount')->field('amount')->summarize(new Sum(), new Average(), new Min(), new Max(), new Count());
     }
 
     /**

@@ -153,7 +153,7 @@ class DataTablesExtension extends AbstractExtension
         }
 
         $allowed = (clone $bulkActions)->filterStaticPermissions(
-            $this->permissionChecker ?? new AuthorizationChecker(),
+            $this->permissionChecker ?? AuthorizationChecker::fallbackFor(self::class),
             $dataTableClass,
         );
 

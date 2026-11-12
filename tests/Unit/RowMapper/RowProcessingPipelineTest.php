@@ -60,7 +60,7 @@ final class RowProcessingPipelineTest extends TestCase
         $pipeline = new RowProcessingPipeline(
             baseMapper: static fn (array $row): array => $row,
             columns: [
-                TextColumn::new('salary', 'Salary')->setPermission('ROLE_HR'),
+                TextColumn::new('salary', 'Salary')->permission('ROLE_HR'),
                 TextColumn::new('name', 'Name'),
             ],
             columnResolver: new ColumnResolver(permissionChecker: new AuthorizationChecker($checker)),
@@ -88,7 +88,7 @@ final class RowProcessingPipelineTest extends TestCase
         $pipeline = new RowProcessingPipeline(
             baseMapper: static fn (array $row): array => $row,
             columns: [
-                TextColumn::new('salary', 'Salary')->setPermission('ROLE_HR'),
+                TextColumn::new('salary', 'Salary')->permission('ROLE_HR'),
                 TextColumn::new('name', 'Name'),
             ],
             columnResolver: new ColumnResolver(permissionChecker: new AuthorizationChecker($checker)),
@@ -116,7 +116,7 @@ final class RowProcessingPipelineTest extends TestCase
         $pipeline = new RowProcessingPipeline(
             baseMapper: static fn (array $row): array => $row,
             columns: [
-                TextColumn::new('user.email', 'Email')->setPermission('ROLE_HR'),
+                TextColumn::new('user.email', 'Email')->permission('ROLE_HR'),
                 TextColumn::new('name', 'Name'),
             ],
             columnResolver: new ColumnResolver(permissionChecker: new AuthorizationChecker($checker)),
@@ -139,7 +139,7 @@ final class RowProcessingPipelineTest extends TestCase
         $pipeline = new RowProcessingPipeline(
             baseMapper: static fn (array $row): array => $row,
             columns: [
-                TextColumn::new('value.name', 'Name')->setPermission('ROLE_HR'),
+                TextColumn::new('value.name', 'Name')->permission('ROLE_HR'),
                 TextColumn::new('name', 'Name'),
             ],
             columnResolver: new ColumnResolver(permissionChecker: new AuthorizationChecker($checker)),
@@ -183,7 +183,7 @@ final class RowProcessingPipelineTest extends TestCase
 
         yield 'relation object resolved via dotted field path' => [
             $client,
-            TextColumn::new('value', 'Client')->setField('value.name'),
+            TextColumn::new('value', 'Client')->field('value.name'),
             'Acme Corp',
         ];
 
@@ -201,7 +201,7 @@ final class RowProcessingPipelineTest extends TestCase
 
         yield 'datetime formatted by the date column' => [
             new \DateTimeImmutable('2024-03-15'),
-            DateColumn::new('value', 'Date')->setFormat('d/m/Y'),
+            DateColumn::new('value', 'Date')->format('d/m/Y'),
             '15/03/2024',
         ];
 
@@ -308,7 +308,7 @@ final class RowProcessingPipelineTest extends TestCase
     {
         yield 'template column is rendered next to its source value' => [
             ['status' => 'active'],
-            [TemplateColumn::new('status_display')->setField('status')->setTemplate('badge.html.twig')],
+            [TemplateColumn::new('status_display')->field('status')->template('badge.html.twig')],
             ['status' => 'active', 'status_display' => '<b>active</b>'],
         ];
 
@@ -330,8 +330,8 @@ final class RowProcessingPipelineTest extends TestCase
             columns: [
                 TextColumn::new('id'),
                 TemplateColumn::new('status_display')
-                    ->setField('status')
-                    ->setTemplate('datatable/columns/order.html.twig'),
+                    ->field('status')
+                    ->template('datatable/columns/order.html.twig'),
                 self::detailActionColumn(static fn (TemplateRow $row): string => '/movies/'.$row->id),
             ],
             templateColumnRenderer: self::templateColumnRenderer([

@@ -35,20 +35,37 @@ describe('detectStyleFramework', () => {
         expect(detectStyleFramework()).toBe(key)
         expect(detectStyleFramework()).toBe(key)
 
-        expect(warn).toHaveBeenCalledTimes(1)
-        expect(warn.mock.calls[0][0]).toContain('Bootstrap 3 and 4 styling is deprecated')
-        expect(warn.mock.calls[0][0]).toContain('"bs5"')
-        expect(warn.mock.calls[0][0]).toContain('"dt"')
+        const deprecation = warn.mock.calls.filter(([m]) => String(m).includes('Bootstrap 3 and 4'))
+        expect(deprecation).toHaveLength(1)
+        expect(deprecation[0][0]).toContain('"bs5"')
+        expect(deprecation[0][0]).toContain('"dt"')
     })
 
     it.each([
         ['bs5', '/css/dataTables.bootstrap5.min.css'],
         ['dt', '/css/dataTables.dataTables.min.css'],
-    ])('stays quiet when autodetection resolves to %s', async (key, href) => {
-        const { detectStyleFramework } = await import('../detectStyleFramework.js')
-        loadStylesheet(href)
+    ])(
+        'does not warn about Bootstrap 3 and 4 when autodetection resolves to %s',
+        async (key, href) => {
+            const { detectStyleFramework } = await import('../detectStyleFramework.js')
+            loadStylesheet(href)
 
-        expect(detectStyleFramework()).toBe(key)
-        expect(warn).not.toHaveBeenCalled()
+            expect(detectStyleFramework()).toBe(key)
+            expect(warn.mock.calls.some(([m]) => String(m).includes('Bootstrap 3 and 4'))).toBe(
+                false
+            )
+        }
+    )
+
+    it('warns once per page that autodetection is removed in 2.0', async () => {
+        const { detectStyleFramework } = await import('../detectStyleFramework.js')
+        loadStylesheet('/css/dataTables.dataTables.min.css')
+
+        detectStyleFramework()
+        detectStyleFramework()
+
+        const autodetection = warn.mock.calls.filter(([m]) => String(m).includes('autodetected'))
+        expect(autodetection).toHaveLength(1)
+        expect(autodetection[0][0]).toContain('styleFramework()')
     })
 })

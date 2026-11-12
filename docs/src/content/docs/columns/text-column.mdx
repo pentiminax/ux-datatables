@@ -74,7 +74,7 @@ final class UsersDataTable extends AbstractDataTable
 {
     public function configureColumns(): iterable
     {
-        yield NumberColumn::new('id', 'ID')->setWidth('60px');
+        yield NumberColumn::new('id', 'ID')->width('60px');
         yield TextColumn::new('name', 'Name')->utf8();
         yield TextColumn::new('bio', 'Bio')->html()->utf8();
     }

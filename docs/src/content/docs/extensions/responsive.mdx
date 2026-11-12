@@ -42,9 +42,9 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 
 public function configureColumns(): iterable
 {
-    yield NumberColumn::new('id', 'ID')->setResponsivePriority(1);
-    yield TextColumn::new('email', 'Email')->setResponsivePriority(2);
-    yield TextColumn::new('notes', 'Notes')->setResponsivePriority(4);
+    yield NumberColumn::new('id', 'ID')->responsivePriority(1);
+    yield TextColumn::new('email', 'Email')->responsivePriority(2);
+    yield TextColumn::new('notes', 'Notes')->responsivePriority(4);
 }
 ```
 

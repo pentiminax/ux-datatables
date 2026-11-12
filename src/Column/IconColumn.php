@@ -27,7 +27,7 @@ class IconColumn extends AbstractColumn
     public static function new(string $name, string $title = ''): static
     {
         $column = static::createWithType($name, $title, ColumnType::HTML);
-        $column->setCustomOption(self::OPTION_IS_ICON, true);
+        $column->customOption(self::OPTION_IS_ICON, true);
 
         return $column;
     }
@@ -42,7 +42,7 @@ class IconColumn extends AbstractColumn
             unset($this->customOptions[self::OPTION_ICON]);
         } else {
             $this->iconResolver = null;
-            $this->setCustomOption(self::OPTION_ICON, self::iconValue($icon));
+            $this->customOption(self::OPTION_ICON, self::iconValue($icon));
         }
 
         return $this;
@@ -58,7 +58,7 @@ class IconColumn extends AbstractColumn
             unset($this->customOptions[self::OPTION_COLOR]);
         } else {
             $this->colorResolver = null;
-            $this->setCustomOption(self::OPTION_COLOR, $color);
+            $this->customOption(self::OPTION_COLOR, $color);
         }
 
         return $this;
@@ -86,7 +86,7 @@ class IconColumn extends AbstractColumn
 
     public function size(string|IconSize $size): static
     {
-        $this->setCustomOption(self::OPTION_SIZE, $size instanceof IconSize ? $size->value : $size);
+        $this->customOption(self::OPTION_SIZE, $size instanceof IconSize ? $size->value : $size);
 
         return $this;
     }
@@ -96,42 +96,42 @@ class IconColumn extends AbstractColumn
      */
     public function tooltips(array $tooltips): static
     {
-        $this->setCustomOption(self::OPTION_TOOLTIPS, $tooltips);
+        $this->customOption(self::OPTION_TOOLTIPS, $tooltips);
 
         return $this;
     }
 
     public function boolean(bool $boolean = true): static
     {
-        $this->setCustomOption(self::OPTION_BOOLEAN, $boolean);
+        $this->customOption(self::OPTION_BOOLEAN, $boolean);
 
         return $this;
     }
 
     public function trueIcon(string|Icon $icon): static
     {
-        $this->setCustomOption(self::OPTION_TRUE_ICON, self::iconValue($icon));
+        $this->customOption(self::OPTION_TRUE_ICON, self::iconValue($icon));
 
         return $this;
     }
 
     public function falseIcon(string|Icon $icon): static
     {
-        $this->setCustomOption(self::OPTION_FALSE_ICON, self::iconValue($icon));
+        $this->customOption(self::OPTION_FALSE_ICON, self::iconValue($icon));
 
         return $this;
     }
 
     public function trueColor(string $color): static
     {
-        $this->setCustomOption(self::OPTION_TRUE_COLOR, $color);
+        $this->customOption(self::OPTION_TRUE_COLOR, $color);
 
         return $this;
     }
 
     public function falseColor(string $color): static
     {
-        $this->setCustomOption(self::OPTION_FALSE_COLOR, $color);
+        $this->customOption(self::OPTION_FALSE_COLOR, $color);
 
         return $this;
     }

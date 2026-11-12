@@ -86,7 +86,7 @@ final class ExportService
     private function applyExportHeadings(ExportValueFormatter $formatter, array $columns): void
     {
         foreach ($columns as $column) {
-            $column->setTitle($formatter->heading($column, $column->getTitle() ?? $column->getName()));
+            $column->title($formatter->heading($column, $column->getTitle() ?? $column->getName()));
         }
     }
 

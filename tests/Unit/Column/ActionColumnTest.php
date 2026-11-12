@@ -33,8 +33,8 @@ final class ActionColumnTest extends TestCase
                     ->linkToUrl('/books/42')
             )
         )
-            ->setField('bookActions')
-            ->setVisible(false);
+            ->field('bookActions')
+            ->visible(false);
 
         $data = $column->jsonSerialize();
 
@@ -58,7 +58,7 @@ final class ActionColumnTest extends TestCase
     public function it_applies_the_actions_column_class_name_and_alignment(): void
     {
         $actions = (new Actions())
-            ->setColumnClassName('w-1')
+            ->columnClassName('w-1')
             ->alignment(ActionsAlignment::Center)
             ->add(Action::delete());
 
@@ -71,7 +71,7 @@ final class ActionColumnTest extends TestCase
     public function it_applies_the_actions_column_control(): void
     {
         $actions = (new Actions())
-            ->setColumnControl(['colvisDropdown'])
+            ->columnControl(['colvisDropdown'])
             ->add(Action::delete());
 
         $column = ActionColumn::fromActions('actions', 'Actions', $actions);
@@ -112,7 +112,7 @@ final class ActionColumnTest extends TestCase
         $this->assertSame(1, $column->getResponsivePriority());
         $this->assertSame(1, $column->jsonSerialize()['responsivePriority']);
 
-        $column->setResponsivePriority(2);
+        $column->responsivePriority(2);
 
         $this->assertSame(2, $column->getResponsivePriority());
         $this->assertSame(2, $column->jsonSerialize()['responsivePriority']);

@@ -35,7 +35,7 @@ final class ColumnTranslatorTest extends TestCase
         };
 
         $text   = TextColumn::new('name', 'name');
-        $choice = ChoiceColumn::new('status', 'status')->setChoices(ColumnTranslatorStatus::class);
+        $choice = ChoiceColumn::new('status', 'status')->choices(ColumnTranslatorStatus::class);
 
         ColumnTranslator::translate([$text, $choice], $translator);
 

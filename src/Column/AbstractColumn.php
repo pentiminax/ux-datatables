@@ -71,13 +71,13 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
         $resolvedTitle = '' === $title ? $name : $title;
 
         return (new static())
-            ->setData($name)
-            ->setName($name)
-            ->setTitle($resolvedTitle)
-            ->setType($type);
+            ->data($name)
+            ->name($name)
+            ->title($resolvedTitle)
+            ->type($type);
     }
 
-    public function setClassName(?string $className): static
+    public function className(?string $className): static
     {
         $this->className = $className;
 
@@ -85,16 +85,36 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
     }
 
     /**
+     * @deprecated since 1.6, use className() instead. Removed in 2.0.
+     */
+    public function setClassName(?string $className): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "className()" instead.', __METHOD__);
+
+        return $this->className($className);
+    }
+
+    /**
      * Change the type of HTML cell created for this column (either "td" or "th").
      */
-    public function setCellType(?string $cellType): static
+    public function cellType(?string $cellType): static
     {
         $this->cellType = $cellType;
 
         return $this;
     }
 
-    public function setName(string $name): static
+    /**
+     * @deprecated since 1.6, use cellType() instead. Removed in 2.0.
+     */
+    public function setCellType(?string $cellType): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "cellType()" instead.', __METHOD__);
+
+        return $this->cellType($cellType);
+    }
+
+    public function name(string $name): static
     {
         $this->name = $name;
 
@@ -105,6 +125,16 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
         return $this;
     }
 
+    /**
+     * @deprecated since 1.6, use name() instead. Removed in 2.0.
+     */
+    public function setName(string $name): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "name()" instead.', __METHOD__);
+
+        return $this->name($name);
+    }
+
     public function getName(): string
     {
         return $this->name ?? '';
@@ -113,7 +143,7 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
     /**
      * Enable or disable ordering on this column.
      */
-    public function setOrderable(bool $orderable = true): static
+    public function orderable(bool $orderable = true): static
     {
         $this->orderable = $orderable;
 
@@ -121,13 +151,33 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
     }
 
     /**
+     * @deprecated since 1.6, use orderable() instead. Removed in 2.0.
+     */
+    public function setOrderable(bool $orderable = true): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "orderable()" instead.', __METHOD__);
+
+        return $this->orderable($orderable);
+    }
+
+    /**
      * Enable or disable searching on this column.
      */
-    public function setSearchable(bool $searchable = true): static
+    public function searchable(bool $searchable = true): static
     {
         $this->searchable = $searchable;
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use searchable() instead. Removed in 2.0.
+     */
+    public function setSearchable(bool $searchable = true): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "searchable()" instead.', __METHOD__);
+
+        return $this->searchable($searchable);
     }
 
     public function isSearchable(): bool
@@ -144,11 +194,21 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
      * a known case. The bare LIKE then follows the column's collation: case-sensitive on
      * PostgreSQL and binary collations, still case-insensitive on a `_ci` MySQL collation.
      */
-    public function setSearchNormalization(bool $normalized = true): static
+    public function searchNormalization(bool $normalized = true): static
     {
         $this->searchNormalized = $normalized;
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use searchNormalization() instead. Removed in 2.0.
+     */
+    public function setSearchNormalization(bool $normalized = true): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "searchNormalization()" instead.', __METHOD__);
+
+        return $this->searchNormalization($normalized);
     }
 
     public function isSearchNormalized(): bool
@@ -193,11 +253,21 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
      *
      * @param list<mixed> $columnControl
      */
-    public function setColumnControl(array $columnControl): static
+    public function columnControl(array $columnControl): static
     {
         $this->columnControl = $columnControl;
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use columnControl() instead. Removed in 2.0.
+     */
+    public function setColumnControl(array $columnControl): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "columnControl()" instead.', __METHOD__);
+
+        return $this->columnControl($columnControl);
     }
 
     public function getColumnControl(): ?array
@@ -208,7 +278,7 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
     /**
      * Set the column type (used for filtering and sorting string processing).
      */
-    public function setType(ColumnType $type): static
+    public function type(ColumnType $type): static
     {
         $this->type = $type;
 
@@ -216,13 +286,33 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
     }
 
     /**
+     * @deprecated since 1.6, use type() instead. Removed in 2.0.
+     */
+    public function setType(ColumnType $type): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "type()" instead.', __METHOD__);
+
+        return $this->type($type);
+    }
+
+    /**
      * Define the width of this column (any valid CSS unit such as "120px", "3em", "20%").
      */
-    public function setWidth(?string $width): static
+    public function width(?string $width): static
     {
         $this->width = $width;
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use width() instead. Removed in 2.0.
+     */
+    public function setWidth(?string $width): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "width()" instead.', __METHOD__);
+
+        return $this->width($width);
     }
 
     /**
@@ -232,11 +322,21 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
      * Negative values are allowed and increase priority further. Has a visible effect only when
      * the Responsive extension is enabled on the table.
      */
-    public function setResponsivePriority(?int $priority): static
+    public function responsivePriority(?int $priority): static
     {
         $this->responsivePriority = $priority;
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use responsivePriority() instead. Removed in 2.0.
+     */
+    public function setResponsivePriority(?int $priority): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "responsivePriority()" instead.', __METHOD__);
+
+        return $this->responsivePriority($priority);
     }
 
     public function getResponsivePriority(): ?int
@@ -249,7 +349,7 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
         return $this->title;
     }
 
-    public function setTitle(string $title): static
+    public function title(string $title): static
     {
         $this->title = $title;
 
@@ -257,9 +357,19 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
     }
 
     /**
+     * @deprecated since 1.6, use title() instead. Removed in 2.0.
+     */
+    public function setTitle(string $title): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "title()" instead.', __METHOD__);
+
+        return $this->title($title);
+    }
+
+    /**
      * Control whether this column is visible in the table.
      */
-    public function setVisible(bool $visible): static
+    public function visible(bool $visible): static
     {
         $this->visible = $visible;
 
@@ -267,9 +377,19 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
     }
 
     /**
+     * @deprecated since 1.6, use visible() instead. Removed in 2.0.
+     */
+    public function setVisible(bool $visible): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "visible()" instead.', __METHOD__);
+
+        return $this->visible($visible);
+    }
+
+    /**
      * Set the data source for this column (e.g. "user.email").
      */
-    public function setData(?string $data): static
+    public function data(?string $data): static
     {
         $this->data = $data;
 
@@ -277,9 +397,19 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
     }
 
     /**
+     * @deprecated since 1.6, use data() instead. Removed in 2.0.
+     */
+    public function setData(?string $data): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "data()" instead.', __METHOD__);
+
+        return $this->data($data);
+    }
+
+    /**
      * Define a fallback content when the data source is null or missing.
      */
-    public function setDefaultContent(?string $defaultContent): static
+    public function defaultContent(?string $defaultContent): static
     {
         $this->defaultContent = $defaultContent;
 
@@ -287,13 +417,33 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
     }
 
     /**
+     * @deprecated since 1.6, use defaultContent() instead. Removed in 2.0.
+     */
+    public function setDefaultContent(?string $defaultContent): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "defaultContent()" instead.', __METHOD__);
+
+        return $this->defaultContent($defaultContent);
+    }
+
+    /**
      * Enable or disable export for this column.
      */
-    public function setExportable(bool $exportable): static
+    public function exportable(bool $exportable): static
     {
         $this->exportable = $exportable;
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use exportable() instead. Removed in 2.0.
+     */
+    public function setExportable(bool $exportable): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "exportable()" instead.', __METHOD__);
+
+        return $this->exportable($exportable);
     }
 
     public function isExportable(): bool
@@ -361,11 +511,21 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
         return $this->field ?? $this->name;
     }
 
-    public function setField(string $field): static
+    public function field(string $field): static
     {
         $this->field = $field;
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use field() instead. Removed in 2.0.
+     */
+    public function setField(string $field): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "field()" instead.', __METHOD__);
+
+        return $this->field($field);
     }
 
     /**
@@ -374,11 +534,21 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
      * Bypasses the default "<alias>.<field>" resolution — use for computed columns
      * backed by an addSelect(... AS HIDDEN alias) in customizeQueryBuilder().
      */
-    public function setOrderExpression(string $orderExpression): static
+    public function orderExpression(string $orderExpression): static
     {
         $this->orderExpression = $orderExpression;
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use orderExpression() instead. Removed in 2.0.
+     */
+    public function setOrderExpression(string $orderExpression): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "orderExpression()" instead.', __METHOD__);
+
+        return $this->orderExpression($orderExpression);
     }
 
     public function getOrderExpression(): ?string
@@ -395,17 +565,27 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
      * a mapped column or a relation:
      *
      *     TextColumn::new('donorProviderName')
-     *         ->setSearchField('donorProvider.name');
+     *         ->searchField('donorProvider.name');
      *
      * The path follows setField()'s dot-notation: a simple field is prefixed with the root
      * alias, a relation path adds a LEFT JOIN. Reach for {@see addSearchJoin()} instead when
      * the join needs a specific alias or a WITH condition.
      */
-    public function setSearchField(string $searchField): static
+    public function searchField(string $searchField): static
     {
         $this->searchField = $searchField;
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use searchField() instead. Removed in 2.0.
+     */
+    public function setSearchField(string $searchField): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "searchField()" instead.', __METHOD__);
+
+        return $this->searchField($searchField);
     }
 
     public function getSearchField(): ?string
@@ -422,7 +602,7 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
      *
      *     TextColumn::new('donorProviderName')
      *         ->addSearchJoin('e.donorProvider', 'dp')
-     *         ->setSearchField('dp.name');
+     *         ->searchField('dp.name');
      *
      * $conditionType and $condition are passed through to QueryBuilder::leftJoin() and must be
      * given together; either one alone is ignored.
@@ -461,7 +641,7 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
      *
      *     TextColumn::new('donorProviderName')
      *         ->addSearchJoin('e.donorProvider', 'dp')
-     *         ->setSearchPredicate(function (QueryBuilder $qb, string $alias, string $value, string $paramName): string {
+     *         ->searchPredicate(function (QueryBuilder $qb, string $alias, string $value, string $paramName): string {
      *             $qb->setParameter($paramName, '%'.$value.'%');
      *
      *             return "dp.name LIKE :{$paramName} OR dp.legalName LIKE :{$paramName}";
@@ -472,11 +652,21 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
      *
      * @param \Closure(QueryBuilder, string, string, string): (string|null) $predicate
      */
-    public function setSearchPredicate(\Closure $predicate): static
+    public function searchPredicate(\Closure $predicate): static
     {
         $this->searchPredicate = $predicate;
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use searchPredicate() instead. Removed in 2.0.
+     */
+    public function setSearchPredicate(\Closure $predicate): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "searchPredicate()" instead.', __METHOD__);
+
+        return $this->searchPredicate($predicate);
     }
 
     /**
@@ -502,7 +692,7 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
     {
         $this->valueFormatter = $formatter;
 
-        return $this->setCustomOption('formatted', true);
+        return $this->customOption('formatted', true);
     }
 
     /**
@@ -571,11 +761,21 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
         return $this;
     }
 
-    public function setCustomOption(string $optionName, mixed $optionValue): static
+    public function customOption(string $optionName, mixed $optionValue): static
     {
         $this->customOptions[$optionName] = $optionValue;
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use customOption() instead. Removed in 2.0.
+     */
+    public function setCustomOption(string $optionName, mixed $optionValue): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "customOption()" instead.', __METHOD__);
+
+        return $this->customOption($optionName, $optionValue);
     }
 
     public function getCustomOption(string $optionName): mixed
@@ -588,11 +788,21 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
      *
      * Evaluated once before serialization. The attribute name is never sent to the client.
      */
-    public function setPermission(string|Expression $attribute): static
+    public function permission(string|Expression $attribute): static
     {
         $this->permission = $attribute;
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use permission() instead. Removed in 2.0.
+     */
+    public function setPermission(string|Expression $attribute): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "permission()" instead.', __METHOD__);
+
+        return $this->permission($attribute);
     }
 
     public function getPermission(): string|Expression|null

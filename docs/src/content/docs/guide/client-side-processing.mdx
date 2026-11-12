@@ -117,7 +117,7 @@ final class UserController extends AbstractController
 ```
 
 This setup is ideal when the page already owns the dataset and no extra HTTP request is needed.
-When the rows are computed in the controller, call `$table->setData($rows)` there instead of
+When the rows are computed in the controller, call `$table->data($rows)` there instead of
 hardcoding them in `configureDataTable()`.
 
 ## Domain Objects With `setData()`
@@ -142,7 +142,7 @@ final class UsersDataTable extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield TextColumn::new('fullName', 'Name')
-            ->setField('lastName')
+            ->field('lastName')
             ->formatValueUsing(static fn (?string $lastName, User $user): string => $user->getFirstName().' '.$lastName);
         yield EmailColumn::new('email', 'Email');
         yield TextColumn::new('role', 'Role');
@@ -173,7 +173,7 @@ final class UserController extends AbstractController
     {
         $data = $users->findBy([], ['lastName' => 'ASC'])
 
-        $table->setData($data);
+        $table->data($data);
 
         return $this->render('admin/users/index.html.twig', [
             'table' => $table,
@@ -249,7 +249,7 @@ $dataTable->ajax('/api/users', dataSrc: 'items');
 use Pentiminax\UX\DataTables\Column\TextColumn;
 
 TextColumn::new('team', 'Team')
-    ->setData('profile.team.name');
+    ->data('profile.team.name');
 ```
 
 This is especially useful with Ajax payloads built from nested JSON objects.

@@ -1,6 +1,7 @@
 import { STYLE_FRAMEWORKS, type StyleFramework } from '../types/styleFramework.js'
 
 let warnedDeprecatedFramework = false
+let warnedAutodetection = false
 
 /**
  * Detects which DataTables styling framework is loaded by inspecting
@@ -9,6 +10,8 @@ let warnedDeprecatedFramework = false
  * Falls back to 'dt' if no recognised stylesheet is found.
  */
 export function detectStyleFramework(): StyleFramework {
+    warnOnceAboutAutodetection()
+
     const sheets = [...document.styleSheets]
 
     for (const { key, cssPattern } of STYLE_FRAMEWORKS) {
@@ -28,6 +31,20 @@ export function detectStyleFramework(): StyleFramework {
     )
 
     return 'dt'
+}
+
+/**
+ * @deprecated since 1.6, set the style framework with styleFramework() or install a style kit. Removed in 2.0.
+ */
+function warnOnceAboutAutodetection(): void {
+    if (warnedAutodetection) {
+        return
+    }
+
+    warnedAutodetection = true
+    console.warn(
+        'The style framework was autodetected from the page stylesheets, which is removed in 2.0. Call styleFramework() on the table or install a style kit.'
+    )
 }
 
 function warnOnceAboutDeprecatedFramework(key: StyleFramework): void {

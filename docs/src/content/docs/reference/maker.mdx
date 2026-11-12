@@ -120,9 +120,9 @@ public function configureColumns(): iterable
 
 ```php
 yield TextColumn::new('email', 'Email')
-    ->setOrderable(true)
-    ->setSearchable(true)
-    ->setWidth('200px');
+    ->orderable(true)
+    ->searchable(true)
+    ->width('200px');
 ```
 
 ### Configure the DataTable

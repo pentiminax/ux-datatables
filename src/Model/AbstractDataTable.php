@@ -490,11 +490,21 @@ abstract class AbstractDataTable
         );
     }
 
-    public function setData(array $data): void
+    public function data(array $data): void
     {
         $this->initialize();
 
         $this->mapInlineRows($data);
+    }
+
+    /**
+     * @deprecated since 1.6, use data() instead. Removed in 2.0.
+     */
+    public function setData(array $data): void
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "data()" instead.', __METHOD__);
+
+        $this->data($data);
     }
 
     /**

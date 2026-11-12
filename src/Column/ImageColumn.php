@@ -20,57 +20,97 @@ class ImageColumn extends AbstractColumn
     public static function new(string $name, string $title = ''): static
     {
         $column = static::createWithType($name, $title, ColumnType::HTML);
-        $column->setCustomOption(self::OPTION_IS_IMAGE, true);
-        $column->setCustomOption(self::OPTION_LAZY, true);
+        $column->customOption(self::OPTION_IS_IMAGE, true);
+        $column->customOption(self::OPTION_LAZY, true);
 
         return $column;
     }
 
+    public function imageWidth(int $px): static
+    {
+        $this->customOption(self::OPTION_IMAGE_WIDTH, $px);
+
+        return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use imageWidth() instead. Removed in 2.0.
+     */
     public function setImageWidth(int $px): static
     {
-        $this->setCustomOption(self::OPTION_IMAGE_WIDTH, $px);
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "imageWidth()" instead.', __METHOD__);
+
+        return $this->imageWidth($px);
+    }
+
+    public function imageHeight(int $px): static
+    {
+        $this->customOption(self::OPTION_IMAGE_HEIGHT, $px);
 
         return $this;
     }
 
+    /**
+     * @deprecated since 1.6, use imageHeight() instead. Removed in 2.0.
+     */
     public function setImageHeight(int $px): static
     {
-        $this->setCustomOption(self::OPTION_IMAGE_HEIGHT, $px);
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "imageHeight()" instead.', __METHOD__);
+
+        return $this->imageHeight($px);
+    }
+
+    public function alt(string $alt): static
+    {
+        $this->customOption(self::OPTION_ALT, $alt);
 
         return $this;
     }
 
+    /**
+     * @deprecated since 1.6, use alt() instead. Removed in 2.0.
+     */
     public function setAlt(string $alt): static
     {
-        $this->setCustomOption(self::OPTION_ALT, $alt);
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "alt()" instead.', __METHOD__);
+
+        return $this->alt($alt);
+    }
+
+    public function placeholder(string $url): static
+    {
+        $this->customOption(self::OPTION_PLACEHOLDER, $url);
 
         return $this;
     }
 
+    /**
+     * @deprecated since 1.6, use placeholder() instead. Removed in 2.0.
+     */
     public function setPlaceholder(string $url): static
     {
-        $this->setCustomOption(self::OPTION_PLACEHOLDER, $url);
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "placeholder()" instead.', __METHOD__);
 
-        return $this;
+        return $this->placeholder($url);
     }
 
     public function rounded(bool $rounded = true): static
     {
-        $this->setCustomOption(self::OPTION_ROUNDED, $rounded);
+        $this->customOption(self::OPTION_ROUNDED, $rounded);
 
         return $this;
     }
 
     public function lazy(bool $lazy = true): static
     {
-        $this->setCustomOption(self::OPTION_LAZY, $lazy);
+        $this->customOption(self::OPTION_LAZY, $lazy);
 
         return $this;
     }
 
     public function clickable(bool $clickable = true): static
     {
-        $this->setCustomOption(self::OPTION_CLICKABLE, $clickable);
+        $this->customOption(self::OPTION_CLICKABLE, $clickable);
 
         return $this;
     }

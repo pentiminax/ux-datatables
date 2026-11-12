@@ -26,21 +26,21 @@ Available on every column. `formatValueUsing(fn ($value, $row): string => ...)` 
 
 ```php
 TextColumn::new('email', 'Email')
-    ->setWidth('200px')            // any CSS unit
-    ->setClassName('text-truncate')
-    ->setCellType('th')            // 'td' (default) or 'th'
-    ->setVisible(true)
-    ->setOrderable(false)          // disable sorting on this column
-    ->setSearchable(false)         // disable per-column search
+    ->width('200px')            // any CSS unit
+    ->className('text-truncate')
+    ->cellType('th')            // 'td' (default) or 'th'
+    ->visible(true)
+    ->orderable(false)          // disable sorting on this column
+    ->searchable(false)         // disable per-column search
     ->disableGlobalSearch()        // keep searchable but exclude from the global box
-    ->setOrderExpression('invoiceCount')  // raw ORDER BY (DQL/SELECT alias) for a computed column — see server-side.md
-    ->setData('user.email')        // data source path (client-side rows)
-    ->setField('user.email')       // entity property path (server-side query/sort)
-    ->setDefaultContent('—')       // fallback when value is null/missing
-    ->setExportable(false)         // exclude from export (adds 'not-exportable' class)
+    ->orderExpression('invoiceCount')  // raw ORDER BY (DQL/SELECT alias) for a computed column — see server-side.md
+    ->data('user.email')        // data source path (client-side rows)
+    ->field('user.email')       // entity property path (server-side query/sort)
+    ->defaultContent('—')       // fallback when value is null/missing
+    ->exportable(false)         // exclude from export (adds 'not-exportable' class)
     ->hideWhenUpdating()           // hide field in the edit modal
-    ->setPermission('ROLE_ADMIN')     // hide column unless granted (evaluated server-side, never sent to client)
-    ->setCustomOption('key', 'value');
+    ->permission('ROLE_ADMIN')     // hide column unless granted (evaluated server-side, never sent to client)
+    ->customOption('key', 'value');
 ```
 
 Notes:

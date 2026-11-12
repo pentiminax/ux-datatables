@@ -80,7 +80,7 @@ final class NullnessSearchStrategyTest extends TestCase
     public function it_applies_null_only_expression_on_a_uuid_column(bool $negated, string $expectedExpression): void
     {
         $strategy = new NullnessSearchStrategy($negated);
-        $column   = TextColumn::new('id')->setField('id');
+        $column   = TextColumn::new('id')->field('id');
 
         $search = new ColumnControlSearch(
             value: '',

@@ -43,6 +43,40 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  compatibility:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Lowest dependencies
+            php: '8.2'
+            composer-flags: '--prefer-lowest --prefer-stable'
+          - name: Symfony 7.4
+            php: '8.2'
+            symfony: '7.4.*'
+          - name: Symfony 8
+            php: '8.4'
+            symfony: '8.*'
+    name: ${{ matrix.name }}
+    env:
+      SYMFONY_REQUIRE: ${{ matrix.symfony }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer, ${{ matrix.symfony && 'flex' || '' }}
+
+      - name: Install dependencies
+        run: composer update --no-progress ${{ matrix.composer-flags }}
+
+      - name: Run automated tests
+        run: vendor/bin/phpunit
+
   demo:
     runs-on: ubuntu-latest
     name: Demo app

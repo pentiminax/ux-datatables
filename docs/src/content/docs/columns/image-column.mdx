@@ -23,8 +23,8 @@ Set the rendered `<img>` dimensions in pixels. These control the HTML `width`/`h
 
 ```php
 ImageColumn::new('avatar', 'Avatar')
-    ->setImageWidth(50)
-    ->setImageHeight(50);
+    ->imageWidth(50)
+    ->imageHeight(50);
 ```
 
 Renders as: `<img src="..." alt="" width="50" height="50" loading="lazy">`
@@ -35,8 +35,8 @@ Renders as: `<img src="..." alt="" width="50" height="50" loading="lazy">`
 
 ```php
 ImageColumn::new('avatar', 'Avatar')
-    ->setImageWidth(50)
-    ->setImageHeight(50)
+    ->imageWidth(50)
+    ->imageHeight(50)
     ->rounded();
 ```
 
@@ -46,7 +46,7 @@ ImageColumn::new('avatar', 'Avatar')
 
 ```php
 ImageColumn::new('avatar', 'Avatar')
-    ->setPlaceholder('/images/default-avatar.png');
+    ->placeholder('/images/default-avatar.png');
 ```
 
 ## Lazy Loading
@@ -73,7 +73,7 @@ Renders as: `<a href="..." target="_blank" rel="noopener noreferrer"><img ...></
 
 ```php
 ImageColumn::new('avatar', 'Avatar')
-    ->setAlt('User profile picture');
+    ->alt('User profile picture');
 ```
 
 ## API Reference
@@ -117,10 +117,10 @@ final class UsersDataTable extends AbstractDataTable
     {
         yield NumberColumn::new('id', 'ID');
         yield ImageColumn::new('avatar', 'Avatar')
-            ->setImageWidth(50)
-            ->setImageHeight(50)
+            ->imageWidth(50)
+            ->imageHeight(50)
             ->rounded()
-            ->setPlaceholder('/images/default-avatar.png')
+            ->placeholder('/images/default-avatar.png')
             ->clickable();
         yield TextColumn::new('name', 'Name');
     }

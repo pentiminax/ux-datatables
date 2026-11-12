@@ -198,7 +198,7 @@ final class BulkActionRunner
         }
 
         // The provider must answer in the field already written as DT_RowId — the same
-        // identifier findBy() will use. Passing the raw setIdField() default (`id`) lets
+        // identifier findBy() will use. Passing the raw idField() default (`id`) lets
         // DoctrineDataProvider collect a leftover `id` column while the lookup remaps to
         // the primary key, so overlapping values mutate the wrong rows.
         $ids        = $provider->collectIdentifiers($dataTableRequest->withoutPagination(), $identifier);
@@ -237,7 +237,7 @@ final class BulkActionRunner
             throw new \LogicException(\sprintf('Bulk actions look rows up by the "%s" field that highlightUpdates() writes as DT_RowId, but it is not a mapped field of "%s". Point highlightUpdates(idField: ...) at a mapped, unique field.', $field, $entityClass));
         }
 
-        throw new \LogicException(\sprintf('Bulk actions look rows up by the "%s" field that setIdField() writes as DT_RowId, but it is not a mapped field of "%s". Point BulkActions::setIdField() at a mapped, unique field.', $field, $entityClass));
+        throw new \LogicException(\sprintf('Bulk actions look rows up by the "%s" field that idField() writes as DT_RowId, but it is not a mapped field of "%s". Point BulkActions::idField() at a mapped, unique field.', $field, $entityClass));
     }
 
     private function publish(string $entityClass, string $dataTableClass, BulkAction $action, int $processed): void

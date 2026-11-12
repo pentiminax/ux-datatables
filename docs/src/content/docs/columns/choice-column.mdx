@@ -15,7 +15,7 @@ Badge markup is produced by a frontend [column style adapter](/guide/styling/#co
 use Pentiminax\UX\DataTables\Column\ChoiceColumn;
 
 ChoiceColumn::new('status', 'Status')
-    ->setChoices([
+    ->choices([
         'active'   => 'Active',
         'inactive' => 'Inactive',
         'pending'  => 'Pending',
@@ -35,7 +35,7 @@ enum Status: string
 }
 
 ChoiceColumn::new('status', 'Status')
-    ->setChoices(Status::cases());
+    ->choices(Status::cases());
 // Generates: ['active' => 'Active', 'inactive' => 'Inactive', 'pending' => 'Pending']
 ```
 
@@ -59,7 +59,7 @@ enum Status: string implements TranslatableInterface
 }
 
 ChoiceColumn::new('status', 'Status')
-    ->setChoices(Status::class);
+    ->choices(Status::class);
 ```
 
 ## Rendering as Badges
@@ -68,7 +68,7 @@ Use `renderAsBadges()` to wrap each label in a badge. Map individual values to *
 
 ```php
 ChoiceColumn::new('status', 'Status')
-    ->setChoices(Status::cases())
+    ->choices(Status::cases())
     ->renderAsBadges(
         badgeSelector: [
             'active'   => 'success',
@@ -87,7 +87,7 @@ When `renderAsBadges()` is called without a `badgeSelector` map (or for values n
 
 ```php
 ChoiceColumn::new('category', 'Category')
-    ->setChoices(['foo' => 'Foo', 'bar' => 'Bar'])
+    ->choices(['foo' => 'Foo', 'bar' => 'Bar'])
     ->renderAsBadges(); // all values use 'secondary' variant
 ```
 
@@ -136,7 +136,7 @@ final class OrdersDataTable extends AbstractDataTable
         yield NumberColumn::new('id', 'ID');
         yield TextColumn::new('reference', 'Reference');
         yield ChoiceColumn::new('status', 'Status')
-            ->setChoices(OrderStatus::class)
+            ->choices(OrderStatus::class)
             ->renderAsBadges([
                 'draft'     => 'secondary',
                 'confirmed' => 'primary',

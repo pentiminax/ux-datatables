@@ -51,31 +51,31 @@ final class DefaultDataTableQueryIntentFactoryTest extends TestCase
     public static function orderRequests(): iterable
     {
         yield 'single valid order' => [
-            TextColumn::new('name', 'Name')->setField('name'),
+            TextColumn::new('name', 'Name')->field('name'),
             [new Order(0, 'desc', 'name')],
             'desc',
         ];
 
         yield 'the same column requested twice keeps its first direction' => [
-            TextColumn::new('name', 'Name')->setField('name'),
+            TextColumn::new('name', 'Name')->field('name'),
             [new Order(0, 'asc', 'name'), new Order(0, 'desc', 'name')],
             'asc',
         ];
 
         yield 'unknown column name' => [
-            TextColumn::new('name', 'Name')->setField('name'),
+            TextColumn::new('name', 'Name')->field('name'),
             [new Order(5, 'asc', 'column_5')],
             null,
         ];
 
         yield 'order index shifted by a leading client column' => [
-            TextColumn::new('name', 'Name')->setField('name'),
+            TextColumn::new('name', 'Name')->field('name'),
             [new Order(1, 'desc', 'name')],
             'desc',
         ];
 
         yield 'non orderable column' => [
-            TextColumn::new('name', 'Name')->setField('name')->setOrderable(false),
+            TextColumn::new('name', 'Name')->field('name')->orderable(false),
             [new Order(0, 'asc', 'name')],
             null,
         ];
@@ -86,14 +86,14 @@ final class DefaultDataTableQueryIntentFactoryTest extends TestCase
      */
     public static function globalSearchRequests(): iterable
     {
-        yield 'empty value' => [TextColumn::new('name', 'Name')->setField('name'), '', null];
+        yield 'empty value' => [TextColumn::new('name', 'Name')->field('name'), '', null];
 
-        yield 'whitespace value' => [TextColumn::new('name', 'Name')->setField('name'), '   ', null];
+        yield 'whitespace value' => [TextColumn::new('name', 'Name')->field('name'), '   ', null];
 
-        yield 'non empty value' => [TextColumn::new('name', 'Name')->setField('name'), 'john', 'john'];
+        yield 'non empty value' => [TextColumn::new('name', 'Name')->field('name'), 'john', 'john'];
 
         yield 'no globally searchable column' => [
-            TextColumn::new('name', 'Name')->setField('name')->disableGlobalSearch(),
+            TextColumn::new('name', 'Name')->field('name')->disableGlobalSearch(),
             'john',
             null,
         ];
@@ -104,17 +104,17 @@ final class DefaultDataTableQueryIntentFactoryTest extends TestCase
      */
     public static function columnSearchRequests(): iterable
     {
-        yield 'empty value' => [TextColumn::new('name', 'Name')->setField('name'), '', null];
+        yield 'empty value' => [TextColumn::new('name', 'Name')->field('name'), '', null];
 
-        yield 'whitespace value' => [TextColumn::new('name', 'Name')->setField('name'), '   ', null];
+        yield 'whitespace value' => [TextColumn::new('name', 'Name')->field('name'), '   ', null];
 
         yield 'non searchable column' => [
-            TextColumn::new('name', 'Name')->setField('name')->setSearchable(false),
+            TextColumn::new('name', 'Name')->field('name')->searchable(false),
             'john',
             null,
         ];
 
-        yield 'searchable column' => [TextColumn::new('name', 'Name')->setField('name'), 'john', 'john'];
+        yield 'searchable column' => [TextColumn::new('name', 'Name')->field('name'), 'john', 'john'];
     }
 
     /**
@@ -190,9 +190,9 @@ final class DefaultDataTableQueryIntentFactoryTest extends TestCase
     #[Test]
     public function it_builds_every_order_criterion_in_request_order(): void
     {
-        $city = TextColumn::new('city', 'City')->setField('city');
-        $name = TextColumn::new('name', 'Name')->setField('name');
-        $age  = NumberColumn::new('age', 'Age')->setField('age');
+        $city = TextColumn::new('city', 'City')->field('city');
+        $name = TextColumn::new('name', 'Name')->field('name');
+        $age  = NumberColumn::new('age', 'Age')->field('age');
 
         $request = new DataTableRequest(1, $this->requestColumns($city), order: [
             new Order(1, 'asc', 'city'),
@@ -213,9 +213,9 @@ final class DefaultDataTableQueryIntentFactoryTest extends TestCase
     #[Test]
     public function it_skips_unknown_and_non_orderable_columns_among_several_criteria(): void
     {
-        $name   = TextColumn::new('name', 'Name')->setField('name');
-        $secret = TextColumn::new('secret', 'Secret')->setField('secret')->setOrderable(false);
-        $city   = TextColumn::new('city', 'City')->setField('city');
+        $name   = TextColumn::new('name', 'Name')->field('name');
+        $secret = TextColumn::new('secret', 'Secret')->field('secret')->orderable(false);
+        $city   = TextColumn::new('city', 'City')->field('city');
 
         $request = new DataTableRequest(1, $this->requestColumns($name), order: [
             new Order(1, 'asc', 'secret'),
@@ -273,7 +273,7 @@ final class DefaultDataTableQueryIntentFactoryTest extends TestCase
         ?string $expectedValue,
         array $expectedValues,
     ): void {
-        $column  = TextColumn::new('status', 'Status')->setField('status');
+        $column  = TextColumn::new('status', 'Status')->field('status');
         $request = new DataTableRequest(1, $this->requestColumns($column, columnControl: $columnControl));
 
         $intent = $this->intent($request, $column);
@@ -292,7 +292,7 @@ final class DefaultDataTableQueryIntentFactoryTest extends TestCase
     #[DataProvider('paginationRequests')]
     public function it_normalizes_pagination(int $start, int $length, int $expectedOffset, ?int $expectedLimit): void
     {
-        $column  = TextColumn::new('name', 'Name')->setField('name');
+        $column  = TextColumn::new('name', 'Name')->field('name');
         $request = new DataTableRequest(1, $this->requestColumns($column), start: $start, length: $length);
 
         $intent = $this->intent($request, $column);
@@ -304,8 +304,8 @@ final class DefaultDataTableQueryIntentFactoryTest extends TestCase
     #[Test]
     public function it_builds_column_read_references_in_display_order(): void
     {
-        $name = TextColumn::new('name', 'Name')->setField('name');
-        $id   = NumberColumn::new('id', 'ID')->setField('id');
+        $name = TextColumn::new('name', 'Name')->field('name');
+        $id   = NumberColumn::new('id', 'ID')->field('id');
 
         $request = new DataTableRequest(1, new Columns([]));
 
@@ -319,8 +319,8 @@ final class DefaultDataTableQueryIntentFactoryTest extends TestCase
     #[Test]
     public function it_maps_shifted_request_columns_by_name(): void
     {
-        $name  = TextColumn::new('name', 'Name')->setField('name');
-        $email = TextColumn::new('email', 'Email')->setField('email');
+        $name  = TextColumn::new('name', 'Name')->field('name');
+        $email = TextColumn::new('email', 'Email')->field('email');
 
         $request = new DataTableRequest(
             draw: 1,
@@ -359,8 +359,8 @@ final class DefaultDataTableQueryIntentFactoryTest extends TestCase
     {
         $this->expectException(InvalidQueryIntentException::class);
 
-        $first  = TextColumn::new('name', 'Name')->setField('name');
-        $second = TextColumn::new('name', 'Other')->setField('other');
+        $first  = TextColumn::new('name', 'Name')->field('name');
+        $second = TextColumn::new('name', 'Other')->field('other');
 
         $this->intent(new DataTableRequest(1, new Columns([])), $first, $second);
     }

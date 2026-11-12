@@ -17,7 +17,7 @@ class DateColumn extends AbstractColumn
         return static::createWithType($name, $title, ColumnType::DATE);
     }
 
-    public function setFormat(?string $format): static
+    public function format(?string $format): static
     {
         if (null === $format) {
             unset($this->customOptions[self::OPTION_DATE_FORMAT]);
@@ -25,9 +25,19 @@ class DateColumn extends AbstractColumn
             return $this;
         }
 
-        $this->setCustomOption(self::OPTION_DATE_FORMAT, $format);
+        $this->customOption(self::OPTION_DATE_FORMAT, $format);
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use format() instead. Removed in 2.0.
+     */
+    public function setFormat(?string $format): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "format()" instead.', __METHOD__);
+
+        return $this->format($format);
     }
 
     /**
@@ -46,7 +56,7 @@ class DateColumn extends AbstractColumn
             return $this;
         }
 
-        $this->setCustomOption(self::OPTION_RELATIVE, true);
+        $this->customOption(self::OPTION_RELATIVE, true);
 
         return $this;
     }

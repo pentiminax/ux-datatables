@@ -34,7 +34,7 @@ final class ActionRowDataResolver
         private readonly ?UrlGeneratorInterface $urlGenerator = null,
         private readonly ?CsrfTokenManagerInterface $csrfTokenManager = null,
     ) {
-        $this->permissionChecker = $permissionChecker ?? new AuthorizationChecker();
+        $this->permissionChecker = $permissionChecker ?? AuthorizationChecker::fallbackFor(self::class);
         $this->propertyAccessor  = $propertyAccessor  ?? PropertyAccess::createPropertyAccessor();
     }
 

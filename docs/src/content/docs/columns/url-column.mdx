@@ -90,7 +90,7 @@ UrlColumn::new('profileLabel', 'Profile')
 
 ```php
 UrlColumn::new('support', 'Support')
-    ->setDisplayValue('Contact support')
+    ->displayValue('Contact support')
     ->linkToUrl('/support');
 ```
 
@@ -111,7 +111,7 @@ Use a fixed label instead of the cell value:
 
 ```php
 UrlColumn::new('profile_url', 'Profile')
-    ->setDisplayValue('View profile');
+    ->displayValue('View profile');
 ```
 
 ## External Link Icon
@@ -129,7 +129,7 @@ Use `setDefaultProtocol()` to prepend a protocol to values that do not already i
 
 ```php
 UrlColumn::new('website', 'Website')
-    ->setDefaultProtocol('https');
+    ->defaultProtocol('https');
 ```
 
 With this configuration, a value like `example.com` is rendered with `href="https://example.com"` while keeping `example.com` as the displayed text.
@@ -145,7 +145,7 @@ Values with other protocols are escaped and rendered as plain text. You can comb
 
 ```php
 UrlColumn::new('website', 'Website')
-    ->setDefaultProtocol('https')
+    ->defaultProtocol('https')
     ->allowedProtocols(['https']);
 ```
 

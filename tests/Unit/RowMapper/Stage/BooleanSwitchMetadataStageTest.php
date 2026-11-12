@@ -44,7 +44,7 @@ final class BooleanSwitchMetadataStageTest extends TestCase
         $result = (new BooleanSwitchMetadataStage('rowKey', 'App\\Entity\\Order'))->process(
             ['active' => true],
             ['rowKey' => 12, 'id' => 42],
-            [BooleanColumn::new('active')->renderAsSwitch()->setEntityClass('App\\Entity\\Customer')],
+            [BooleanColumn::new('active')->renderAsSwitch()->entityClass('App\\Entity\\Customer')],
         );
 
         $this->assertSame('12', $result[BooleanSwitchMetadataStage::ROW_ID_KEY]);
@@ -56,7 +56,7 @@ final class BooleanSwitchMetadataStageTest extends TestCase
     {
         $columns = [
             BooleanColumn::new('active')->renderAsSwitch(),
-            BooleanColumn::new('enabled')->renderAsSwitch()->setEntityClass('App\\Entity\\Order'),
+            BooleanColumn::new('enabled')->renderAsSwitch()->entityClass('App\\Entity\\Order'),
         ];
 
         $result = (new BooleanSwitchMetadataStage('rowKey', 'App\\Entity\\Order'))->process(['active' => true, 'enabled' => false], ['rowKey' => 12, 'id' => 42], $columns);
@@ -102,8 +102,8 @@ final class BooleanSwitchMetadataStageTest extends TestCase
             [
                 BooleanColumn::new('enabled')
                     ->renderAsSwitch()
-                    ->setToggleAjax(idField: 'uuid')
-                    ->setCustomOption(BooleanColumn::OPTION_TOGGLE_FIELD, 'isEnabled'),
+                    ->toggleAjax(idField: 'uuid')
+                    ->customOption(BooleanColumn::OPTION_TOGGLE_FIELD, 'isEnabled'),
             ],
             [
                 'enabled'                                => true,
@@ -128,7 +128,7 @@ final class BooleanSwitchMetadataStageTest extends TestCase
         yield 'empty id field falls back to the default one and stringifies the id' => [
             ['active' => true],
             ['id' => $stringableId],
-            [BooleanColumn::new('active')->renderAsSwitch()->setToggleAjax(idField: '')],
+            [BooleanColumn::new('active')->renderAsSwitch()->toggleAjax(idField: '')],
             [
                 'active'                                 => true,
                 BooleanSwitchMetadataStage::METADATA_KEY => ['active' => 'stringable-id'],

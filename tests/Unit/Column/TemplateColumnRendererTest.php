@@ -47,7 +47,7 @@ final class TemplateColumnRendererTest extends TestCase
             ['status.html.twig' => '<span data-field="{{ column.field }}">{{ data }}</span>'],
             [
                 TextColumn::new('id'),
-                TemplateColumn::new('status_display')->setField('status')->setTemplate('status.html.twig'),
+                TemplateColumn::new('status_display')->field('status')->template('status.html.twig'),
             ],
             ['id' => 7],
             new TemplateEntity(id: 7, status: 'active'),
@@ -57,7 +57,7 @@ final class TemplateColumnRendererTest extends TestCase
         yield 'column matching the field name is not overwritten' => [
             ['margin.html.twig' => '<span class="badge">{{ data|number_format(2) }}</span>'],
             [
-                TemplateColumn::new('margin')->setField('marginRate')->setTemplate('margin.html.twig'),
+                TemplateColumn::new('margin')->field('marginRate')->template('margin.html.twig'),
                 TextColumn::new('marginRate'),
             ],
             ['margin' => 12.3456, 'marginRate' => 12.3456],
@@ -67,7 +67,7 @@ final class TemplateColumnRendererTest extends TestCase
 
         yield 'data key when no field is configured' => [
             ['column.html.twig' => '<b>{{ data }}</b>'],
-            [TemplateColumn::new('status_display')->setData('status')->setTemplate('column.html.twig')],
+            [TemplateColumn::new('status_display')->data('status')->template('column.html.twig')],
             ['status' => 'active'],
             [],
             ['status' => '<b>active</b>'],
@@ -75,7 +75,7 @@ final class TemplateColumnRendererTest extends TestCase
 
         yield 'nested field is keyed by name' => [
             ['column.html.twig' => '<b>{{ data }}</b>'],
-            [TemplateColumn::new('author_name')->setField('author.name')->setTemplate('column.html.twig')],
+            [TemplateColumn::new('author_name')->field('author.name')->template('column.html.twig')],
             [],
             ['author' => ['name' => 'Ada']],
             ['author_name' => '<b>Ada</b>'],
@@ -83,7 +83,7 @@ final class TemplateColumnRendererTest extends TestCase
 
         yield 'column without a row key is skipped' => [
             ['column.html.twig' => '<b>{{ data }}</b>'],
-            [TemplateColumn::new('')->setTemplate('column.html.twig')],
+            [TemplateColumn::new('')->template('column.html.twig')],
             ['id' => 3],
             [],
             ['id' => 3],
@@ -91,7 +91,7 @@ final class TemplateColumnRendererTest extends TestCase
 
         yield 'row array value wins over mapped row' => [
             ['column.html.twig' => '{{ data }}'],
-            [TemplateColumn::new('status_display')->setField('status')->setTemplate('column.html.twig')],
+            [TemplateColumn::new('status_display')->field('status')->template('column.html.twig')],
             ['status' => 'from_row'],
             new TemplateEntity(id: 1, status: 'from_entity'),
             ['status' => 'from_row', 'status_display' => 'from_row'],
@@ -101,8 +101,8 @@ final class TemplateColumnRendererTest extends TestCase
             ['column.html.twig' => '{{ badge_class }}: {{ data }}'],
             [
                 TemplateColumn::new('status_display')
-                    ->setField('status')
-                    ->setTemplate('column.html.twig', ['badge_class' => 'badge-success']),
+                    ->field('status')
+                    ->template('column.html.twig', ['badge_class' => 'badge-success']),
             ],
             ['status' => 'active'],
             [],
@@ -115,8 +115,8 @@ final class TemplateColumnRendererTest extends TestCase
                 'type.html.twig'   => 'Type: {{ data }}',
             ],
             [
-                TemplateColumn::new('status_display')->setField('status')->setTemplate('status.html.twig'),
-                TemplateColumn::new('type_display')->setField('type')->setTemplate('type.html.twig'),
+                TemplateColumn::new('status_display')->field('status')->template('status.html.twig'),
+                TemplateColumn::new('type_display')->field('type')->template('type.html.twig'),
             ],
             ['status' => 'active', 'type' => 'admin'],
             [],
@@ -130,7 +130,7 @@ final class TemplateColumnRendererTest extends TestCase
 
         yield 'row is the mapRow object, not the payload array' => [
             ['column.html.twig' => '{{ row.getStatus() }}-{{ row.id }}-{{ column.name }}'],
-            [TemplateColumn::new('status_display')->setField('status')->setTemplate('column.html.twig')],
+            [TemplateColumn::new('status_display')->field('status')->template('column.html.twig')],
             ['id' => 42],
             new TemplateEntity(id: 42, status: 'verified'),
             ['id' => 42, 'status_display' => 'verified-42-status_display'],
@@ -138,7 +138,7 @@ final class TemplateColumnRendererTest extends TestCase
 
         yield 'payload exposes the mapRow() array including keys of other columns' => [
             ['column.html.twig' => '{{ payload.fullName }} ({{ payload.id }}) - {{ data }}'],
-            [TemplateColumn::new('status_display')->setField('status')->setTemplate('column.html.twig')],
+            [TemplateColumn::new('status_display')->field('status')->template('column.html.twig')],
             ['id' => 7, 'fullName' => 'Ada Lovelace', 'status' => 'active'],
             new TemplateEntity(id: 7, status: 'active'),
             [
@@ -155,8 +155,8 @@ final class TemplateColumnRendererTest extends TestCase
                 'second.html.twig' => 'second:{{ payload.first_badge }}|{{ data }}',
             ],
             [
-                TemplateColumn::new('first_badge')->setTemplate('first.html.twig'),
-                TemplateColumn::new('second_badge')->setTemplate('second.html.twig'),
+                TemplateColumn::new('first_badge')->template('first.html.twig'),
+                TemplateColumn::new('second_badge')->template('second.html.twig'),
             ],
             ['first_badge' => 'A', 'second_badge' => 'B'],
             [],
@@ -165,7 +165,7 @@ final class TemplateColumnRendererTest extends TestCase
 
         yield 'projected row and original source of a row context' => [
             ['column.html.twig' => '{{ row.getStatus() }}|{{ source.getStatus() }}'],
-            [TemplateColumn::new('status_display')->setField('status')->setTemplate('column.html.twig')],
+            [TemplateColumn::new('status_display')->field('status')->template('column.html.twig')],
             ['id' => 1],
             new RowContext(new TemplateEntity(id: 1, status: 'raw'), new TemplateEntity(id: 1, status: 'projected')),
             ['id' => 1, 'status_display' => 'projected|raw'],
@@ -175,8 +175,8 @@ final class TemplateColumnRendererTest extends TestCase
             ['column.html.twig' => '{{ item }}: {{ data }}'],
             [
                 TemplateColumn::new('status_display')
-                    ->setField('status')
-                    ->setTemplate('column.html.twig', ['item' => 'custom']),
+                    ->field('status')
+                    ->template('column.html.twig', ['item' => 'custom']),
             ],
             ['status' => 'active'],
             [],
@@ -197,7 +197,7 @@ final class TemplateColumnRendererTest extends TestCase
         $renderer->renderRow(
             row: ['status_display' => 'active'],
             mappedRow: ['status_display' => 'active'],
-            columns: [TemplateColumn::new('status_display')->setTemplate('datatable/columns/missing.html.twig')]
+            columns: [TemplateColumn::new('status_display')->template('datatable/columns/missing.html.twig')]
         );
     }
 

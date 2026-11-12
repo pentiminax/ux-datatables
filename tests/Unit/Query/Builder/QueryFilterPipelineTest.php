@@ -40,11 +40,11 @@ final class QueryFilterPipelineTest extends TestCase
      */
     public static function columnShapes(): iterable
     {
-        yield 'positional list' => [[TextColumn::new('name', 'Name')->setField('name')]];
+        yield 'positional list' => [[TextColumn::new('name', 'Name')->field('name')]];
 
         // Name-keyed columns (as produced after permission filtering) must not
         // break the intent factory, which requires a positional list.
-        yield 'name keyed' => [['name' => TextColumn::new('name', 'Name')->setField('name')]];
+        yield 'name keyed' => [['name' => TextColumn::new('name', 'Name')->field('name')]];
     }
 
     /**
@@ -61,7 +61,7 @@ final class QueryFilterPipelineTest extends TestCase
         $result = $this->pipeline()->apply(
             qb: $qb,
             request: $this->request(filters: ['status' => $value]),
-            columns: [TextColumn::new('name', 'Name')->setField('name')],
+            columns: [TextColumn::new('name', 'Name')->field('name')],
             filters: (new Filters())->add($filter),
             registry: new DefaultSearchStrategyRegistry(),
             predicateBuilder: new DefaultSearchPredicateBuilder(),
@@ -104,7 +104,7 @@ final class QueryFilterPipelineTest extends TestCase
         $result = $this->pipeline()->apply(
             qb: $qb,
             request: $this->request(),
-            columns: [TextColumn::new('name', 'Name')->setField('name')],
+            columns: [TextColumn::new('name', 'Name')->field('name')],
             filters: null,
             registry: new DefaultSearchStrategyRegistry(),
         );
@@ -137,8 +137,8 @@ final class QueryFilterPipelineTest extends TestCase
             qb: $qb,
             request: new DataTableRequest(1, $requestColumns),
             columns: [
-                TextColumn::new('name', 'Name')->setField('name'),
-                TextColumn::new('email', 'Email')->setField('email'),
+                TextColumn::new('name', 'Name')->field('name'),
+                TextColumn::new('email', 'Email')->field('email'),
             ],
             filters: null,
             registry: $registry,
@@ -199,7 +199,7 @@ final class QueryFilterPipelineTest extends TestCase
         $this->pipeline()->apply(
             qb: $qb,
             request: new DataTableRequest(1, $requestColumns),
-            columns: [TextColumn::new('name', 'Name')->setField('name')],
+            columns: [TextColumn::new('name', 'Name')->field('name')],
             filters: null,
             registry: new DefaultSearchStrategyRegistry(),
         );

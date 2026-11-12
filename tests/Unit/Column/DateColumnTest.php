@@ -27,7 +27,7 @@ final class DateColumnTest extends DataTableTestCase
     #[Test]
     public function it_exposes_a_custom_date_format_in_serialization(): void
     {
-        $column = DateColumn::new('createdAt')->setFormat('d/m/Y');
+        $column = DateColumn::new('createdAt')->format('d/m/Y');
 
         $this->assertCustomOption('d/m/Y', 'dateFormat', $column);
     }
@@ -54,7 +54,7 @@ final class DateColumnTest extends DataTableTestCase
     #[Test]
     public function it_ignores_a_custom_format_while_rendering_is_relative(): void
     {
-        $column = DateColumn::new('lastLoginAt')->setFormat('d/m/Y')->relative();
+        $column = DateColumn::new('lastLoginAt')->format('d/m/Y')->relative();
 
         $this->assertSame(\DateTimeInterface::ATOM, $column->getFormat());
     }
@@ -62,7 +62,7 @@ final class DateColumnTest extends DataTableTestCase
     #[Test]
     public function it_restores_the_configured_format_when_relative_rendering_is_disabled(): void
     {
-        $column = DateColumn::new('lastLoginAt')->setFormat('d/m/Y')->relative()->relative(false);
+        $column = DateColumn::new('lastLoginAt')->format('d/m/Y')->relative()->relative(false);
 
         $this->assertFalse($column->isRelative());
         $this->assertSame('d/m/Y', $column->getFormat());
@@ -74,7 +74,7 @@ final class DateColumnTest extends DataTableTestCase
     {
         $column = DateColumnSubclassFixture::new('lastLoginAt');
 
-        $this->assertInstanceOf(DateColumnSubclassFixture::class, $column->setFormat('d/m/Y'));
+        $this->assertInstanceOf(DateColumnSubclassFixture::class, $column->format('d/m/Y'));
         $this->assertInstanceOf(DateColumnSubclassFixture::class, $column->relative());
     }
 }

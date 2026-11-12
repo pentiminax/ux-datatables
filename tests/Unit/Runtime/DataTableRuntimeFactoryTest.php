@@ -200,7 +200,7 @@ final class DataTableRuntimeFactoryTest extends TestCase
             return [$column->getName()];
         };
         $public = TextColumn::new('public');
-        $secret = TextColumn::new('secret')->setPermission('ROLE_ADMIN');
+        $secret = TextColumn::new('secret')->permission('ROLE_ADMIN');
         $table  = (new DataTable('records'))
             ->columns([$public, $secret])
             ->addExtension((new ColumnControlExtension([]))->add(1, [
@@ -291,7 +291,7 @@ final class DataTableRuntimeFactoryTest extends TestCase
             table: new DataTable('customers'),
             columns: [
                 TextColumn::new('name'),
-                TemplateColumn::new('badge')->setTemplate('badge.html.twig'),
+                TemplateColumn::new('badge')->template('badge.html.twig'),
                 ActionColumn::fromActions('actions', 'Actions', (new Actions())->add(Action::delete())),
             ],
             asDataTable: new AsDataTable(entityClass: CountCustomer::class),

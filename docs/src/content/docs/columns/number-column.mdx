@@ -92,7 +92,7 @@ final class ProductsDataTable extends AbstractDataTable
 {
     public function configureColumns(): iterable
     {
-        yield NumberColumn::new('id', 'ID')->setWidth('60px');
+        yield NumberColumn::new('id', 'ID')->width('60px');
         yield TextColumn::new('name', 'Product');
         yield NumberColumn::new('stock', 'Stock');
         yield NumberColumn::new('price', 'Price');

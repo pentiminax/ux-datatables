@@ -17,7 +17,7 @@ class EmailColumn extends AbstractColumn
     public static function new(string $name, string $title = ''): static
     {
         $column = static::createWithType($name, $title, ColumnType::HTML);
-        $column->setCustomOption(self::OPTION_IS_EMAIL, true);
+        $column->customOption(self::OPTION_IS_EMAIL, true);
 
         return $column;
     }
@@ -28,7 +28,7 @@ class EmailColumn extends AbstractColumn
      */
     public function obfuscate(bool $obfuscate = true): static
     {
-        $this->setCustomOption(self::OPTION_OBFUSCATE, $obfuscate);
+        $this->customOption(self::OPTION_OBFUSCATE, $obfuscate);
 
         return $this;
     }
@@ -39,7 +39,7 @@ class EmailColumn extends AbstractColumn
      */
     public function mask(bool $mask = true): static
     {
-        $this->setCustomOption(self::OPTION_MASK, $mask);
+        $this->customOption(self::OPTION_MASK, $mask);
 
         return $this;
     }
@@ -48,11 +48,21 @@ class EmailColumn extends AbstractColumn
      * Sets a custom display text instead of the email address.
      * Takes priority over mask() when both are set.
      */
-    public function setDisplayValue(string $displayValue): static
+    public function displayValue(string $displayValue): static
     {
-        $this->setCustomOption(self::OPTION_DISPLAY_VALUE, $displayValue);
+        $this->customOption(self::OPTION_DISPLAY_VALUE, $displayValue);
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use displayValue() instead. Removed in 2.0.
+     */
+    public function setDisplayValue(string $displayValue): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "displayValue()" instead.', __METHOD__);
+
+        return $this->displayValue($displayValue);
     }
 
     /**
@@ -60,7 +70,7 @@ class EmailColumn extends AbstractColumn
      */
     public function renderAsText(bool $renderAsText = true): static
     {
-        $this->setCustomOption(self::OPTION_RENDER_AS_TEXT, $renderAsText);
+        $this->customOption(self::OPTION_RENDER_AS_TEXT, $renderAsText);
 
         return $this;
     }

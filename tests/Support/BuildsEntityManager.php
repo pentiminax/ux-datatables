@@ -41,7 +41,7 @@ trait BuildsEntityManager
 
         $config->setMiddlewares($middlewares);
 
-        if (\PHP_VERSION_ID >= 80400) {
+        if (\PHP_VERSION_ID >= 80400 && method_exists($config, 'enableNativeLazyObjects')) {
             $config->enableNativeLazyObjects(true);
         }
 

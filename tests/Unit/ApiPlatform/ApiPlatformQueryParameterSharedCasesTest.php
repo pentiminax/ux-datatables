@@ -68,7 +68,7 @@ final class ApiPlatformQueryParameterSharedCasesTest extends TestCase
         $columns = [];
 
         foreach (self::fixture()['columns'] as $column) {
-            $columns[] = TextColumn::new($column['name'], $column['name'])->setField($column['field']);
+            $columns[] = TextColumn::new($column['name'], $column['name'])->field($column['field']);
         }
 
         return $columns;

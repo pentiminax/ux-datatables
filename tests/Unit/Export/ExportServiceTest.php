@@ -133,7 +133,7 @@ final class ExportServiceTest extends TestCase
         $service = new ExportService(new ExporterRegistry([$csv]));
 
         $table = new ConfigurableDataTable(
-            [TextColumn::new('email'), TextColumn::new('name')->setVisible(false)],
+            [TextColumn::new('email'), TextColumn::new('name')->visible(false)],
             configureTable: static fn (DataTable $table): DataTable => $table->buttons([
                 Button::csv(serverSide: true),
             ]),
@@ -166,7 +166,7 @@ final class ExportServiceTest extends TestCase
         );
 
         $table = new ConfigurableDataTable(
-            [TextColumn::new('email'), TextColumn::new('salary')->setPermission('ROLE_HR')],
+            [TextColumn::new('email'), TextColumn::new('salary')->permission('ROLE_HR')],
             configureTable: static fn (DataTable $table): DataTable => $table->buttons([
                 Button::csv(serverSide: true),
             ]),
@@ -345,7 +345,7 @@ final class ExportServiceTest extends TestCase
     public function it_rejects_a_table_without_any_exportable_column(): void
     {
         $table = new ConfigurableDataTable(
-            [TextColumn::new('secret')->setExportable(false)],
+            [TextColumn::new('secret')->exportable(false)],
             configureTable: static fn (DataTable $table): DataTable => $table->buttons([
                 Button::csv(serverSide: true),
             ]),
@@ -420,7 +420,7 @@ final class ExportServiceTest extends TestCase
         return new ConfigurableDataTable(
             [
                 TextColumn::new('email'),
-                TextColumn::new('secret')->setExportable(false),
+                TextColumn::new('secret')->exportable(false),
                 ActionColumn::fromActions('actions', 'Actions', new Actions()),
                 TextColumn::new('name'),
             ],

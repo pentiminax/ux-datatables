@@ -22,7 +22,7 @@ final class AbstractDataTableRowPresentationTest extends TestCase
     {
         $table = new RowPresentationTestTable();
 
-        $table->setData([['id' => 1, 'late' => true], ['id' => 2, 'late' => false]]);
+        $table->data([['id' => 1, 'late' => true], ['id' => 2, 'late' => false]]);
 
         $this->assertSame([
             ['id' => 1, 'late' => true, 'DT_RowClass' => 'table-danger', 'DT_RowAttr' => ['data-record-url' => '/items/1']],

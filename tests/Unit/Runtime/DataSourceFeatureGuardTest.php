@@ -74,7 +74,7 @@ final class DataSourceFeatureGuardTest extends TestCase
         yield 'ColumnControl search set on one column' => [
             static fn (DataTable $table): DataTable => $table
                 ->addExtension((new ColumnControlExtension([]))->add(0, ['order']))
-                ->columns([TextColumn::new('title')->setColumnControl(['searchList'])]),
+                ->columns([TextColumn::new('title')->columnControl(['searchList'])]),
             'ColumnControl searches are not supported on an API Platform collection',
         ];
 

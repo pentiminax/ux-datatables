@@ -56,7 +56,7 @@ final class DefaultRowMapperTest extends TestCase
 
         yield 'nested property path resolved via set field' => [
             new DefaultRowMapperFixture(client: new DefaultRowMapperFixture(name: 'Acme Corp')),
-            [TextColumn::new('client', 'Client')->setField('client.name')],
+            [TextColumn::new('client', 'Client')->field('client.name')],
             ['client' => 'Acme Corp'],
         ];
 
@@ -74,7 +74,7 @@ final class DefaultRowMapperTest extends TestCase
 
         yield 'datetime returned raw, formatting belongs to the normalization stage' => [
             new DefaultRowMapperFixture(createdAt: $date),
-            [DateColumn::new('createdAt', 'Created At')->setFormat('d/m/Y')],
+            [DateColumn::new('createdAt', 'Created At')->format('d/m/Y')],
             ['createdAt' => $date],
         ];
 

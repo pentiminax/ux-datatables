@@ -279,7 +279,7 @@ final class RenderingPreparerTest extends TestCase
     {
         yield 'with a template column' => [
             [
-                TemplateColumn::new('avatar', 'Avatar')->setTemplate('user.html.twig'),
+                TemplateColumn::new('avatar', 'Avatar')->template('user.html.twig'),
                 TextColumn::new('email', 'Email'),
             ],
             true,
@@ -764,7 +764,7 @@ final class RenderingPreparerTest extends TestCase
 
         $table = (new DataTable('Test'))
             ->setDataTableClass(self::TABLE_CLASS)
-            ->add(ChoiceColumn::new('role', 'Role')->setChoices(RenderingPreparerRole::class));
+            ->add(ChoiceColumn::new('role', 'Role')->choices(RenderingPreparerRole::class));
 
         (new RenderingPreparer(translator: $translator))->prepare($table, null);
 

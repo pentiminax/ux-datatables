@@ -220,7 +220,7 @@ final class SearchListResponseTestTable extends AbstractDataTable
 
     public function configureColumns(): iterable
     {
-        yield TextColumn::new('status')->setColumnControl([
+        yield TextColumn::new('status')->columnControl([
             [
                 'target'  => 1,
                 'content' => [SearchList::new()->ajaxOptionsProvider(

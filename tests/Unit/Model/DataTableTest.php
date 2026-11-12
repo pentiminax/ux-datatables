@@ -100,7 +100,7 @@ final class DataTableTest extends TestCase
     public function it_stores_expression_permissions(): void
     {
         $expression = new Expression('"ROLE_ADMIN" in role_names');
-        $table      = (new DataTable('tableId'))->setPermission($expression);
+        $table      = (new DataTable('tableId'))->permission($expression);
 
         $this->assertSame($expression, $table->getPermission());
     }
@@ -564,7 +564,7 @@ final class DataTableTest extends TestCase
         $column = TextColumn::new('status', 'Status');
         $table  = (new DataTable('users'))->columns([$column]);
 
-        $column->setTitle('Translated status');
+        $column->title('Translated status');
 
         $this->assertSame('Translated status', $table->getOptions()['columns'][0]['title']);
         $this->assertSame('Translated status', $table->getColumnDefinitions()[0]['title']);

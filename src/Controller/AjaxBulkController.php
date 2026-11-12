@@ -32,7 +32,7 @@ final class AjaxBulkController
         private readonly AjaxDataTableRegistry $registry,
         ?AuthorizationChecker $permissionChecker = null,
     ) {
-        $this->permissionChecker = $permissionChecker ?? new AuthorizationChecker();
+        $this->permissionChecker = $permissionChecker ?? AuthorizationChecker::fallbackFor(self::class);
     }
 
     public function __invoke(Request $request, #[MapRequestPayload] AjaxBulkQueryDto $payload): Response

@@ -60,7 +60,7 @@ final class DataTableRuntimeSummaryPermissionTest extends TestCase
     {
         $translator = $this->createStub(TranslatorInterface::class);
         $translator->method('trans')->willReturn('label');
-        $table = (new DataTable('Test'))->add(NumberColumn::new('amount')->setPermission('ROLE_HR')->summarize(new Sum()));
+        $table = (new DataTable('Test'))->add(NumberColumn::new('amount')->permission('ROLE_HR')->summarize(new Sum()));
 
         (new RenderingPreparer(translator: $translator, columnResolver: new ColumnResolver(permissionChecker: $this->checker(false))))->prepare($table, null);
 
@@ -103,8 +103,8 @@ final class DataTableRuntimeSummaryPermissionTest extends TestCase
         $em->flush();
 
         $columns = [
-            TextColumn::new('status')->setField('status')->summarize(new Count()),
-            NumberColumn::new('amount')->setField('amount')->setPermission('ROLE_HR')->summarize(new Sum()),
+            TextColumn::new('status')->field('status')->summarize(new Count()),
+            NumberColumn::new('amount')->field('amount')->permission('ROLE_HR')->summarize(new Sum()),
         ];
         $permissionChecker = $this->checker($granted);
 

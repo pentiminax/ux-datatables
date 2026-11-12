@@ -1,0 +1,244 @@
+{
+    "data": [
+        {
+            "id": 1,
+            "title": "Symfony 7",
+            "status": "published",
+            "active": true,
+            "releasedAt": "2024-01-02",
+            "__ux_datatables_boolean_switches": {
+                "active": "1"
+            },
+            "DT_RowId": "1",
+            "__ux_datatables_actions": {
+                "EDIT": {
+                    "id": "1"
+                },
+                "DELETE": {
+                    "id": "1"
+                }
+            }
+        }
+    ],
+    "layout": {
+        "topStart": [
+            "pageLength",
+            {
+                "buttons": [
+                    {
+                        "extend": "copy",
+                        "exportOptions": {
+                            "columns": ".dt-exportable:visible"
+                        }
+                    },
+                    {
+                        "extend": "csv",
+                        "exportOptions": {
+                            "columns": ".dt-exportable:visible"
+                        }
+                    }
+                ]
+            }
+        ],
+        "topEnd": [
+            "search",
+            "bulkActions"
+        ]
+    },
+    "columns": [
+        {
+            "className": "dt-exportable",
+            "data": "id",
+            "name": "id",
+            "orderable": false,
+            "searchable": true,
+            "title": "Identifier",
+            "type": "string",
+            "visible": false,
+            "width": "80px",
+            "field": "id"
+        },
+        {
+            "className": "dt-exportable",
+            "data": "title",
+            "name": "title",
+            "orderable": true,
+            "searchable": true,
+            "title": "title",
+            "type": "string",
+            "visible": true,
+            "field": "title",
+            "responsivePriority": 1
+        },
+        {
+            "className": "dt-exportable",
+            "data": "status",
+            "name": "status",
+            "orderable": true,
+            "searchable": true,
+            "title": "status",
+            "type": "html",
+            "visible": true,
+            "field": "status",
+            "customOptions": {
+                "choices": {
+                    "Published": "published",
+                    "Draft": "draft"
+                }
+            }
+        },
+        {
+            "className": "dt-exportable",
+            "data": "active",
+            "name": "active",
+            "orderable": true,
+            "searchable": true,
+            "title": "active",
+            "type": "num",
+            "visible": true,
+            "field": "active",
+            "customOptions": {
+                "renderAsSwitch": true,
+                "defaultState": false
+            }
+        },
+        {
+            "data": "releasedAt",
+            "name": "releasedAt",
+            "orderable": true,
+            "searchable": true,
+            "title": "releasedAt",
+            "type": "date",
+            "visible": true,
+            "field": "releasedAt",
+            "customOptions": {
+                "dateFormat": "Y-m-d"
+            }
+        },
+        {
+            "data": "__ux_datatables_actions",
+            "defaultContent": "",
+            "name": "actions",
+            "orderable": false,
+            "searchable": false,
+            "title": "Actions",
+            "type": "string",
+            "visible": true,
+            "field": "actions",
+            "responsivePriority": 1,
+            "columnControl": [],
+            "actions": [
+                {
+                    "type": "DETAIL",
+                    "name": "DETAIL",
+                    "label": "Detail",
+                    "className": "btn btn-primary",
+                    "idField": "id",
+                    "htmlAttributes": []
+                },
+                {
+                    "type": "EDIT",
+                    "name": "EDIT",
+                    "label": "Edit",
+                    "className": "btn btn-warning",
+                    "idField": "id",
+                    "htmlAttributes": []
+                },
+                {
+                    "type": "DELETE",
+                    "name": "DELETE",
+                    "label": "Delete",
+                    "className": "btn btn-danger",
+                    "idField": "id",
+                    "htmlAttributes": []
+                }
+            ]
+        }
+    ],
+    "mercure": {
+        "hubUrl": "http://localhost:3000/.well-known/mercure",
+        "topics": [
+            "/books"
+        ]
+    },
+    "bulkActions": {
+        "actions": [
+            {
+                "name": "archive",
+                "label": "Archive",
+                "className": "btn btn-warning",
+                "deselectAfterCompletion": true
+            }
+        ],
+        "selectCurrentPageOnly": false,
+        "idField": "id",
+        "url": null,
+        "labels": {
+            "trigger": "Bulk actions",
+            "selected": "{count} records selected",
+            "selectAllMatching": "Select all {count}",
+            "allMatchingSelected": "All {count} records selected",
+            "clear": "Deselect all",
+            "confirm": "Confirm",
+            "cancel": "Cancel",
+            "processed": "{count} rows processed",
+            "skipped": "{count} rows skipped",
+            "failed": "The bulk action could not be completed."
+        },
+        "position": "topEnd"
+    },
+    "rowId": "DT_RowId",
+    "actionLabels": {
+        "failed": "The action could not be completed.",
+        "forbidden": "You are not allowed to do this.",
+        "confirm": "Confirm",
+        "cancel": "Cancel"
+    },
+    "filters": [
+        {
+            "name": "title",
+            "type": "text",
+            "label": "Title"
+        },
+        {
+            "name": "status",
+            "type": "select",
+            "label": "Status",
+            "options": {
+                "Published": "published",
+                "Draft": "draft"
+            },
+            "multiple": false
+        }
+    ],
+    "filterLabels": {
+        "title": "Filters",
+        "reset": "Reset",
+        "apply": "Apply filters",
+        "all": "All"
+    },
+    "select": {
+        "blurable": false,
+        "className": "selected",
+        "info": true,
+        "items": "row",
+        "keys": false,
+        "style": "multi",
+        "toggleable": true,
+        "headerCheckbox": false,
+        "withCheckbox": true
+    },
+    "responsive": {
+        "auto": true,
+        "details": {
+            "target": 0,
+            "type": "inline"
+        },
+        "orthogonal": "display"
+    },
+    "dataTable": null,
+    "editModal": {
+        "adapter": null
+    },
+    "mutationsEnabled": false
+}

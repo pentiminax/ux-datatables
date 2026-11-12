@@ -58,11 +58,11 @@ final class ActionsTest extends TestCase
     public function it_configures_column_metadata_fluently(): void
     {
         $actions = (new Actions())
-            ->setColumnLabel('Operations')
-            ->setColumnClassName('dt-center')
+            ->columnLabel('Operations')
+            ->columnClassName('dt-center')
             ->position(ActionsPosition::BeforeColumns)
             ->alignment(ActionsAlignment::Center)
-            ->setColumnControl(['colvisDropdown']);
+            ->columnControl(['colvisDropdown']);
 
         $this->assertSame('Operations', $actions->getColumnLabel());
         $this->assertSame('dt-center', $actions->getColumnClassName());
@@ -132,8 +132,8 @@ final class ActionsTest extends TestCase
     public function it_removes_actions_whose_static_permission_is_denied(): void
     {
         $actions = (new Actions())
-            ->add(Action::delete()->setPermission('ROLE_ADMIN'))
-            ->add(Action::edit()->setPermission('ROLE_EDITOR'))
+            ->add(Action::delete()->permission('ROLE_ADMIN'))
+            ->add(Action::edit()->permission('ROLE_EDITOR'))
             ->add(Action::detail());
 
         $checker = $this->createStub(AuthorizationCheckerInterface::class);
@@ -153,8 +153,8 @@ final class ActionsTest extends TestCase
     public function it_keeps_denied_actions_marked_when_they_opt_into_disabled_rendering(): void
     {
         $actions = (new Actions())
-            ->add(Action::delete()->setPermission('ROLE_ADMIN')->disabledWhenDenied())
-            ->add(Action::edit()->setPermission('ROLE_ADMIN'));
+            ->add(Action::delete()->permission('ROLE_ADMIN')->disabledWhenDenied())
+            ->add(Action::edit()->permission('ROLE_ADMIN'));
 
         $checker = $this->createStub(AuthorizationCheckerInterface::class);
         $checker->method('isGranted')->willReturn(false);
@@ -172,7 +172,7 @@ final class ActionsTest extends TestCase
     #[Test]
     public function it_does_not_mark_the_original_action_as_denied(): void
     {
-        $delete  = Action::delete()->setPermission('ROLE_ADMIN')->disabledWhenDenied();
+        $delete  = Action::delete()->permission('ROLE_ADMIN')->disabledWhenDenied();
         $actions = (new Actions())->add($delete);
 
         $checker = $this->createStub(AuthorizationCheckerInterface::class);
@@ -186,7 +186,7 @@ final class ActionsTest extends TestCase
     #[Test]
     public function it_ignores_per_row_permissions_when_filtering(): void
     {
-        $actions = (new Actions())->add(Action::delete()->setPermission('DELETE', static fn ($row) => $row));
+        $actions = (new Actions())->add(Action::delete()->permission('DELETE', static fn ($row) => $row));
 
         $actions->filterStaticPermissions(new AuthorizationChecker($this->createStub(AuthorizationCheckerInterface::class)));
 
@@ -196,7 +196,7 @@ final class ActionsTest extends TestCase
     #[Test]
     public function it_keeps_every_action_without_an_authorization_checker(): void
     {
-        $actions = (new Actions())->add(Action::delete()->setPermission('ROLE_ADMIN'));
+        $actions = (new Actions())->add(Action::delete()->permission('ROLE_ADMIN'));
 
         $actions->filterStaticPermissions(new AuthorizationChecker());
 
@@ -235,10 +235,10 @@ final class ActionsTest extends TestCase
     public function it_copies_the_column_metadata_into_every_group(): void
     {
         $actions = (new Actions())
-            ->setColumnLabel('Ops')
-            ->setColumnClassName('dt-center')
+            ->columnLabel('Ops')
+            ->columnClassName('dt-center')
             ->alignment(ActionsAlignment::Center)
-            ->setColumnControl(['colvisDropdown'])
+            ->columnControl(['colvisDropdown'])
             ->add(Action::detail()->position(ActionsPosition::BeforeColumns));
 
         $group = $actions->partitionByPosition()[ActionsPosition::BeforeColumns->value];

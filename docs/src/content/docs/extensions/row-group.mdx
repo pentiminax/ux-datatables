@@ -101,7 +101,7 @@ Every returned row must contain the property selected by `dataSrc`. A grouping p
 provided by a hidden column:
 
 ```php
-yield TextColumn::new('department', 'Department')->setVisible(false);
+yield TextColumn::new('department', 'Department')->visible(false);
 ```
 
 When overriding `mapRow()`, keep the grouping property in the returned array even when it is not

@@ -31,21 +31,21 @@ final class ColumnsDataTable extends AbstractDataTable
         yield NumberColumn::new('id', 'ID');
 
         yield ImageColumn::new('image', 'Image')
-            ->setImageWidth(36)
-            ->setImageHeight(36)
+            ->imageWidth(36)
+            ->imageHeight(36)
             ->rounded();
 
         yield TextColumn::new('name', 'Product');
 
         yield ChoiceColumn::new('category', 'Category')
-            ->setChoices(Category::class);
+            ->choices(Category::class);
 
         yield MoneyColumn::new('price', 'Price')
             ->currency('EUR')
             ->storedAsCents();
 
         yield TextColumn::new('priceBand', 'Price band')
-            ->setField('price')
+            ->field('price')
             ->formatValueUsing(static fn (int $cents): string => match (true) {
                 $cents < 2000  => '€',
                 $cents < 10000 => '€€',
@@ -53,16 +53,16 @@ final class ColumnsDataTable extends AbstractDataTable
             });
 
         yield IconColumn::new('stockIcon', 'In stock')
-            ->setField('stock')
+            ->field('stock')
             ->icon(static fn (int $stock): Icon => $stock > 0 ? Icon::PackageCheck : Icon::PackageX)
             ->color(static fn (int $stock): string => $stock > 0 ? 'success' : 'danger');
 
         yield TemplateColumn::new('stockLevel', 'Stock level')
-            ->setField('stock')
-            ->setTemplate('columns/stock_level.html.twig');
+            ->field('stock')
+            ->template('columns/stock_level.html.twig');
 
         yield ChoiceColumn::new('status', 'Status')
-            ->setChoices(ProductStatus::class)
+            ->choices(ProductStatus::class)
             ->renderAsBadges(['active' => 'success', 'draft' => 'warning', 'archived' => 'secondary']);
 
         yield BooleanColumn::new('featured', 'Featured')
@@ -71,7 +71,7 @@ final class ColumnsDataTable extends AbstractDataTable
         yield EmailColumn::new('supplierEmail', 'Supplier');
 
         yield UrlColumn::new('url', 'Shop page')
-            ->setDisplayValue('Open')
+            ->displayValue('Open')
             ->openInNewTab()
             ->showExternalIcon();
 

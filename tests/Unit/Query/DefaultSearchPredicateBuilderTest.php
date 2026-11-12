@@ -40,7 +40,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
     public static function searchPredicates(): iterable
     {
         yield 'text column' => [
-            TextColumn::new('name', 'Name')->setField('name'),
+            TextColumn::new('name', 'Name')->field('name'),
             null,
             'hello',
             false,
@@ -49,7 +49,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'text column with like wildcards is escaped, not interpreted' => [
-            TextColumn::new('name', 'Name')->setField('name'),
+            TextColumn::new('name', 'Name')->field('name'),
             null,
             '50%_off',
             false,
@@ -58,7 +58,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'text column opting out of case-insensitive search' => [
-            TextColumn::new('name', 'Name')->setField('name')->setSearchNormalization(false),
+            TextColumn::new('name', 'Name')->field('name')->searchNormalization(false),
             null,
             'Hello',
             false,
@@ -67,7 +67,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'numeric column with numeric value' => [
-            NumberColumn::new('id', 'ID')->setField('id'),
+            NumberColumn::new('id', 'ID')->field('id'),
             null,
             '42',
             false,
@@ -76,7 +76,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'numeric column with non-numeric value' => [
-            NumberColumn::new('id', 'ID')->setField('id'),
+            NumberColumn::new('id', 'ID')->field('id'),
             null,
             'abc',
             false,
@@ -85,7 +85,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'non-numeric column forced to numeric' => [
-            TextColumn::new('score', 'Score')->setField('score'),
+            TextColumn::new('score', 'Score')->field('score'),
             null,
             '42',
             true,
@@ -94,7 +94,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'non-numeric value forced to numeric' => [
-            TextColumn::new('score', 'Score')->setField('score'),
+            TextColumn::new('score', 'Score')->field('score'),
             null,
             'abc',
             true,
@@ -103,7 +103,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'non-text field' => [
-            TextColumn::new('active', 'Active')->setField('active'),
+            TextColumn::new('active', 'Active')->field('active'),
             'boolean',
             'true',
             false,
@@ -115,7 +115,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         // "1"/"0" must not become boolean equality: global search ORs that in and keeps
         // every true/false row alongside the intended text matches.
         yield 'boolean column with 1 does not coerce to equality' => [
-            BooleanColumn::new('active', 'Active')->setField('active'),
+            BooleanColumn::new('active', 'Active')->field('active'),
             'boolean',
             '1',
             false,
@@ -124,7 +124,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'boolean column with 0 does not coerce to equality' => [
-            BooleanColumn::new('active', 'Active')->setField('active'),
+            BooleanColumn::new('active', 'Active')->field('active'),
             'boolean',
             '0',
             false,
@@ -133,7 +133,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'number column on a boolean field with a numeric term is skipped' => [
-            NumberColumn::new('active', 'Active')->setField('active'),
+            NumberColumn::new('active', 'Active')->field('active'),
             'boolean',
             '1',
             false,
@@ -142,7 +142,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'date field with a numeric term is skipped' => [
-            TextColumn::new('at', 'At')->setField('at'),
+            TextColumn::new('at', 'At')->field('at'),
             'datetime_immutable',
             '2024',
             false,
@@ -151,7 +151,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'date field with a forced numeric term is skipped' => [
-            TextColumn::new('at', 'At')->setField('at'),
+            TextColumn::new('at', 'At')->field('at'),
             'datetime_immutable',
             '2024',
             true,
@@ -160,7 +160,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'uuid field with a numeric term is skipped' => [
-            NumberColumn::new('id', 'ID')->setField('id'),
+            NumberColumn::new('id', 'ID')->field('id'),
             'uuid',
             '123',
             false,
@@ -169,7 +169,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'uuid field with a forced numeric term is skipped' => [
-            NumberColumn::new('id', 'ID')->setField('id'),
+            NumberColumn::new('id', 'ID')->field('id'),
             'uuid',
             '123',
             true,
@@ -178,7 +178,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'guid field with uuid value' => [
-            TextColumn::new('id', 'ID')->setField('id'),
+            TextColumn::new('id', 'ID')->field('id'),
             'guid',
             self::UUID,
             false,
@@ -187,7 +187,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'guid field with partial text value' => [
-            TextColumn::new('id', 'ID')->setField('id'),
+            TextColumn::new('id', 'ID')->field('id'),
             'guid',
             'hello',
             false,
@@ -196,7 +196,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'guid field with ulid value' => [
-            TextColumn::new('id', 'ID')->setField('id'),
+            TextColumn::new('id', 'ID')->field('id'),
             'guid',
             self::ULID,
             false,
@@ -205,7 +205,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'ulid field with ulid value' => [
-            TextColumn::new('id', 'ID')->setField('id'),
+            TextColumn::new('id', 'ID')->field('id'),
             'ulid',
             self::ULID,
             false,
@@ -214,7 +214,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'ulid field with uuid value' => [
-            TextColumn::new('id', 'ID')->setField('id'),
+            TextColumn::new('id', 'ID')->field('id'),
             'ulid',
             self::UUID,
             false,
@@ -223,7 +223,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'binary uuid field with uuid value' => [
-            TextColumn::new('id', 'ID')->setField('id'),
+            TextColumn::new('id', 'ID')->field('id'),
             'uuid_binary',
             self::UUID,
             false,
@@ -232,7 +232,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'uuid field with padded value' => [
-            TextColumn::new('id', 'ID')->setField('id'),
+            TextColumn::new('id', 'ID')->field('id'),
             'uuid',
             '  '.self::UUID.'  ',
             false,
@@ -241,7 +241,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'uuid field with unhyphenated value' => [
-            TextColumn::new('id', 'ID')->setField('id'),
+            TextColumn::new('id', 'ID')->field('id'),
             'uuid',
             '018f2c3e12347abc9def0123456789ab',
             false,
@@ -250,7 +250,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'integer field with integer value' => [
-            NumberColumn::new('age', 'Age')->setField('age'),
+            NumberColumn::new('age', 'Age')->field('age'),
             'integer',
             '42',
             false,
@@ -259,7 +259,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'integer field with padded integer value' => [
-            NumberColumn::new('age', 'Age')->setField('age'),
+            NumberColumn::new('age', 'Age')->field('age'),
             'integer',
             '  42  ',
             false,
@@ -268,7 +268,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'integer field with leading plus value' => [
-            NumberColumn::new('age', 'Age')->setField('age'),
+            NumberColumn::new('age', 'Age')->field('age'),
             'integer',
             '+42',
             false,
@@ -277,7 +277,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'integer field with decimal value' => [
-            NumberColumn::new('age', 'Age')->setField('age'),
+            NumberColumn::new('age', 'Age')->field('age'),
             'integer',
             '1.5',
             false,
@@ -286,7 +286,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'integer field with scientific notation' => [
-            NumberColumn::new('age', 'Age')->setField('age'),
+            NumberColumn::new('age', 'Age')->field('age'),
             'integer',
             '1e2',
             false,
@@ -295,7 +295,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'integer field with non-numeric value' => [
-            NumberColumn::new('age', 'Age')->setField('age'),
+            NumberColumn::new('age', 'Age')->field('age'),
             'integer',
             'abc',
             false,
@@ -304,7 +304,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'forced numeric on integer field with decimal value' => [
-            TextColumn::new('age', 'Age')->setField('age'),
+            TextColumn::new('age', 'Age')->field('age'),
             'integer',
             '1.5',
             true,
@@ -313,7 +313,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'float field with decimal value' => [
-            NumberColumn::new('price', 'Price')->setField('price'),
+            NumberColumn::new('price', 'Price')->field('price'),
             'float',
             '19.99',
             false,
@@ -322,7 +322,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'float field with non-numeric value' => [
-            NumberColumn::new('price', 'Price')->setField('price'),
+            NumberColumn::new('price', 'Price')->field('price'),
             'float',
             'abc',
             false,
@@ -331,7 +331,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         ];
 
         yield 'bigint field with out-of-range value' => [
-            NumberColumn::new('age', 'Age')->setField('age'),
+            NumberColumn::new('age', 'Age')->field('age'),
             'bigint',
             '9223372036854775808',
             false,
@@ -393,7 +393,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         $qb = $this->queryBuilderWithAssociationField('client');
         $qb->expects($this->never())->method('setParameter');
 
-        $column = TextColumn::new('client', 'Client')->setField('client');
+        $column = TextColumn::new('client', 'Client')->field('client');
         $result = (new DefaultSearchPredicateBuilder())->build($qb, $column, 'e', 'client', 'acme', 'p_0');
 
         $this->assertNull($result);
@@ -411,7 +411,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         $qb = $this->queryBuilderWithUnmappedField('invoiceCount');
         $qb->expects($this->never())->method('setParameter');
 
-        $column = NumberColumn::new('invoiceCount', 'Invoices')->setField('invoiceCount');
+        $column = NumberColumn::new('invoiceCount', 'Invoices')->field('invoiceCount');
         $result = (new DefaultSearchPredicateBuilder())->build($qb, $column, 'e', 'invoiceCount', '42', 'p_0');
 
         $this->assertNull($result);
@@ -423,7 +423,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         $qb = $this->queryBuilderWithAssociationField('client');
         $qb->expects($this->never())->method('setParameter');
 
-        $column = NumberColumn::new('client', 'Client')->setField('client');
+        $column = NumberColumn::new('client', 'Client')->field('client');
         $result = (new DefaultSearchPredicateBuilder())->build($qb, $column, 'e', 'client', '42', 'p_0');
 
         $this->assertNull($result);
@@ -435,7 +435,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         $qb = $this->queryBuilderWithUnmappedField('score');
         $qb->expects($this->never())->method('setParameter');
 
-        $column = TextColumn::new('score', 'Score')->setField('score');
+        $column = TextColumn::new('score', 'Score')->field('score');
         $result = (new DefaultSearchPredicateBuilder())->build($qb, $column, 'e', 'score', '42', 'p_0', true);
 
         $this->assertNull($result);
@@ -447,7 +447,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         $qb = $this->queryBuilderWithFieldType('name', 'string');
         $qb->expects($this->once())->method('setParameter')->with('p_0', '%acme%')->willReturn($qb);
 
-        $column = TextColumn::new('name', 'Name')->setSearchPredicate(
+        $column = TextColumn::new('name', 'Name')->searchPredicate(
             static function (QueryBuilder $qb, string $alias, string $value, string $paramName): string {
                 $qb->setParameter($paramName, \sprintf('%%%s%%', $value));
 
@@ -467,7 +467,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         $qb = $this->queryBuilderWithFieldType('createdAt', 'datetime_immutable');
 
         $column = TextColumn::new('createdAt', 'Created')
-            ->setSearchPredicate(static fn (): string => 'e.createdAt IS NOT NULL');
+            ->searchPredicate(static fn (): string => 'e.createdAt IS NOT NULL');
 
         $result = (new DefaultSearchPredicateBuilder())->build($qb, $column, 'e', 'createdAt', 'x', 'p_0');
 
@@ -480,7 +480,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         $qb = $this->queryBuilderWithFieldType('name', 'string');
         $qb->expects($this->once())->method('setParameter')->with('p_0', '%acme%')->willReturn($qb);
 
-        $column = TextColumn::new('name', 'Name')->setSearchPredicate(static fn (): ?string => null);
+        $column = TextColumn::new('name', 'Name')->searchPredicate(static fn (): ?string => null);
 
         $result = (new DefaultSearchPredicateBuilder())->build($qb, $column, 'e', 'name', 'acme', 'p_0');
 

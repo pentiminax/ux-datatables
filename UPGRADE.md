@@ -1,5 +1,7 @@
 # Upgrade Guide
 
+This guide is for humans. If you are an AI agent, read [UPGRADE-AI.md](UPGRADE-AI.md) instead.
+
 This guide lists what you may have to change in your application when you upgrade. It covers
 behavior changes, breaking changes, and deprecations. New features are not listed here: see the
 [release notes](https://github.com/pentiminax/ux-datatables/releases).
@@ -11,6 +13,33 @@ The guide starts at **1.1.0**, the first upgrade after the stable 1.0 release. T
 0.x version, read the [guide as published in 1.4.0](https://github.com/pentiminax/ux-datatables/blob/v1.4.0/UPGRADE.md).
 
 Deprecated APIs keep working for the whole 1.x line and are removed in 2.0.
+
+## Upgrading to 1.6.0
+
+Everything in this release is backward compatible. An application that runs 1.6.0 with no
+deprecation notice and no console warning upgrades to 2.0 with `composer update` and one install
+command. To rename everything with an AI coding agent, give it [UPGRADE-AI.md](UPGRADE-AI.md).
+
+### Deprecations
+
+- Every user-facing `setX()` method of columns, actions, bulk actions, table options and the table
+  model gains a bare `x()` method with the same arguments, and `setX()` is deprecated. Rename the
+  calls, for example `setTitle('Name')` becomes `title('Name')`. Getters, `@internal` methods and
+  `#[DataTableColumn(...)]` attribute options are unchanged.
+- `DataTable::setExtensions()` replaces the whole extension collection and has no replacement.
+  Declare extensions with `extensions([...])`.
+- `Action::csrfTokenId()` is deprecated, use `csrfToken()`.
+- A bundle service built by hand without an authorization checker falls back to an allow-all one,
+  which 2.0 removes. Pass an `AuthorizationChecker`. Services from the container are not affected.
+- Stylesheet autodetection of the style framework logs a console warning once per page, and 2.0
+  removes it. Call `styleFramework()` on the table or install a style kit.
+
+### Doctrine ORM 3.3 is the tested floor
+
+CI now runs the suite on the lowest dependencies. It showed that Doctrine-backed tables need
+Doctrine ORM 3.3 or later: earlier 3.x releases reject the array parameter types the bundle binds.
+ORM stays an optional package, so Composer does not enforce this. Upgrade ORM to 3.3 or later
+before upgrading the bundle.
 
 ## Upgrading to 1.5.1
 

@@ -198,7 +198,7 @@ final class DataTableRuntimeFactory
     private function columnResolver(): ColumnResolver
     {
         return $this->columnResolver ??= new ColumnResolver(
-            permissionChecker: $this->permissionChecker ?? new AuthorizationChecker(),
+            permissionChecker: $this->permissionChecker ?? AuthorizationChecker::fallbackFor(self::class),
         );
     }
 

@@ -77,7 +77,7 @@ final class ComparisonSearchStrategyTest extends TestCase
         string $expectedParameter,
     ): void {
         $strategy = new ComparisonSearchStrategy($logic);
-        $column   = TextColumn::new('name')->setSearchNormalization(false);
+        $column   = TextColumn::new('name')->searchNormalization(false);
 
         $qb = $this->createMock(QueryBuilder::class);
 
@@ -107,7 +107,7 @@ final class ComparisonSearchStrategyTest extends TestCase
         $qb->expects($this->never())->method('setParameter');
 
         $strategy = new ComparisonSearchStrategy($logic);
-        $column   = TextColumn::new('id')->setField('id');
+        $column   = TextColumn::new('id')->field('id');
         $search   = new ColumnControlSearch('018f2c3e', $logic, 'text');
 
         $strategy->apply($qb, $column, $search, 3, 'e');
@@ -127,7 +127,7 @@ final class ComparisonSearchStrategyTest extends TestCase
             ->with('column_control_param_3', '018f2c3e-1234-7abc-9def-0123456789ab', 'guid');
 
         $strategy = new ComparisonSearchStrategy(ColumnControlLogic::Equal);
-        $column   = TextColumn::new('id')->setField('id');
+        $column   = TextColumn::new('id')->field('id');
         $search   = new ColumnControlSearch('  018f2c3e-1234-7abc-9def-0123456789ab  ', ColumnControlLogic::Equal, 'text');
 
         $strategy->apply($qb, $column, $search, 3, 'e');
@@ -141,7 +141,7 @@ final class ComparisonSearchStrategyTest extends TestCase
         $qb->expects($this->never())->method('setParameter');
 
         $strategy = new ComparisonSearchStrategy(ColumnControlLogic::Equal);
-        $column   = TextColumn::new('id')->setField('id');
+        $column   = TextColumn::new('id')->field('id');
         $search   = new ColumnControlSearch('01ARZ3NDEKTSV4RRFFQ69G5FAV', ColumnControlLogic::Equal, 'text');
 
         $strategy->apply($qb, $column, $search, 3, 'e');
@@ -155,7 +155,7 @@ final class ComparisonSearchStrategyTest extends TestCase
         $qb->expects($this->never())->method('setParameter');
 
         $strategy = new ComparisonSearchStrategy(ColumnControlLogic::Equal);
-        $column   = TextColumn::new('id')->setField('id');
+        $column   = TextColumn::new('id')->field('id');
         $search   = new ColumnControlSearch('018f2c3e-1234-7abc-9def-0123456789ab', ColumnControlLogic::Equal, 'text');
 
         $strategy->apply($qb, $column, $search, 3, 'e');
@@ -170,7 +170,7 @@ final class ComparisonSearchStrategyTest extends TestCase
         $qb->expects($this->never())->method('setParameter');
 
         $strategy = new ComparisonSearchStrategy($logic);
-        $column   = TextColumn::new('birthDate')->setField('birthDate');
+        $column   = TextColumn::new('birthDate')->field('birthDate');
         $search   = new ColumnControlSearch($value, $logic, 'text');
 
         $strategy->apply($qb, $column, $search, 3, 'e');
@@ -194,7 +194,7 @@ final class ComparisonSearchStrategyTest extends TestCase
             );
 
         $strategy = new ComparisonSearchStrategy(ColumnControlLogic::Equal);
-        $column   = TextColumn::new('birthDate')->setField('birthDate');
+        $column   = TextColumn::new('birthDate')->field('birthDate');
         $search   = new ColumnControlSearch('2026-08-19', ColumnControlLogic::Equal, 'text');
 
         $strategy->apply($qb, $column, $search, 3, 'e');
@@ -209,7 +209,7 @@ final class ComparisonSearchStrategyTest extends TestCase
         $qb->expects($this->never())->method('setParameter');
 
         $strategy = new ComparisonSearchStrategy($logic);
-        $column   = TextColumn::new('age')->setField('age');
+        $column   = TextColumn::new('age')->field('age');
         $search   = new ColumnControlSearch($value, $logic, 'text');
 
         $strategy->apply($qb, $column, $search, 3, 'e');
@@ -229,7 +229,7 @@ final class ComparisonSearchStrategyTest extends TestCase
             ->with('column_control_param_3', '42', 'integer');
 
         $strategy = new ComparisonSearchStrategy(ColumnControlLogic::Equal);
-        $column   = TextColumn::new('age')->setField('age');
+        $column   = TextColumn::new('age')->field('age');
         $search   = new ColumnControlSearch('  42  ', ColumnControlLogic::Equal, 'text');
 
         $strategy->apply($qb, $column, $search, 3, 'e');
@@ -249,7 +249,7 @@ final class ComparisonSearchStrategyTest extends TestCase
             ->with('column_control_param_3', '19.99', 'float');
 
         $strategy = new ComparisonSearchStrategy(ColumnControlLogic::Equal);
-        $column   = TextColumn::new('price')->setField('price');
+        $column   = TextColumn::new('price')->field('price');
         $search   = new ColumnControlSearch('19.99', ColumnControlLogic::Equal, 'text');
 
         $strategy->apply($qb, $column, $search, 3, 'e');
@@ -264,7 +264,7 @@ final class ComparisonSearchStrategyTest extends TestCase
         $qb->expects($this->never())->method('setParameter');
 
         $strategy = new ComparisonSearchStrategy($logic);
-        $column   = TextColumn::new('active')->setField('active');
+        $column   = TextColumn::new('active')->field('active');
         $search   = new ColumnControlSearch($value, $logic, 'text');
 
         $strategy->apply($qb, $column, $search, 3, 'e');
@@ -285,7 +285,7 @@ final class ComparisonSearchStrategyTest extends TestCase
             ->with('column_control_param_3', $expected, 'boolean');
 
         $strategy = new ComparisonSearchStrategy(ColumnControlLogic::Equal);
-        $column   = TextColumn::new('active')->setField('active');
+        $column   = TextColumn::new('active')->field('active');
         $search   = new ColumnControlSearch($value, ColumnControlLogic::Equal, 'text');
 
         $strategy->apply($qb, $column, $search, 3, 'e');

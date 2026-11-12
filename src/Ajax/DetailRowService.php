@@ -22,7 +22,7 @@ final readonly class DetailRowService
         private ?Environment $twig = null,
         ?AuthorizationChecker $permissionChecker = null,
     ) {
-        $this->permissionChecker = $permissionChecker ?? new AuthorizationChecker();
+        $this->permissionChecker = $permissionChecker ?? AuthorizationChecker::fallbackFor(self::class);
     }
 
     /**

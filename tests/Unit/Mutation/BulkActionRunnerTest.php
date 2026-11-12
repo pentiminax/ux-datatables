@@ -146,7 +146,7 @@ final class BulkActionRunnerTest extends TestCase
 
         $seen   = [];
         $action = BulkAction::new('touch')
-            ->setPermission('CUSTOMER_TOUCH', static fn (CountCustomer $c): CountCustomer => $c)
+            ->permission('CUSTOMER_TOUCH', static fn (CountCustomer $c): CountCustomer => $c)
             ->handler(function (BulkRecords $records) use (&$seen): void {
                 foreach ($records as $customer) {
                     $seen[] = $customer->name;
@@ -222,7 +222,7 @@ final class BulkActionRunnerTest extends TestCase
             }
         });
         $table = $this->resolved($action);
-        $table->table->getConfiguredDataTable()->getBulkActions()?->setIdField('name');
+        $table->table->getConfiguredDataTable()->getBulkActions()?->idField('name');
 
         $this->runner()->run($table, $action, new BulkSelection(ids: ['Beta']), new Request());
 
@@ -237,14 +237,14 @@ final class BulkActionRunnerTest extends TestCase
             $handled = true;
         });
         $table = $this->resolved($action);
-        $table->table->getConfiguredDataTable()->getBulkActions()?->setIdField('reference');
+        $table->table->getConfiguredDataTable()->getBulkActions()?->idField('reference');
 
         try {
             $this->runner()->run($table, $action, new BulkSelection(ids: ['Beta']), new Request());
             $this->fail('An unmapped id field must be refused.');
         } catch (\LogicException $exception) {
             $this->assertStringContainsString('"reference"', $exception->getMessage());
-            $this->assertStringContainsString('setIdField()', $exception->getMessage());
+            $this->assertStringContainsString('idField()', $exception->getMessage());
         }
 
         $this->assertFalse($handled);
@@ -304,7 +304,7 @@ final class BulkActionRunnerTest extends TestCase
         $table = $this->resolved($action, scope: static fn (QueryBuilder $qb): QueryBuilder => $qb
             ->andWhere('e.name <> :hidden')
             ->setParameter('hidden', 'Delta'));
-        $table->table->getConfiguredDataTable()->getBulkActions()?->setIdField('name');
+        $table->table->getConfiguredDataTable()->getBulkActions()?->idField('name');
 
         $result = $this->runner()->run($table, $action, new BulkSelection(ids: ['Beta', 'Delta']), new Request());
 
@@ -399,7 +399,7 @@ final class BulkActionRunnerTest extends TestCase
         $publisher->expects($this->never())->method('publish');
 
         $action = BulkAction::new('touch')
-            ->setPermission('CUSTOMER_TOUCH', static fn (CountCustomer $c): CountCustomer => $c)
+            ->permission('CUSTOMER_TOUCH', static fn (CountCustomer $c): CountCustomer => $c)
             ->handler(static function (BulkRecords $records): void {
                 foreach ($records as $ignored) {
                 }
@@ -780,7 +780,7 @@ final class BulkActionRunnerTest extends TestCase
             );
             $this->fail('The unmapped default id must be refused on a composite key.');
         } catch (\LogicException $exception) {
-            $this->assertStringContainsString('"id" field that setIdField() writes', $exception->getMessage());
+            $this->assertStringContainsString('"id" field that idField() writes', $exception->getMessage());
         }
 
         $this->assertFalse($handled);
@@ -905,7 +905,7 @@ final class BulkActionRunnerTest extends TestCase
                     ->selectCurrentPageOnly($currentPageOnly)
                     ->add($action);
 
-                return null === $idField ? $actions : $actions->setIdField($idField);
+                return null === $idField ? $actions : $actions->idField($idField);
             },
         );
 
@@ -941,7 +941,7 @@ final class BulkActionRunnerTest extends TestCase
             bulkActions: static function (BulkActions $actions) use ($action, $bulkIdField): BulkActions {
                 $actions->add($action);
 
-                return null === $bulkIdField ? $actions : $actions->setIdField($bulkIdField);
+                return null === $bulkIdField ? $actions : $actions->idField($bulkIdField);
             },
         );
 

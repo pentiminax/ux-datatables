@@ -101,7 +101,7 @@ final class AbstractDataTableResetTest extends TestCase
 
         $table = $this->tableWithAction(
             Action::detail()
-                ->setPermission('ROLE_ADMIN')
+                ->permission('ROLE_ADMIN')
                 ->linkToUrl(static fn (array $row): string => '/books/'.$row['id']),
             $granted,
         );
@@ -129,7 +129,7 @@ final class AbstractDataTableResetTest extends TestCase
 
         $table = $this->tableWithAction(
             Action::detail()
-                ->setPermission('BOOK_VIEW', static fn (array $row): array => $row)
+                ->permission('BOOK_VIEW', static fn (array $row): array => $row)
                 ->linkToUrl(static fn (array $row): string => '/books/'.$row['id']),
             $granted,
         );

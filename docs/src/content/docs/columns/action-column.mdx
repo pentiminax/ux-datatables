@@ -32,15 +32,15 @@ final class UsersDataTable extends AbstractDataTable
     public function configureActions(Actions $actions): Actions
     {
         return $actions
-            ->setColumnLabel('Actions')
+            ->columnLabel('Actions')
             ->add(
                 Action::edit('Edit')
-                    ->setClassName('btn btn-sm btn-warning')
+                    ->className('btn btn-sm btn-warning')
                     ->icon(Icon::Pencil)
             )
             ->add(
                 Action::delete('Delete')
-                    ->setClassName('btn btn-sm btn-danger')
+                    ->className('btn btn-sm btn-danger')
                     ->icon(Icon::Trash2)
                     ->askConfirmation('Delete this user?')
                     ->displayIf('status', 'draft')
@@ -160,7 +160,7 @@ composer require symfony/expression-language
 use Symfony\Component\ExpressionLanguage\Expression;
 
 Action::new('publish', 'Publish')
-    ->setPermission(new Expression('"ROLE_EDITOR" in role_names and "ROLE_EXTERNAL" not in role_names'));
+    ->permission(new Expression('"ROLE_EDITOR" in role_names and "ROLE_EXTERNAL" not in role_names'));
 ```
 
 Symfony evaluates the expression with its standard security variables, including `user`,
@@ -177,7 +177,7 @@ use Pentiminax\UX\DataTables\Model\Action;
 
 Action::delete(label: '')
     ->icon('fa-solid fa-trash')
-    ->setPermission('PRODUCT_DELETE', static fn (Product $product): Product => $product)
+    ->permission('PRODUCT_DELETE', static fn (Product $product): Product => $product)
     ->disabledWhenDenied();
 ```
 
@@ -285,7 +285,7 @@ public function configureActions(Actions $actions): Actions
             ->linkToRoute('book_publish', fn (Book $book): array => ['id' => $book->getId()])
             ->asAjaxRequest('publish_book')
             ->askConfirmation('Publish this book?')
-            ->setPermission('PUBLISH', fn (Book $book): Book => $book)
+            ->permission('PUBLISH', fn (Book $book): Book => $book)
     );
 }
 ```
@@ -561,7 +561,7 @@ Access is checked before the template renders. The endpoint always requires
 a configured permission — there is no fallback. If the action also declares a `setPermission()`, that
 permission is checked in addition: a per-row resolver receives the located entity (never a raw array
 row, even if the table's provider hydrates arrays elsewhere — see
-[`Action::setPermission()`](/guide/security/) for the full contract), and a
+[`Action::permission()`](/guide/security/) for the full contract), and a
 static permission is evaluated as-is. An action the user cannot see is an action they cannot fetch.
 
 <Aside type="note">

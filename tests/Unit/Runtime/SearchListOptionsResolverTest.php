@@ -37,7 +37,7 @@ final class SearchListOptionsResolverTest extends TestCase
         $columns = [
             TextColumn::new('name'),
             TextColumn::new('office'),
-            TextColumn::new('secret')->setSearchable(false),
+            TextColumn::new('secret')->searchable(false),
         ];
         $table = $this->table($columns, SearchList::new()->ajaxOptionsProvider($provider));
 
@@ -100,7 +100,7 @@ final class SearchListOptionsResolverTest extends TestCase
     #[Test]
     public function it_does_not_evaluate_column_permissions_when_no_ajax_provider_is_configured(): void
     {
-        $column = TextColumn::new('status')->setPermission('ROLE_ADMIN');
+        $column = TextColumn::new('status')->permission('ROLE_ADMIN');
         $table  = $this->table([$column], SearchList::new());
 
         $this->assertNull((new SearchListOptionsResolver())->resolve($table, [$column], $this->request()));
@@ -110,7 +110,7 @@ final class SearchListOptionsResolverTest extends TestCase
     public function a_column_target_override_takes_priority_over_the_table_provider(): void
     {
         $provider = static fn (): array => ['table'];
-        $column   = TextColumn::new('status')->setColumnControl([
+        $column   = TextColumn::new('status')->columnControl([
             ['target' => 1, 'content' => ['searchText']],
         ]);
         $table = $this->table([$column], SearchList::new()->ajaxOptionsProvider($provider));
@@ -122,7 +122,7 @@ final class SearchListOptionsResolverTest extends TestCase
     public function a_column_override_on_another_target_keeps_the_table_provider(): void
     {
         $provider = static fn (): array => ['table'];
-        $column   = TextColumn::new('status')->setColumnControl([
+        $column   = TextColumn::new('status')->columnControl([
             ['target' => 0, 'content' => ['orderAsc']],
         ]);
         $table = $this->table([$column], SearchList::new()->ajaxOptionsProvider($provider));
@@ -156,7 +156,7 @@ final class SearchListOptionsResolverTest extends TestCase
     {
         $tableProvider  = static fn (): array => ['table'];
         $columnProvider = static fn (): array => ['column'];
-        $column         = TextColumn::new('status')->setColumnControl([
+        $column         = TextColumn::new('status')->columnControl([
             ['target' => 1, 'content' => [SearchList::new()->ajaxOptionsProvider($columnProvider)]],
         ]);
         $table = $this->table([$column], SearchList::new()->ajaxOptionsProvider($tableProvider));
@@ -211,7 +211,7 @@ final class SearchListOptionsResolverTest extends TestCase
     #[Test]
     public function it_rejects_an_invalid_target_before_running_a_provider(): void
     {
-        $column = TextColumn::new('status')->setColumnControl([
+        $column = TextColumn::new('status')->columnControl([
             ['target' => null, 'content' => [SearchList::new()->ajaxOptionsProvider(static fn (): array => [])]],
         ]);
         $table = (new DataTable('orders'))->columns([$column]);
