@@ -20,6 +20,15 @@ Everything in this release is backward compatible. An application that runs 1.6.
 deprecation notice and no console warning upgrades to 2.0 with `composer update` and one install
 command. To rename everything with an AI coding agent, give it [UPGRADE-AI.md](UPGRADE-AI.md).
 
+### Subclasses of columns and tables
+
+The bare methods are new public methods on `AbstractColumn`, the concrete columns, `AbstractDataTable`
+(`data()`), `Action`, `BulkAction` and the table options. A subclass that already declares a method
+with one of these names (`data()`, `name()`, `type()`, `title()`, `format()`, `template()`,
+`choices()`, ...) must rename it or match the new signature. A subclass that overrides a deprecated
+`setX()` must override `x()` instead: the bundle now calls `x()`, so the override is no longer
+reached.
+
 ### Deprecations
 
 - Every user-facing `setX()` method of columns, actions, bulk actions, table options and the table
@@ -29,7 +38,7 @@ command. To rename everything with an AI coding agent, give it [UPGRADE-AI.md](U
 - `DataTable::setExtensions()` replaces the whole extension collection and has no replacement.
   Declare extensions with `extensions([...])`.
 - `Action::csrfTokenId()` is deprecated, use `csrfToken()`.
-- A bundle service built by hand without an authorization checker falls back to an allow-all one,
+- A bundle service built by hand without an authorization checker falls back to a checker without Symfony Security,
   which 2.0 removes. Pass an `AuthorizationChecker`. Services from the container are not affected.
 - Stylesheet autodetection of the style framework logs a console warning once per page, and 2.0
   removes it. Call `styleFramework()` on the table or install a style kit.

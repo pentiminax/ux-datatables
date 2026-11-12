@@ -22,6 +22,8 @@ use Twig\TwigFunction;
 
 class DataTablesExtension extends AbstractExtension
 {
+    private readonly AuthorizationChecker $permissionChecker;
+
     /**
      * The Stimulus controller a rendered table is bound to, and the data attribute carrying its
      * serialized view. {@see \Pentiminax\UX\DataTables\Test\DataTableView} reads the attribute,
@@ -42,9 +44,10 @@ class DataTablesExtension extends AbstractExtension
         private readonly ?CsrfTokenManagerInterface $csrfTokenManager = null,
         private readonly ?AjaxDataTableRegistry $ajaxRegistry = null,
         private readonly ?DataTableProfiler $profiler = null,
-        private readonly ?AuthorizationChecker $permissionChecker = null,
+        ?AuthorizationChecker $permissionChecker = null,
         private readonly string $controllerName = self::CONTROLLER_NAME,
     ) {
+        $this->permissionChecker = $permissionChecker ?? AuthorizationChecker::fallbackFor(self::class);
     }
 
     public function getFunctions(): array
@@ -59,7 +62,7 @@ class DataTablesExtension extends AbstractExtension
         $dataTableClass = $table::class;
         $table->getConfiguredDataTable();
 
-        if (false === $this->permissionChecker?->canAccessTable($table)) {
+        if (false === $this->permissionChecker->canAccessTable($table)) {
             throw new AccessDeniedException('Access to this DataTable is denied.');
         }
 
@@ -153,7 +156,7 @@ class DataTablesExtension extends AbstractExtension
         }
 
         $allowed = (clone $bulkActions)->filterStaticPermissions(
-            $this->permissionChecker ?? AuthorizationChecker::fallbackFor(self::class),
+            $this->permissionChecker,
             $dataTableClass,
         );
 

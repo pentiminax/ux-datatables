@@ -1,3 +1,4 @@
+import { packageLoaders } from './packageLoaders.js'
 import { STYLE_FRAMEWORKS, type StyleFramework } from '../types/styleFramework.js'
 
 let warnedDeprecatedFramework = false
@@ -10,7 +11,9 @@ let warnedAutodetection = false
  * Falls back to 'dt' if no recognised stylesheet is found.
  */
 export function detectStyleFramework(): StyleFramework {
-    warnOnceAboutAutodetection()
+    if (!packageLoaders.isRegistered('dataTables')) {
+        warnOnceAboutAutodetection()
+    }
 
     const sheets = [...document.styleSheets]
 

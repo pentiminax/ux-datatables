@@ -12,6 +12,8 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 final class AjaxDataTableRegistry
 {
+    private readonly AuthorizationChecker $permissionChecker;
+
     /**
      * Action tokens are signed under their own prefix so that the read token — which
      * travels in a query string on /ajax/data, and therefore leaks through logs and
@@ -27,8 +29,9 @@ final class AjaxDataTableRegistry
         private readonly ContainerInterface $locator,
         private readonly AjaxDataTableTokenManager $tokenManager,
         private readonly array $serviceIdsByClass,
-        private readonly ?AuthorizationChecker $permissionChecker = null,
+        ?AuthorizationChecker $permissionChecker = null,
     ) {
+        $this->permissionChecker = $permissionChecker ?? AuthorizationChecker::fallbackFor(self::class);
     }
 
     public function getToken(string $dataTableClass): ?string
@@ -92,7 +95,7 @@ final class AjaxDataTableRegistry
                 throw new \LogicException(\sprintf('Service "%s" must be an instance of "%s".', $serviceId, AbstractDataTable::class));
             }
 
-            if (false === $this->permissionChecker?->canAccessTable($table)) {
+            if (false === $this->permissionChecker->canAccessTable($table)) {
                 throw new AccessDeniedException('Access to this DataTable is denied.');
             }
 

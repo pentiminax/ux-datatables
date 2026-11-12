@@ -68,4 +68,15 @@ describe('detectStyleFramework', () => {
         expect(autodetection).toHaveLength(1)
         expect(autodetection[0][0]).toContain('styleFramework()')
     })
+
+    it('stays quiet about autodetection when a style kit registered the dataTables package', async () => {
+        const { packageLoaders } = await import('../packageLoaders.js')
+        const { detectStyleFramework } = await import('../detectStyleFramework.js')
+        packageLoaders.register('dataTables', async () => ({}))
+        loadStylesheet('/css/dataTables.dataTables.min.css')
+
+        detectStyleFramework()
+
+        expect(warn.mock.calls.some(([m]) => String(m).includes('autodetected'))).toBe(false)
+    })
 })

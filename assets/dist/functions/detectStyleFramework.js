@@ -1,8 +1,11 @@
+import { packageLoaders } from './packageLoaders.js';
 import { STYLE_FRAMEWORKS } from '../types/styleFramework.js';
 let warnedDeprecatedFramework = false;
 let warnedAutodetection = false;
 export function detectStyleFramework() {
-    warnOnceAboutAutodetection();
+    if (!packageLoaders.isRegistered('dataTables')) {
+        warnOnceAboutAutodetection();
+    }
     const sheets = [...document.styleSheets];
     for (const { key, cssPattern } of STYLE_FRAMEWORKS) {
         const matched = sheets.some((sheet) => sheet.href !== null && sheet.href.includes(cssPattern));

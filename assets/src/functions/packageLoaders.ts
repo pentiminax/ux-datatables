@@ -55,6 +55,10 @@ export class PackageLoaderRegistry {
         return this
     }
 
+    isRegistered(name: PackageName): boolean {
+        return this.loaders.has(name)
+    }
+
     has(name: PackageName, framework?: StyleFramework): boolean {
         return this.resolve(name, framework) !== undefined
     }
