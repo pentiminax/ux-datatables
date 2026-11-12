@@ -24,6 +24,7 @@ use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoAjaxServerSideDataTable;
 use Pentiminax\UX\DataTables\Tests\Support\BootsTwigKernel;
+use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -45,6 +46,7 @@ use Symfony\UX\StimulusBundle\Helper\StimulusHelper;
 final class DataTablesExtensionTest extends TestCase
 {
     use BootsTwigKernel;
+    use CollectsDeprecations;
 
     #[Test]
     public function it_renders_the_legacy_controller_by_default(): void
@@ -275,6 +277,56 @@ final class DataTablesExtensionTest extends TestCase
 
         $this->container->get('test.datatables.twig_extension')->renderDataTable($table);
         $this->assertTrue($table->prepareCalled);
+    }
+
+    #[Test]
+    public function it_calls_a_get_data_table_override_and_raises_its_deprecation(): void
+    {
+        $table = new class extends AbstractDataTable {
+            public function configureColumns(): iterable
+            {
+                yield TextColumn::new('firstColumn');
+            }
+
+            public function getDataTable(): DataTable
+            {
+                return parent::getDataTable()->pageLength(99);
+            }
+        };
+
+        $html    = '';
+        $notices = $this->deprecationsOf(function () use ($table, &$html): void {
+            $html = $this->container->get('test.datatables.twig_extension')->renderDataTable($table);
+        });
+
+        $this->assertStringContainsString('"pageLength":99', html_entity_decode($html));
+        $this->assertNotEmpty(array_filter($notices, static fn (string $n): bool => str_contains($n, 'getDataTable()')));
+    }
+
+    #[Test]
+    public function it_calls_a_prepare_for_rendering_override_and_raises_its_deprecation(): void
+    {
+        $table = new class extends AbstractDataTable {
+            public bool $overrideCalled = false;
+
+            public function configureColumns(): iterable
+            {
+                yield TextColumn::new('firstColumn');
+            }
+
+            public function prepareForRendering(): void
+            {
+                $this->overrideCalled = true;
+                parent::prepareForRendering();
+            }
+        };
+
+        $notices = $this->deprecationsOf(function () use ($table): void {
+            $this->container->get('test.datatables.twig_extension')->renderDataTable($table);
+        });
+
+        $this->assertTrue($table->overrideCalled);
+        $this->assertNotEmpty(array_filter($notices, static fn (string $n): bool => str_contains($n, 'prepareForRendering()')));
     }
 
     /**
