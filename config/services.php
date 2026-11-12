@@ -375,6 +375,8 @@ return static function (ContainerConfigurator $container): void {
         ->arg(7, service('datatables.profiler')->nullOnInvalid())
         ->arg(8, service('datatables.attribute.resolver'))
         ->arg('$defaultsConfigurators', tagged_iterator('datatables.defaults_configurator'))
+        ->arg('$logger', service('logger')->nullOnInvalid())
+        ->arg('$hydrationRowThreshold', param('datatables.hydration_row_threshold'))
         ->private();
 
     $services->alias(DataTableInfrastructure::class, 'datatables.infrastructure')

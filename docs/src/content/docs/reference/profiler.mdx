@@ -42,6 +42,11 @@ whether inline rows are present and how many, the data controller, the forwarded
 every column's serialized definition, the names of the columns static permission filtering removed,
 the declared filters, the resolved Mercure configuration, and the edit-modal template and adapter.
 
+It also records the data source mode the table resolved (`Inline`, `Ajax`, `ApiPlatform`,
+`ServerSide` or `ClientHydrated`), and the size in bytes of the rendered table element, which holds
+the serialized payload. A `ClientHydrated` table with more rows than
+[`hydration_row_threshold`](/guide/configuration/#hydration_row_threshold) is flagged.
+
 ### Ajax queries
 
 `collectAjaxQuery()` is called by `AbstractDataTable::getResponse()`, whichever route reached it —
@@ -71,9 +76,9 @@ directly. Each record holds:
 The toolbar entry shows the rendered-table count, the Ajax-query count, and the summed Ajax
 duration. The panel itself has two halves.
 
-**Rendered DataTables** starts with a summary table — id, class, server side, columns, extensions,
-inline rows — then one detail block per table: class, entity, server-side flag, inline row count,
-data controller, Ajax options, forwarded query parameters, edit modal, Mercure, the resolved
+**Rendered DataTables** starts with a summary table — id, class, server side, data source, columns,
+extensions, inline rows, payload size — and highlights a hydrated table above the threshold, then one detail block per table: class, entity, server-side flag, inline row count,
+data source, payload size, data controller, Ajax options, forwarded query parameters, edit modal, Mercure, the resolved
 columns, the columns denied by permission filtering, the enabled extensions with their options, and
 the declared filters.
 

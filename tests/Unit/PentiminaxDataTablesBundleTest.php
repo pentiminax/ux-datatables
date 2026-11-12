@@ -127,6 +127,12 @@ final class PentiminaxDataTablesBundleTest extends TestCase
     }
 
     #[Test]
+    public function it_defines_the_hydration_row_threshold_parameter(): void
+    {
+        self::assertSame(5000, $this->kernel->getContainer()->getParameter('datatables.hydration_row_threshold'));
+    }
+
+    #[Test]
     public function it_lets_the_application_override_the_maximum_page_length(): void
     {
         $kernel = new ConfigDefaultsAppKernel('test', true);

@@ -80,6 +80,8 @@ abstract class AbstractDataTable
 
     private bool $renderingPrepared = false;
 
+    private ?DataSourceMode $renderedDataSourceMode = null;
+
     /**
      * @internal
      */
@@ -223,6 +225,7 @@ abstract class AbstractDataTable
         $renderingPreparer = $this->infrastructure()->renderingPreparer;
 
         $renderingPreparer->prepareBeforeDataHydration($this->table, $this->asDataTable, $this->optIns);
+        $this->renderedDataSourceMode = $this->dataSourceMode();
         $this->prepareExplicitInlineData();
         $this->hydrateClientSideData();
         $renderingPreparer->prepareAfterDataHydration($this->table, $this->asDataTable, $this->optIns);
@@ -375,6 +378,16 @@ abstract class AbstractDataTable
         return $this->runtime()->fetchData($request);
     }
 
+    /**
+     * The mode the table resolved as before hydration turned a ClientHydrated table into an Inline one.
+     *
+     * @internal
+     */
+    final public function getRenderedDataSourceMode(): ?DataSourceMode
+    {
+        return $this->renderedDataSourceMode;
+    }
+
     private function hydrateClientSideData(): void
     {
         if (DataSourceMode::ClientHydrated !== $this->dataSourceMode()) {
@@ -382,6 +395,24 @@ abstract class AbstractDataTable
         }
 
         $this->fetchData($this->createClientSideDataRequest());
+
+        $this->warnWhenHydrationIsLarge();
+    }
+
+    private function warnWhenHydrationIsLarge(): void
+    {
+        $infrastructure = $this->infrastructure();
+        $threshold      = $infrastructure->hydrationRowThreshold;
+        $rows           = \count($this->table->getOption('data') ?? []);
+
+        if ($threshold <= 0 || $rows <= $threshold) {
+            return;
+        }
+
+        $infrastructure->logger?->warning(\sprintf('The table "%s" embeds %d rows in the page, above the hydration_row_threshold of %d. Call serverSide() so the browser fetches one page at a time.', static::class, $rows, $threshold), [
+            'table' => static::class,
+            'rows'  => $rows,
+        ]);
     }
 
     private function prepareExplicitInlineData(): void
@@ -428,6 +459,7 @@ abstract class AbstractDataTable
             columns: new RequestColumns($columns),
             start: 0,
             length: 0,
+            rowsOnly: true,
         );
     }
 

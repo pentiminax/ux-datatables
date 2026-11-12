@@ -43,6 +43,10 @@ final class DataTableProfilerTest extends TestCase
             'ajax'                     => null,
             'hasData'                  => false,
             'rowCount'                 => 0,
+            'dataSourceMode'           => null,
+            'payloadBytes'             => 0,
+            'hydrationOverThreshold'   => false,
+            'hydrationRowThreshold'    => 0,
             'dataController'           => null,
             'forwardedQueryParameters' => [],
             'columns'                  => [],
@@ -51,6 +55,33 @@ final class DataTableProfilerTest extends TestCase
             'mercure'                  => null,
             'editModal'                => ['template' => null, 'adapter' => null],
         ]], $profiler->getRenderedTables());
+    }
+
+    #[Test]
+    public function it_records_the_data_source_mode_the_payload_size_and_a_hydration_above_the_threshold(): void
+    {
+        $table = (new DataTable('products'))->data([['id' => 1], ['id' => 2], ['id' => 3]]);
+
+        $profiler = new DataTableProfiler(hydrationRowThreshold: 2);
+        $profiler->collectRenderedTable('App\\ProductDataTable', $table, ['dataSourceMode' => 'ClientHydrated', 'payloadBytes' => 4096]);
+        $profiler->collectRenderedTable('App\\InlineDataTable', $table, ['dataSourceMode' => 'Inline', 'payloadBytes' => 10]);
+
+        [$hydrated, $inline] = $profiler->getRenderedTables();
+
+        $this->assertSame('ClientHydrated', $hydrated['dataSourceMode']);
+        $this->assertSame(3, $hydrated['rowCount']);
+        $this->assertSame(4096, $hydrated['payloadBytes']);
+        $this->assertTrue($hydrated['hydrationOverThreshold']);
+        $this->assertFalse($inline['hydrationOverThreshold'], 'Only a hydrated table is flagged.');
+    }
+
+    #[Test]
+    public function a_zero_threshold_never_flags_a_hydration(): void
+    {
+        $profiler = new DataTableProfiler(hydrationRowThreshold: 0);
+        $profiler->collectRenderedTable('App\\ProductDataTable', (new DataTable('p'))->data([['id' => 1]]), ['dataSourceMode' => 'ClientHydrated']);
+
+        $this->assertFalse($profiler->getRenderedTables()[0]['hydrationOverThreshold']);
     }
 
     #[Test]

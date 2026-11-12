@@ -31,14 +31,23 @@ final class DataTableProfiler
     /** @var array<int, array<string, mixed>> */
     private array $ajaxQueries = [];
 
+    public function __construct(
+        private readonly int $hydrationRowThreshold = 0,
+    ) {
+    }
+
     /**
-     * @param array{entityClass?: string|null, originalColumns?: list<ColumnInterface>, allowedColumns?: list<ColumnInterface>} $context
-     *                                                                                                                                   Rendering context only available to the caller, such as the columns removed
-     *                                                                                                                                   by static permission filtering
+     * @param array{entityClass?: string|null, originalColumns?: list<ColumnInterface>, allowedColumns?: list<ColumnInterface>, dataSourceMode?: string|null, payloadBytes?: int} $context
+     *                                                                                                                                                                                     Rendering context only available to the caller, such as the columns removed
+     *                                                                                                                                                                                     by static permission filtering
      */
     public function collectRenderedTable(string $class, DataTable $table, array $context = []): void
     {
-        $options = $table->getOptions();
+        $options   = $table->getOptions();
+        $rowCount  = \is_array($options['data'] ?? null) ? \count($options['data']) : 0;
+        $mode      = $context['dataSourceMode'] ?? null;
+        $hydrated  = 'ClientHydrated' === $mode;
+        $overLimit = $hydrated && $this->hydrationRowThreshold > 0 && $rowCount > $this->hydrationRowThreshold;
 
         $this->renderedTables[] = [
             'id'                       => $context['id'] ?? $table->getId(),
@@ -49,7 +58,11 @@ final class DataTableProfiler
             'extensions'               => $this->describeExtensions($table),
             'ajax'                     => $table->getOption('ajax'),
             'hasData'                  => !empty($options['data']),
-            'rowCount'                 => \is_array($options['data'] ?? null) ? \count($options['data']) : 0,
+            'rowCount'                 => $rowCount,
+            'dataSourceMode'           => $mode,
+            'payloadBytes'             => $context['payloadBytes'] ?? 0,
+            'hydrationOverThreshold'   => $overLimit,
+            'hydrationRowThreshold'    => $this->hydrationRowThreshold,
             'dataController'           => $table->getDataController(),
             'forwardedQueryParameters' => $table->getForwardedQueryParameters(),
             'columns'                  => $this->describeColumns($table->getColumns()),

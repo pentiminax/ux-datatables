@@ -48,17 +48,20 @@
                     <th>ID</th>
                     <th>Class</th>
                     <th>Server side</th>
+                    <th>Data source</th>
                     <th>Columns</th>
                     <th>Extensions</th>
                     <th>Inline rows</th>
+                    <th>Payload</th>
                 </tr>
             </thead>
             <tbody>
                 {% for table in collector.tables %}
-                    <tr>
+                    <tr{% if table.hydrationOverThreshold %} class="status-warning"{% endif %}>
                         <td>{{ table.id }}</td>
                         <td><code>{{ table.class }}</code></td>
                         <td>{{ table.serverSide ? 'yes' : 'no' }}</td>
+                        <td>{{ table.dataSourceMode ?? '—' }}</td>
                         <td>{{ table.columnCount }}</td>
                         <td>
                             {%- if table.extensions is empty -%}
@@ -68,6 +71,7 @@
                             {%- endif -%}
                         </td>
                         <td>{{ table.hasData ? table.rowCount : 'no' }}</td>
+                        <td>{{ table.payloadBytes }} B</td>
                     </tr>
                 {% endfor %}
             </tbody>
@@ -87,7 +91,9 @@
                             <tr><th>Entity</th><td><code>{{ table.entityClass }}</code></td></tr>
                         {% endif %}
                         <tr><th>Server side</th><td>{{ table.serverSide ? 'yes' : 'no' }}</td></tr>
+                        <tr><th>Data source</th><td>{{ table.dataSourceMode ?? '—' }}</td></tr>
                         <tr><th>Inline rows</th><td>{{ table.rowCount }}</td></tr>
+                        <tr><th>Payload</th><td>{{ table.payloadBytes }} B</td></tr>
                         {% if table.dataController %}
                             <tr><th>Data controller</th><td><code>{{ table.dataController }}</code></td></tr>
                         {% endif %}
@@ -119,6 +125,14 @@
                         {% endif %}
                     </tbody>
                 </table>
+
+                {% if table.hydrationOverThreshold %}
+                    <p class="help">
+                        This table embeds {{ table.rowCount }} rows in the page, above the
+                        hydration_row_threshold of {{ table.hydrationRowThreshold }}. Call
+                        <code>serverSide()</code> so the browser fetches one page at a time.
+                    </p>
+                {% endif %}
 
                 {% if table.serverSide %}
                     <p class="help">

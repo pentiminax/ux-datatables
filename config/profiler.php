@@ -6,6 +6,7 @@ use Pentiminax\UX\DataTables\Profiler\DataTableCollector;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
+use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 /**
@@ -21,6 +22,7 @@ return static function (ContainerConfigurator $container): void {
     $services = $container->services();
 
     $services->set('datatables.profiler', DataTableProfiler::class)
+        ->arg('$hydrationRowThreshold', param('datatables.hydration_row_threshold'))
         ->tag('kernel.reset', ['method' => 'reset'])
         ->private();
 

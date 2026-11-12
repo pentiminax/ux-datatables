@@ -132,14 +132,18 @@ class DataTablesExtension extends AbstractExtension
             }
         }
 
+        $html = \sprintf('<table id="%s" %s></table>', htmlspecialchars($id, \ENT_QUOTES | \ENT_HTML5, 'UTF-8'), $stimulusAttributes);
+
         $this->profiler?->collectRenderedTable($dataTableClass, $dataTable, [
             'id'              => $id,
             'entityClass'     => $table->getEntityClass(),
             'originalColumns' => $originalColumns,
             'allowedColumns'  => $columns,
+            'dataSourceMode'  => $table->getRenderedDataSourceMode()?->name,
+            'payloadBytes'    => \strlen($html),
         ]);
 
-        return \sprintf('<table id="%s" %s></table>', htmlspecialchars($id, \ENT_QUOTES | \ENT_HTML5, 'UTF-8'), $stimulusAttributes);
+        return $html;
     }
 
     /**

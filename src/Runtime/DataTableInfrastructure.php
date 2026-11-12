@@ -11,6 +11,7 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
+use Psr\Log\LoggerInterface;
 
 final class DataTableInfrastructure
 {
@@ -26,6 +27,8 @@ final class DataTableInfrastructure
         public readonly AsDataTableResolver $asDataTableResolver = new AsDataTableResolver(),
         public readonly AttributeFilterReader $attributeFilterReader = new AttributeFilterReader(),
         public readonly iterable $defaultsConfigurators = [],
+        public readonly ?LoggerInterface $logger = null,
+        public readonly int $hydrationRowThreshold = 0,
     ) {
     }
 
@@ -42,6 +45,8 @@ final class DataTableInfrastructure
         ?AsDataTableResolver $asDataTableResolver = null,
         ?AttributeFilterReader $attributeFilterReader = null,
         iterable $defaultsConfigurators = [],
+        ?LoggerInterface $logger = null,
+        int $hydrationRowThreshold = 0,
     ): self {
         $queryFilterPipeline ??= new QueryFilterPipeline($queryIntentFactory ?? new DefaultDataTableQueryIntentFactory());
 
@@ -57,6 +62,8 @@ final class DataTableInfrastructure
             asDataTableResolver: $asDataTableResolver     ?? new AsDataTableResolver(),
             attributeFilterReader: $attributeFilterReader ?? new AttributeFilterReader(),
             defaultsConfigurators: $defaultsConfigurators,
+            logger: $logger,
+            hydrationRowThreshold: $hydrationRowThreshold,
         );
     }
 
