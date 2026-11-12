@@ -152,7 +152,7 @@ final class AbstractDataTableBulkActionsTest extends TestCase
             [TextColumn::new('id'), TextColumn::new('title')],
             bulkActions: static fn (BulkActions $actions): BulkActions => $actions
                 ->add(BulkAction::new('approve'))
-                ->setIdField('sku'),
+                ->idField('sku'),
         ))->getDataTable()->getOptions();
 
         $this->assertSame('sku', $options['bulkActions']['idField']);
@@ -170,7 +170,7 @@ final class AbstractDataTableBulkActionsTest extends TestCase
     public function it_gives_every_client_side_row_an_identifier(): void
     {
         $table = $this->table();
-        $table->setData([['id' => 7, 'title' => 'Heat']]);
+        $table->data([['id' => 7, 'title' => 'Heat']]);
 
         $rows = $table->getDataTable()->getOption('data');
 

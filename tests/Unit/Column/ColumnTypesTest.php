@@ -66,9 +66,9 @@ final class ColumnTypesTest extends TestCase
     public function it_adds_not_exportable_css_class(): void
     {
         $data = TextColumn::new('username')
-            ->setClassName('text-bold')
-            ->setTitle('Username')
-            ->setExportable(false)
+            ->className('text-bold')
+            ->title('Username')
+            ->exportable(false)
             ->jsonSerialize();
 
         $this->assertSame('text-bold', $data['className']);
@@ -78,8 +78,8 @@ final class ColumnTypesTest extends TestCase
     public function it_exposes_default_content_without_a_render_option(): void
     {
         $data = TextColumn::new('username')
-            ->setTitle('Username')
-            ->setDefaultContent('N/A')
+            ->title('Username')
+            ->defaultContent('N/A')
             ->jsonSerialize();
 
         $this->assertArrayNotHasKey('render', $data);
@@ -90,7 +90,7 @@ final class ColumnTypesTest extends TestCase
     #[DataProvider('provideColumns')]
     public function it_matches_column_types_to_enum(AbstractColumn $column, ColumnType $expectedType): void
     {
-        $column->setTitle('Column Title');
+        $column->title('Column Title');
 
         $data = $column->jsonSerialize();
 
@@ -141,7 +141,7 @@ final class ColumnTypesTest extends TestCase
         yield 'html-number-formatted' => [NumberColumn::new('col_html_num_fmt')->html()->formatted(), ColumnType::HTML_NUM_FMT];
         yield 'html' => [TextColumn::new('col_html')->html(), ColumnType::HTML];
         yield 'html-utf8' => [TextColumn::new('col_html_utf8')->html()->utf8(), ColumnType::HTML_UTF8];
-        yield 'template' => [TemplateColumn::new('col_template')->setTemplate('datatable/columns/cell.html.twig'), ColumnType::HTML];
+        yield 'template' => [TemplateColumn::new('col_template')->template('datatable/columns/cell.html.twig'), ColumnType::HTML];
         yield 'url' => [UrlColumn::new('col_url'), ColumnType::HTML];
         yield 'choice' => [ChoiceColumn::new('col_choice'), ColumnType::HTML];
         yield 'email' => [EmailColumn::new('col_email'), ColumnType::HTML];

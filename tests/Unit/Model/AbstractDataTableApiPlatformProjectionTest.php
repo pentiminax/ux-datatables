@@ -122,8 +122,8 @@ final class ProjectedApiBooksDataTable extends AbstractDataTable
         yield TextColumn::new('id');
         yield TextColumn::new('label');
         yield TemplateColumn::new('badge')
-            ->setField('label')
-            ->setTemplate('datatable/columns/book_badge.html.twig');
+            ->field('label')
+            ->template('datatable/columns/book_badge.html.twig');
     }
 
     protected function projectPage(array $items): ?array

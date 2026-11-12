@@ -88,7 +88,7 @@ final class ActionTest extends TestCase
     #[Test]
     public function it_serializes_the_disabled_when_denied_flag(): void
     {
-        $json = Action::delete()->setPermission('ROLE_ADMIN')->disabledWhenDenied()->jsonSerialize();
+        $json = Action::delete()->permission('ROLE_ADMIN')->disabledWhenDenied()->jsonSerialize();
 
         $this->assertTrue($json['disabledWhenDenied']);
         $this->assertArrayNotHasKey('denied', $json);
@@ -101,8 +101,8 @@ final class ActionTest extends TestCase
             ->linkToUrl('/users/1/delete')
             ->asAjaxRequest('delete_user')
             ->askConfirmation('Are you sure?')
-            ->setEntityClass('App\\Entity\\User')
-            ->setPermission('ROLE_ADMIN')
+            ->entityClass('App\\Entity\\User')
+            ->permission('ROLE_ADMIN')
             ->disabledWhenDenied();
 
         $json = $action->asDenied()->jsonSerialize();
@@ -121,13 +121,13 @@ final class ActionTest extends TestCase
     {
         $action = Action::delete()
             ->label('Supprimer')
-            ->setClassName('btn btn-sm btn-danger')
+            ->className('btn btn-sm btn-danger')
             ->icon('bi bi-trash')
             ->askConfirmation('Are you sure?')
             ->htmlAttributes(['target' => '_blank'])
-            ->setIdField('uuid')
+            ->idField('uuid')
             ->displayIf('isDeletable', true)
-            ->setEntityClass('App\\Entity\\User');
+            ->entityClass('App\\Entity\\User');
 
         $this->assertSame('uuid', $action->getIdField());
         $this->assertSame('App\\Entity\\User', $action->getEntityClass());
@@ -147,7 +147,7 @@ final class ActionTest extends TestCase
     #[Test]
     public function it_strips_the_leading_backslash_from_the_entity_class(): void
     {
-        $action = Action::delete()->setEntityClass('\\App\\Entity\\User');
+        $action = Action::delete()->entityClass('\\App\\Entity\\User');
 
         $this->assertSame('App\\Entity\\User', $action->jsonSerialize()['entityClass']);
     }
@@ -342,7 +342,7 @@ final class ActionTest extends TestCase
     #[DataProvider('permissionProvider')]
     public function it_distinguishes_static_from_per_row_permissions(?\Closure $subjectResolver, bool $static, bool $perRow): void
     {
-        $action = Action::delete()->setPermission('ROLE_ADMIN', $subjectResolver);
+        $action = Action::delete()->permission('ROLE_ADMIN', $subjectResolver);
 
         $this->assertSame('ROLE_ADMIN', $action->getPermission());
         $this->assertSame($subjectResolver, $action->getPermissionSubjectResolver());
@@ -359,7 +359,7 @@ final class ActionTest extends TestCase
     public function it_stores_expression_permissions_without_serializing_them(): void
     {
         $expression = new Expression('"ROLE_ADMIN" in role_names');
-        $action     = Action::delete()->setPermission($expression);
+        $action     = Action::delete()->permission($expression);
 
         $this->assertSame($expression, $action->getPermission());
         $this->assertTrue($action->hasStaticPermission());

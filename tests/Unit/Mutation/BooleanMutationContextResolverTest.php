@@ -194,7 +194,7 @@ final class ColumnEntityClassDataTableFixture extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield BooleanColumn::new('enabled')
-            ->setEntityClass(BooleanMutationColumnEntityFixture::class)
+            ->entityClass(BooleanMutationColumnEntityFixture::class)
             ->renderAsSwitch();
     }
 }
@@ -204,7 +204,7 @@ final class ColumnOnlyEntityClassDataTableFixture extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield BooleanColumn::new('enabled')
-            ->setEntityClass(BooleanMutationColumnEntityFixture::class)
+            ->entityClass(BooleanMutationColumnEntityFixture::class)
             ->renderAsSwitch();
     }
 }
@@ -241,7 +241,7 @@ final class ToggleFieldDataTableFixture extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield BooleanColumn::new('enabled')
-            ->setCustomOption(BooleanColumn::OPTION_TOGGLE_FIELD, 'isEnabled')
+            ->customOption(BooleanColumn::OPTION_TOGGLE_FIELD, 'isEnabled')
             ->renderAsSwitch();
     }
 }
@@ -252,7 +252,7 @@ final class EmptyToggleFieldDataTableFixture extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield BooleanColumn::new('enabled')
-            ->setCustomOption(BooleanColumn::OPTION_TOGGLE_FIELD, '')
+            ->customOption(BooleanColumn::OPTION_TOGGLE_FIELD, '')
             ->renderAsSwitch();
     }
 }
@@ -262,7 +262,7 @@ final class PermissionGatedBooleanDataTableFixture extends AbstractDataTable
 {
     public function configureColumns(): iterable
     {
-        yield BooleanColumn::new('enabled')->setPermission('ROLE_ADMIN')->renderAsSwitch();
+        yield BooleanColumn::new('enabled')->permission('ROLE_ADMIN')->renderAsSwitch();
     }
 }
 

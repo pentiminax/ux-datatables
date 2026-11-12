@@ -379,7 +379,7 @@ final class GuardedBulkDataTable extends BulkEntityFixtureDataTable
 {
     public function configureBulkActions(BulkActions $actions): BulkActions
     {
-        return $actions->add(BulkAction::new('approve')->setPermission('ORDER_APPROVE'));
+        return $actions->add(BulkAction::new('approve')->permission('ORDER_APPROVE'));
     }
 }
 

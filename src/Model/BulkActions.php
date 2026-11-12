@@ -65,11 +65,21 @@ final class BulkActions implements \JsonSerializable
      * A single Doctrine identifier replaces the `id` default automatically when metadata is
      * available. Set this explicitly for another source or identifier field.
      */
-    public function setIdField(string $idField): self
+    public function idField(string $idField): self
     {
         $this->idField = $idField;
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use idField() instead. Removed in 2.0.
+     */
+    public function setIdField(string $idField): self
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "idField()" instead.', __METHOD__);
+
+        return $this->idField($idField);
     }
 
     public function getIdField(): string

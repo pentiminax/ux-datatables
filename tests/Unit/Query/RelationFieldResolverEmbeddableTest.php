@@ -84,7 +84,7 @@ final class RelationFieldResolverEmbeddableTest extends TestCase
     public function it_orders_and_searches_an_embeddable_column_through_the_query_pipeline(): void
     {
         $pipeline = new QueryFilterPipeline(new DefaultDataTableQueryIntentFactory());
-        $columns  = [TextColumn::new('city', 'City')->setField('address.city')];
+        $columns  = [TextColumn::new('city', 'City')->field('address.city')];
         $qb       = $this->em->createQueryBuilder()->select('e')->from(EmbeddedAddressOwner::class, 'e');
 
         $pipeline->apply(
@@ -124,7 +124,7 @@ final class RelationFieldResolverEmbeddableTest extends TestCase
                 return (new QueryFilterPipeline(new DefaultDataTableQueryIntentFactory()))->apply(
                     qb: $qb,
                     request: $request,
-                    columns: [TextColumn::new('city', 'City')->setField('address.city')],
+                    columns: [TextColumn::new('city', 'City')->field('address.city')],
                     filters: null,
                     registry: new DefaultSearchStrategyRegistry(),
                 );

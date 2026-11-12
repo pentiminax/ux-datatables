@@ -9,6 +9,7 @@ export declare class PackageLoaderRegistry {
     private readonly loaders;
     private fallback;
     register(name: PackageName, loader: PackageLoader): this;
+    isRegistered(name: PackageName): boolean;
     has(name: PackageName, framework?: StyleFramework): boolean;
     load(name: PackageName, framework?: StyleFramework): Promise<unknown>;
     setFallback(fallback: FallbackResolver | null): void;

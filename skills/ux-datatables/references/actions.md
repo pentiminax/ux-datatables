@@ -8,15 +8,15 @@ use Pentiminax\UX\DataTables\Model\{Action, Actions};
 public function configureActions(Actions $actions): Actions
 {
     return $actions
-        ->setColumnLabel('Operations')          // header (default: 'Actions')
-        ->setColumnClassName('text-end')
-        ->setColumnControl(['colvisDropdown'])  // requires ColumnControlExtension on the table
+        ->columnLabel('Operations')          // header (default: 'Actions')
+        ->columnClassName('text-end')
+        ->columnControl(['colvisDropdown'])  // requires ColumnControlExtension on the table
         ->add(Action::edit())
         ->add(
             Action::delete('Delete')
                 ->icon('bi bi-trash')
                 ->askConfirmation('Delete this row?')
-                ->setPermission('ROLE_ADMIN')
+                ->permission('ROLE_ADMIN')
         );
 }
 ```
@@ -41,17 +41,17 @@ name throws `DuplicateActionNameException` at render or on the Ajax endpoints.
 ```php
 Action::detail()
     ->setLabel('View')
-    ->setClassName('btn btn-sm btn-primary')
+    ->className('btn btn-sm btn-primary')
     ->setIcon('bi bi-eye')
-    ->setIdField('uuid')                       // ID field used in URLs (default 'id')
+    ->idField('uuid')                       // ID field used in URLs (default 'id')
     ->setHtmlAttributes(['data-turbo' => 'false'])
     ->askConfirmation('Sure?')                 // confirmation button label
     ->displayIf('status', 'draft')             // show only when row.status === 'draft'
     ->linkToUrl(fn (User $u) => '/users/'.$u->getId())  // string | callable
-    ->setEntityClass(User::class)              // entity for permission subject
+    ->entityClass(User::class)              // entity for permission subject
     ->collapsible('detail.html.twig', [...])   // detail-only: expand into a child row (see below)
     ->position(ActionsPosition::BeforeColumns) // pin THIS action's column (null = inherit collection)
-    ->setPermission('EDIT', fn (User $u) => $u->getId() !== 1);  // see below
+    ->permission('EDIT', fn (User $u) => $u->getId() !== 1);  // see below
 ```
 
 > `Action` has `linkToUrl()` only — there is no `linkToRoute()` on actions. For route-based links, build the URL in the callable, or use a `UrlColumn` (which does support `linkToRoute()`).
@@ -60,15 +60,15 @@ Action::detail()
 
 `setPermission(string|Expression $attribute, ?callable $subjectResolver = null)`:
 
-- **Static** (no resolver) — evaluated once before serialization. If not granted, the action is removed entirely. Use for role checks: `->setPermission('ROLE_ADMIN')`.
-- **Per-row** (with resolver) — evaluated per row; the resolver returns the voter subject: `->setPermission('EDIT_PRODUCT', fn ($row) => $row)`. **The value it receives differs by call site**: the row source at render time (an array if the provider hydrates arrays), the located entity on the `delete` / `edit-form` / `detail` endpoints.
+- **Static** (no resolver) — evaluated once before serialization. If not granted, the action is removed entirely. Use for role checks: `->permission('ROLE_ADMIN')`.
+- **Per-row** (with resolver) — evaluated per row; the resolver returns the voter subject: `->permission('EDIT_PRODUCT', fn ($row) => $row)`. **The value it receives differs by call site**: the row source at render time (an array if the provider hydrates arrays), the located entity on the `delete` / `edit-form` / `detail` endpoints.
 
-Same model applies to columns (`AbstractColumn::setPermission()`), but columns only support the static form.
+Same model applies to columns (`AbstractColumn::permission()`), but columns only support the static form.
 
 `setPermission()` alone is **not** enough to secure a mutation. The built-in endpoints also require
 your own voter on `Permission::DT_EDIT_ROW`, `DT_DELETE_ROW`, or `DT_VIEW_ROW_DETAILS` — they
 cumulate, neither replaces the other. See `references/security.md` for the full matrix, the
-table-level `DataTable::setPermission()`, and the Ajax route protection these checks assume.
+table-level `DataTable::permission()`, and the Ajax route protection these checks assume.
 
 Delete actions and inline boolean toggles require an active session for CSRF protection. In a
 stateless or session-less rendering context, the payload exposes `mutationsEnabled: false` and the
@@ -127,7 +127,7 @@ public function configureBulkActions(BulkActions $actions): BulkActions
             BulkAction::new('approve', 'Approve')
                 ->icon(Icon::Check)
                 ->askConfirmation('Approve {count} orders?')   // {count} substituted client-side
-                ->setPermission('ORDER_APPROVE', fn (Order $o) => $o)
+                ->permission('ORDER_APPROVE', fn (Order $o) => $o)
                 ->chunk(250)                                   // rows loaded and flushed per batch
                 ->handler(function (BulkRecords $records, BulkActionContext $ctx): void {
                     foreach ($records as $order) {
@@ -139,7 +139,7 @@ public function configureBulkActions(BulkActions $actions): BulkActions
 ```
 
 - UI: a **Bulk actions** button in the `topEnd` layout cell (disabled until a row is checked) opens a dropdown of the actions; a full-width band under the toolbar row shows the count, `Select all {count}` and `Deselect all`. Move it with `BulkActions::position()` (default `topEnd`).
-- Declaring one auto-enables `SelectExtension` in `MULTI` style with checkboxes, and forces a `DT_RowId` on every row. A single Doctrine identifier is detected automatically; use `BulkActions::setIdField()` for another source. A configured `SelectStyle::SINGLE` throws.
+- Declaring one auto-enables `SelectExtension` in `MULTI` style with checkboxes, and forces a `DT_RowId` on every row. A single Doctrine identifier is detected automatically; use `BulkActions::idField()` for another source. A configured `SelectStyle::SINGLE` throws.
 - Every bulk action must declare a `handler()`; executing an action without one throws a configuration error.
 - `BulkRecords` is lazy and single-pass: `count()` is the **selected** count, `$ctx->processedCount()` / `$ctx->skippedCount()` are the real ones, read after iterating.
 - Per-row permission denials are skipped and counted; they do not abort the run. A handler declines a row on a data rule with `$ctx->skip()`, which moves the entity just handed over from processed to skipped.

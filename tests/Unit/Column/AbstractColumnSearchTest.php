@@ -31,8 +31,8 @@ final class AbstractColumnSearchTest extends TestCase
     public function it_keeps_the_search_field_separate_from_the_display_field(): void
     {
         $column = TextColumn::new('donorProviderName', 'Donor')
-            ->setField('donorProviderName')
-            ->setSearchField('donorProvider.name');
+            ->field('donorProviderName')
+            ->searchField('donorProvider.name');
 
         $this->assertSame('donorProviderName', $column->getField());
         $this->assertSame('donorProvider.name', $column->getSearchField());
@@ -42,7 +42,7 @@ final class AbstractColumnSearchTest extends TestCase
     public function it_leaves_the_search_field_out_of_the_client_payload(): void
     {
         $payload = TextColumn::new('donorProviderName', 'Donor')
-            ->setSearchField('donorProvider.name')
+            ->searchField('donorProvider.name')
             ->addSearchJoin('e.donorProvider', 'dp')
             ->jsonSerialize();
 
@@ -70,7 +70,7 @@ final class AbstractColumnSearchTest extends TestCase
         $qb = $this->createMock(QueryBuilder::class);
         $qb->expects($this->once())->method('setParameter')->with('p0', '%acme%')->willReturn($qb);
 
-        $column = TextColumn::new('donorProviderName', 'Donor')->setSearchPredicate(
+        $column = TextColumn::new('donorProviderName', 'Donor')->searchPredicate(
             static function (QueryBuilder $qb, string $alias, string $value, string $paramName): string {
                 $qb->setParameter($paramName, \sprintf('%%%s%%', $value));
 
@@ -85,7 +85,7 @@ final class AbstractColumnSearchTest extends TestCase
     public function it_returns_null_when_the_search_predicate_declines_the_value(): void
     {
         $column = TextColumn::new('dossierId', 'Dossier')
-            ->setSearchPredicate(static fn (): ?string => null);
+            ->searchPredicate(static fn (): ?string => null);
 
         $this->assertNull($column->buildSearchPredicate($this->createStub(QueryBuilder::class), 'e', 'x', 'p0'));
     }
@@ -94,8 +94,8 @@ final class AbstractColumnSearchTest extends TestCase
     public function it_replaces_a_previously_configured_search_predicate(): void
     {
         $column = TextColumn::new('name', 'Name')
-            ->setSearchPredicate(static fn (): string => 'first')
-            ->setSearchPredicate(static fn (): string => 'second');
+            ->searchPredicate(static fn (): string => 'first')
+            ->searchPredicate(static fn (): string => 'second');
 
         $this->assertSame('second', $column->buildSearchPredicate($this->createStub(QueryBuilder::class), 'e', 'x', 'p0'));
     }

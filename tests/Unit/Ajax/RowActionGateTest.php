@@ -181,9 +181,9 @@ final class RowActionGateTest extends TestCase
     public function it_authorizes_a_toggle_on_a_table_without_an_entity_class_and_deprecates_it(): void
     {
         $authorized   = null;
-        $deprecations = $this->deprecationsOf(function () use (&$authorized): void {
+        $deprecations = $this->withoutAuthorizationFallback($this->deprecationsOf(function () use (&$authorized): void {
             $authorized = $this->authorize(RowActionRequest::toggle($this->token(GateManualDataTable::class), 'vip', 30));
-        });
+        }));
 
         $this->assertCount(1, $deprecations);
         $this->assertMatchesRegularExpression('/has no entity class, skips the row scope check: 2\.0 refuses the request/', $deprecations[0]);
@@ -493,9 +493,9 @@ final class GateDeniedActionAccountDataTable extends GateDataTable
     public function configureActions(Actions $actions): Actions
     {
         return $actions
-            ->add(Action::delete()->setPermission('ROLE_DENIED'))
-            ->add(Action::edit()->setPermission('ROLE_DENIED'))
-            ->add(Action::detail()->collapsible('detail.html.twig')->setPermission('ROLE_DENIED'));
+            ->add(Action::delete()->permission('ROLE_DENIED'))
+            ->add(Action::edit()->permission('ROLE_DENIED'))
+            ->add(Action::detail()->collapsible('detail.html.twig')->permission('ROLE_DENIED'));
     }
 }
 
@@ -507,8 +507,8 @@ final class GateOrderDataTable extends GateDataTable
         yield TextColumn::new('label');
         yield BooleanColumn::new('vip')
             ->renderAsSwitch()
-            ->setEntityClass(RelatedToggleCustomer::class)
-            ->setToggleAjax(idField: 'customer.id');
+            ->entityClass(RelatedToggleCustomer::class)
+            ->toggleAjax(idField: 'customer.id');
     }
 }
 
@@ -518,6 +518,6 @@ final class GateManualDataTable extends AbstractDataTable
     {
         yield BooleanColumn::new('vip')
             ->renderAsSwitch()
-            ->setEntityClass(RelatedToggleCustomer::class);
+            ->entityClass(RelatedToggleCustomer::class);
     }
 }

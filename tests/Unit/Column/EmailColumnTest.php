@@ -54,7 +54,7 @@ final class EmailColumnTest extends DataTableTestCase
         $column = EmailColumn::new('email', 'Email Address')
             ->obfuscate()
             ->mask()
-            ->setDisplayValue('Contact')
+            ->displayValue('Contact')
             ->renderAsText();
 
         $this->assertCustomOptions([

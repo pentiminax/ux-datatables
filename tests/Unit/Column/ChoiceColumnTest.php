@@ -32,7 +32,7 @@ final class ChoiceColumnTest extends DataTableTestCase
     #[DataProvider('provideChoices')]
     public function it_normalizes_choices(mixed $choices, array $expected): void
     {
-        $column = ChoiceColumn::new('status')->setChoices($choices);
+        $column = ChoiceColumn::new('status')->choices($choices);
 
         $this->assertCustomOption($expected, 'choices', $column);
     }
@@ -73,14 +73,14 @@ final class ChoiceColumnTest extends DataTableTestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        ChoiceColumn::new('status')->setChoices(\stdClass::class);
+        ChoiceColumn::new('status')->choices(\stdClass::class);
     }
 
     #[Test]
     public function it_sets_badge_options(): void
     {
         $column = ChoiceColumn::new('status')
-            ->setChoices(['active' => 'Active', 'inactive' => 'Inactive'])
+            ->choices(['active' => 'Active', 'inactive' => 'Inactive'])
             ->renderAsBadges(['active' => 'success', 'inactive' => 'danger'], 'secondary');
 
         $this->assertCustomOption(['active' => 'success', 'inactive' => 'danger'], 'renderAsBadges', $column);
@@ -91,7 +91,7 @@ final class ChoiceColumnTest extends DataTableTestCase
     public function it_falls_back_to_secondary_as_default_badge_variant(): void
     {
         $column = ChoiceColumn::new('status')
-            ->setChoices(['active' => 'Active'])
+            ->choices(['active' => 'Active'])
             ->renderAsBadges();
 
         $this->assertCustomOption([], 'renderAsBadges', $column);
@@ -116,7 +116,7 @@ final class ChoiceColumnTest extends DataTableTestCase
             static fn (string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string => $locale.':'.$id
         );
 
-        $column = ChoiceColumn::new('status')->setChoices(ChoiceColumnTranslatableStatus::class);
+        $column = ChoiceColumn::new('status')->choices(ChoiceColumnTranslatableStatus::class);
         $column->translateLabels($translator, 'fr');
 
         $this->assertCustomOption(['draft' => 'fr:status.draft', 'sent' => 'fr:status.sent'], 'choices', $column);
@@ -128,7 +128,7 @@ final class ChoiceColumnTest extends DataTableTestCase
         $translator = $this->createMock(TranslatorInterface::class);
         $translator->expects($this->never())->method('trans');
 
-        $column = ChoiceColumn::new('status')->setChoices(['Draft' => 'draft']);
+        $column = ChoiceColumn::new('status')->choices(['Draft' => 'draft']);
         $column->translateLabels($translator);
 
         $this->assertCustomOption(['draft' => 'Draft'], 'choices', $column);
@@ -141,8 +141,8 @@ final class ChoiceColumnTest extends DataTableTestCase
         $translator->expects($this->never())->method('trans');
 
         $column = ChoiceColumn::new('status')
-            ->setChoices(ChoiceColumnTranslatableStatus::cases())
-            ->setChoices(['Draft' => 'draft']);
+            ->choices(ChoiceColumnTranslatableStatus::cases())
+            ->choices(['Draft' => 'draft']);
         $column->translateLabels($translator);
 
         $this->assertCustomOption(['draft' => 'Draft'], 'choices', $column);
@@ -153,7 +153,7 @@ final class ChoiceColumnTest extends DataTableTestCase
     {
         $column = ChoiceColumnSubclassFixture::new('status');
 
-        $this->assertInstanceOf(ChoiceColumnSubclassFixture::class, $column->setChoices(['draft' => 'Draft']));
+        $this->assertInstanceOf(ChoiceColumnSubclassFixture::class, $column->choices(['draft' => 'Draft']));
         $this->assertInstanceOf(ChoiceColumnSubclassFixture::class, $column->renderAsBadges());
     }
 }

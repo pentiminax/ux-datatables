@@ -68,7 +68,7 @@ final class ColumnToFormTypeMapperTest extends TestCase
 
         yield 'boolean switch on text column' => [
             ['formType' => CheckboxType::class, 'options' => ['label' => 'Active', 'required' => false]],
-            TextColumn::new('active', 'Active')->setCustomOption('renderAsSwitch', true),
+            TextColumn::new('active', 'Active')->customOption('renderAsSwitch', true),
         ];
 
         yield 'choices' => [
@@ -77,7 +77,7 @@ final class ColumnToFormTypeMapperTest extends TestCase
                 'choices'  => ['Draft' => 'draft', 'Published' => 'published'],
                 'required' => false,
             ]],
-            TextColumn::new('status', 'Status')->setCustomOption('choices', ['draft' => 'Draft', 'published' => 'Published']),
+            TextColumn::new('status', 'Status')->customOption('choices', ['draft' => 'Draft', 'published' => 'Published']),
         ];
 
         yield 'date' => [
@@ -159,17 +159,17 @@ final class ColumnToFormTypeMapperTest extends TestCase
     public static function skippedColumnProvider(): \Generator
     {
         yield 'action column' => [ActionColumn::fromActions('actions', 'Actions', new Actions([]))];
-        yield 'template column' => [TemplateColumn::new('custom', 'Custom')->setCustomOption('templatePath', 'some/template.html.twig')];
+        yield 'template column' => [TemplateColumn::new('custom', 'Custom')->customOption('templatePath', 'some/template.html.twig')];
         yield 'url column' => [UrlColumn::new('link', 'Link')];
-        yield 'nested field path' => [TextColumn::new('author', 'Author')->setField('author.firstName')];
+        yield 'nested field path' => [TextColumn::new('author', 'Author')->field('author.firstName')];
         yield 'money in cents beyond float precision' => [MoneyColumn::new('wei', 'Wei')->currency('ETH')->decimals(18)];
-        yield 'hidden when updating' => [TextColumn::new('createdAt', 'Created At')->setCustomOption('hideWhenUpdating', true)];
+        yield 'hidden when updating' => [TextColumn::new('createdAt', 'Created At')->customOption('hideWhenUpdating', true)];
     }
 
     #[Test]
     public function enum_typed_property_maps_to_enum_type_with_choice_column_labels(): void
     {
-        $column = ChoiceColumn::new('role', 'Role')->setChoices(ColumnToFormTypeMapperRole::class);
+        $column = ChoiceColumn::new('role', 'Role')->choices(ColumnToFormTypeMapperRole::class);
 
         $mapped = $this->mapper->map($column, new ColumnToFormTypeMapperEntity());
 

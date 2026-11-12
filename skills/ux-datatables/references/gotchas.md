@@ -25,7 +25,7 @@ Client-side loads every row into the browser. For large datasets switch to `serv
 `setData()` is the JSON path the front-end reads; `setField()` is the entity/query path used for server-side filtering & ordering. When displaying a joined relation, set both. Ordering/searching a column whose `field` doesn't map to a real property throws or silently no-ops.
 
 ## Mark non-orderable/non-searchable columns
-Computed or template columns have no DB counterpart. Set `->setOrderable(false)->setSearchable(false)` (or `->disableGlobalSearch()`) to avoid invalid query attempts.
+Computed or template columns have no DB counterpart. Set `->orderable(false)->searchable(false)` (or `->disableGlobalSearch()`) to avoid invalid query attempts.
 
 ## Actions have no `linkToRoute()`
 `Action` exposes only `linkToUrl(string|callable)`. Build the route URL inside the callable, or use a `UrlColumn` (which does have `linkToRoute()`).
@@ -64,4 +64,4 @@ A data source that cannot apply SearchBuilder criteria, ColumnControl searches, 
 - YAML `options.pageLength` not in `options.lengthMenu` (deprecation now, exception in 2.0).
 
 ## Sorting a computed column needs `setOrderExpression()`
-A column with no real entity property (e.g. an `addSelect(... AS HIDDEN <alias>)` subquery) can't sort via the default `<alias>.<field>` — it resolves to a nonexistent `e.<field>` and errors. Either `->setOrderExpression('<alias>')` (and `->setSearchable(false)`), or `->setOrderable(false)->setSearchable(false)`.
+A column with no real entity property (e.g. an `addSelect(... AS HIDDEN <alias>)` subquery) can't sort via the default `<alias>.<field>` — it resolves to a nonexistent `e.<field>` and errors. Either `->orderExpression('<alias>')` (and `->searchable(false)`), or `->orderable(false)->searchable(false)`.

@@ -30,14 +30,14 @@ final class BulkOrdersDataTable extends AbstractDataTable
         yield TextColumn::new('reference', 'Reference');
 
         yield TextColumn::new('customer', 'Customer')
-            ->setField('customer.name');
+            ->field('customer.name');
 
         yield MoneyColumn::new('total', 'Total')
             ->currency('EUR')
             ->storedAsCents();
 
         yield ChoiceColumn::new('status', 'Status')
-            ->setChoices(OrderStatus::class)
+            ->choices(OrderStatus::class)
             ->renderAsBadges([
                 'pending'   => 'warning',
                 'paid'      => 'info',
@@ -47,11 +47,11 @@ final class BulkOrdersDataTable extends AbstractDataTable
             ]);
 
         yield DateColumn::new('placedAt', 'Placed at')
-            ->setFormat('Y-m-d H:i');
+            ->format('Y-m-d H:i');
 
         yield DateColumn::new('shippedAt', 'Shipped at')
-            ->setFormat('Y-m-d H:i')
-            ->setDefaultContent('—');
+            ->format('Y-m-d H:i')
+            ->defaultContent('—');
     }
 
     public function configureDataTable(DataTable $table): DataTable
@@ -94,7 +94,7 @@ final class BulkOrdersDataTable extends AbstractDataTable
         $cancelAction = BulkAction::new('cancel', 'Cancel')
             ->icon(Icon::Ban)
             ->askConfirmation('Cancel {count} orders?')
-            ->setPermission(OrderVoter::CANCEL, static fn (Order $order): Order => $order)
+            ->permission(OrderVoter::CANCEL, static fn (Order $order): Order => $order)
             ->successMessage('Orders cancelled.')
             ->handler(static function (BulkRecords $records): void {
                 foreach ($records as $order) {

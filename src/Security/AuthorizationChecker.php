@@ -24,6 +24,18 @@ final class AuthorizationChecker implements AuthorizationCheckerInterface
     ) {
     }
 
+    /**
+     * The checker without Symfony Security that services fall back to when built without one.
+     *
+     * @internal
+     */
+    public static function fallbackFor(string $consumer): self
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Building "%s" without an authorization checker is deprecated: it falls back to a checker without Symfony Security. Pass the "%s" service, a checker is required in 2.0.', $consumer, self::class);
+
+        return new self();
+    }
+
     public function isGranted(mixed $attribute, mixed $subject = null, ?AccessDecision $accessDecision = null): bool
     {
         if (null === $attribute || '' === $attribute) {

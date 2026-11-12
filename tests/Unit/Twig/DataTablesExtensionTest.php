@@ -214,7 +214,7 @@ final class DataTablesExtensionTest extends TestCase
 
         $table = new ConfigurableDataTable(
             [TextColumn::new('id')],
-            configureTable: static fn (DataTable $table): DataTable => $table->setPermission('ROLE_ADMIN'),
+            configureTable: static fn (DataTable $table): DataTable => $table->permission('ROLE_ADMIN'),
             dataProvider: $provider,
         );
 
@@ -377,7 +377,7 @@ final class DataTablesExtensionTest extends TestCase
         $table = $this->inlineTable(
             [
                 TextColumn::new('name'),
-                TextColumn::new('user.email')->setPermission('ROLE_DENIED'),
+                TextColumn::new('user.email')->permission('ROLE_DENIED'),
             ],
             static fn (DataTable $table): DataTable => $table->data([
                 ['name' => 'Ada', 'user' => ['email' => 'secret', 'role' => 'admin']],
@@ -399,7 +399,7 @@ final class DataTablesExtensionTest extends TestCase
         $table = $this->inlineTable(
             [
                 TextColumn::new('name'),
-                TextColumn::new('value.name')->setPermission('ROLE_DENIED'),
+                TextColumn::new('value.name')->permission('ROLE_DENIED'),
             ],
             static fn (DataTable $table): DataTable => $table->data([
                 ['name' => 'Ada', 'value' => (object) ['name' => 'secret', 'role' => 'admin']],
@@ -420,7 +420,7 @@ final class DataTablesExtensionTest extends TestCase
     {
         $actions = (new Actions())->add(
             Action::detail()
-                ->setPermission('ROLE_DENIED')
+                ->permission('ROLE_DENIED')
                 ->linkToUrl(static fn (array $row): string => '/books/'.$row['id'])
         );
 
@@ -485,7 +485,7 @@ final class DataTablesExtensionTest extends TestCase
         $table = new ConfigurableDataTable(
             [
                 TextColumn::new('id'),
-                TextColumn::new('secret')->setPermission('ROLE_DENIED'),
+                TextColumn::new('secret')->permission('ROLE_DENIED'),
             ],
             configureTable: static fn (DataTable $table): DataTable => $table->data([
                 ['id' => 5, 'secret' => 'hidden'],
@@ -626,7 +626,7 @@ final class DataTablesExtensionTest extends TestCase
         if ('actions' === $mode) {
             $actions = (new Actions())->add(
                 Action::detail()
-                    ->setClassName('btn btn-info')
+                    ->className('btn btn-info')
                     ->linkToUrl(static fn (array $row): string => '/books/'.$row['id'])
             );
 
@@ -642,8 +642,8 @@ final class DataTablesExtensionTest extends TestCase
         $columns = [
             TextColumn::new('id'),
             TemplateColumn::new('status_display')
-                ->setField('status')
-                ->setTemplate('datatable/columns/status_badge.html.twig'),
+                ->field('status')
+                ->template('datatable/columns/status_badge.html.twig'),
         ];
 
         if ('ajax' === $mode) {
@@ -671,8 +671,8 @@ final class DataTablesExtensionTest extends TestCase
                 TextColumn::new('id'),
                 TextColumn::new('title'),
                 TemplateColumn::new('status_display')
-                    ->setField('status')
-                    ->setTemplate($template),
+                    ->field('status')
+                    ->template($template),
             ],
             actions: static fn (Actions $actions): Actions => $actions->add(
                 Action::detail()->linkToUrl(static fn (InlineBook $book): string => '/books/'.$book->getId())
@@ -685,7 +685,7 @@ final class DataTablesExtensionTest extends TestCase
         $table->setDataTableInfrastructure($this->container->get('test.datatables.infrastructure'));
 
         if ('setData' === $mode) {
-            $table->setData($rows);
+            $table->data($rows);
         }
 
         return $table;
@@ -711,7 +711,7 @@ final class DataTablesExtensionTest extends TestCase
         $action = BulkAction::new('approve');
 
         if (null !== $permission) {
-            $action->setPermission($permission);
+            $action->permission($permission);
         }
 
         $table = new ConfigurableDataTable(

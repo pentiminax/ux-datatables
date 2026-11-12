@@ -92,7 +92,7 @@ final class ActionRowDataResolverTest extends TestCase
         ];
 
         yield 'id read from a custom entity identifier' => [
-            [Action::delete()->setIdField('uuid')],
+            [Action::delete()->idField('uuid')],
             new ActionRowDataResolverEntity(7, 'abc-123'),
             ['DELETE' => ['id' => 'abc-123']],
         ];
@@ -120,14 +120,14 @@ final class ActionRowDataResolverTest extends TestCase
             [
                 Action::edit()
                     ->linkToUrl(static fn (object $r) => '/items/'.$r->id)
-                    ->setPermission('EDIT', static fn ($r) => $r),
+                    ->permission('EDIT', static fn ($r) => $r),
             ],
             (object) ['id' => 7],
             ['EDIT' => ['url' => '/items/7', 'id' => '7']],
         ];
 
         yield 'action with neither url nor readable id' => [
-            [Action::edit()->setIdField('missing')],
+            [Action::edit()->idField('missing')],
             new ActionRowDataResolverEntity(7),
             null,
         ];
@@ -153,7 +153,7 @@ final class ActionRowDataResolverTest extends TestCase
 
         $action = Action::edit()
             ->linkToUrl(static fn (object $r) => '/items/'.$r->id.'/edit')
-            ->setPermission('EDIT', static fn ($r) => $r);
+            ->permission('EDIT', static fn ($r) => $r);
 
         $result = $this->resolveRow(new ActionRowDataResolver(new AuthorizationChecker($inner)), $sourceRow, $action);
 
@@ -184,7 +184,7 @@ final class ActionRowDataResolverTest extends TestCase
 
         $action = Action::edit()
             ->linkToUrl(static fn (object $r) => '/items/'.$r->id.'/edit')
-            ->setPermission($expression, static fn ($r) => $r);
+            ->permission($expression, static fn ($r) => $r);
 
         $result = $this->resolveRow(new ActionRowDataResolver(new AuthorizationChecker($inner)), $sourceRow, $action);
 
@@ -211,7 +211,7 @@ final class ActionRowDataResolverTest extends TestCase
 
         $action = Action::edit()
             ->linkToUrl(static fn (object $r) => '/items/'.$r->id.'/edit')
-            ->setPermission('ROLE_EDITOR');
+            ->permission('ROLE_EDITOR');
 
         $result = $this->resolveRow(
             new ActionRowDataResolver(new AuthorizationChecker($inner)),
@@ -232,7 +232,7 @@ final class ActionRowDataResolverTest extends TestCase
         $result = $this->resolveRow(
             new ActionRowDataResolver(RowContextDenyingAuthorizationChecker::create()),
             (object) ['id' => 42],
-            Action::delete()->setPermission('ROLE_ADMIN'),
+            Action::delete()->permission('ROLE_ADMIN'),
         );
 
         $this->assertArrayNotHasKey(ActionRowDataResolver::ROW_ACTIONS_KEY, $result);
@@ -293,7 +293,7 @@ final class ActionRowDataResolverTest extends TestCase
 
         $action = Action::edit()
             ->linkToUrl(static fn (object $r) => '/items/'.$r->owner)
-            ->setPermission('OWNS', static fn (object $r) => $r->owner);
+            ->permission('OWNS', static fn (object $r) => $r->owner);
 
         $this->resolveRow(new ActionRowDataResolver(new AuthorizationChecker($inner)), (object) ['owner' => 'alice'], $action);
     }

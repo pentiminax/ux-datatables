@@ -347,7 +347,7 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
      * what the user was looking at.
      *
      * The selection speaks in whichever field feeds `DT_RowId`, which
-     * {@see \Pentiminax\UX\DataTables\Model\BulkActions::setIdField()} may point away from the
+     * {@see \Pentiminax\UX\DataTables\Model\BulkActions::idField()} may point away from the
      * primary key. Collecting the primary key instead would hand the repository lookup values from
      * another namespace.
      *

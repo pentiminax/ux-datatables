@@ -20,7 +20,7 @@ final class ColumnResolver
         private readonly ?ColumnAutoDetector $columnAutoDetector = null,
         ?AuthorizationChecker $permissionChecker = null,
     ) {
-        $this->permissionChecker = $permissionChecker ?? new AuthorizationChecker();
+        $this->permissionChecker = $permissionChecker ?? AuthorizationChecker::fallbackFor(self::class);
     }
 
     /**
@@ -364,7 +364,7 @@ final class ColumnResolver
                 continue;
             }
 
-            $action->setEntityClass($asDataTable->entityClass);
+            $action->entityClass($asDataTable->entityClass);
         }
     }
 }

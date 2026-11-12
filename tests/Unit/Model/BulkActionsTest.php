@@ -50,7 +50,7 @@ final class BulkActionsTest extends TestCase
     public function it_drops_actions_whose_static_permission_is_denied(): void
     {
         $actions = (new BulkActions())
-            ->add(BulkAction::new('approve')->setPermission('ORDER_APPROVE'))
+            ->add(BulkAction::new('approve')->permission('ORDER_APPROVE'))
             ->add(BulkAction::new('archive'));
 
         $checker = $this->createStub(AuthorizationCheckerInterface::class);
@@ -65,7 +65,7 @@ final class BulkActionsTest extends TestCase
     public function it_keeps_a_per_row_permission_out_of_the_static_filter(): void
     {
         $actions = (new BulkActions())
-            ->add(BulkAction::new('approve')->setPermission('ORDER_APPROVE', static fn (object $o): object => $o));
+            ->add(BulkAction::new('approve')->permission('ORDER_APPROVE', static fn (object $o): object => $o));
 
         $checker = $this->createMock(AuthorizationCheckerInterface::class);
         $checker->expects($this->never())->method('isGranted');

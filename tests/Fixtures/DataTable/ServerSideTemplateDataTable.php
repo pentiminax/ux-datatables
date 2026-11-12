@@ -24,8 +24,8 @@ final class ServerSideTemplateDataTable extends AbstractDataTable
     {
         yield TextColumn::new('id');
         yield TemplateColumn::new('status_display')
-            ->setField('status')
-            ->setTemplate('datatable/columns/status_badge.html.twig');
+            ->field('status')
+            ->template('datatable/columns/status_badge.html.twig');
     }
 
     protected function createDataProvider(): ?DataProviderInterface

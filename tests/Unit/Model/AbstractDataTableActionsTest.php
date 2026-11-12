@@ -68,7 +68,7 @@ final class AbstractDataTableActionsTest extends TestCase
     {
         yield 'explicit column class name' => [
             self::tableWith(static fn (Actions $actions): Actions => $actions
-                ->setColumnClassName('dt-center')
+                ->columnClassName('dt-center')
                 ->add(Action::detail())),
         ];
 
@@ -79,7 +79,7 @@ final class AbstractDataTableActionsTest extends TestCase
     public function it_applies_the_actions_column_control_override(): void
     {
         $table = self::tableWith(static fn (Actions $actions): Actions => $actions
-            ->setColumnControl(['colvisDropdown'])
+            ->columnControl(['colvisDropdown'])
             ->add(Action::detail()));
 
         $column = $table->getColumnByName('actions');
@@ -181,7 +181,7 @@ final class ExplicitActionEntityClassTestTable extends AbstractDataTable
     public function configureActions(Actions $actions): Actions
     {
         return $actions->add(
-            Action::detail()->setEntityClass('App\\Entity\\ExplicitBook')
+            Action::detail()->entityClass('App\\Entity\\ExplicitBook')
         );
     }
 }

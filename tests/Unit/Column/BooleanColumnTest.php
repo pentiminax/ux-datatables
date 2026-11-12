@@ -29,7 +29,7 @@ final class BooleanColumnTest extends DataTableTestCase
     {
         $column = BooleanColumn::new('active')
             ->renderAsSwitch(true)
-            ->setToggleAjax('uuid', 'post');
+            ->toggleAjax('uuid', 'post');
 
         $this->assertCustomOption(true, 'renderAsSwitch', $column);
         $this->assertCustomOption(true, 'defaultState', $column);
@@ -50,7 +50,7 @@ final class BooleanColumnTest extends DataTableTestCase
     public function it_keeps_entity_class_server_side_without_serializing_it(): void
     {
         $column = BooleanColumn::new('active')
-            ->setEntityClass('App\\Entity\\User');
+            ->entityClass('App\\Entity\\User');
 
         $this->assertSame('App\\Entity\\User', $column->getEntityClass());
         $this->assertNoCustomOption('entityClass', $column);
@@ -62,7 +62,7 @@ final class BooleanColumnTest extends DataTableTestCase
         $column = BooleanColumn::new('active');
         $this->assertNull($column->getToggleField());
 
-        $column->setCustomOption(BooleanColumn::OPTION_TOGGLE_FIELD, 'isActive');
+        $column->customOption(BooleanColumn::OPTION_TOGGLE_FIELD, 'isActive');
 
         $this->assertSame('isActive', $column->getToggleField());
         $this->assertCustomOption('isActive', 'toggleField', $column);
@@ -74,8 +74,8 @@ final class BooleanColumnTest extends DataTableTestCase
         $column = BooleanColumnSubclassFixture::new('active');
 
         $this->assertInstanceOf(BooleanColumnSubclassFixture::class, $column->renderAsSwitch());
-        $this->assertInstanceOf(BooleanColumnSubclassFixture::class, $column->setToggleAjax());
-        $this->assertInstanceOf(BooleanColumnSubclassFixture::class, $column->setEntityClass('App\\Entity\\User'));
+        $this->assertInstanceOf(BooleanColumnSubclassFixture::class, $column->toggleAjax());
+        $this->assertInstanceOf(BooleanColumnSubclassFixture::class, $column->entityClass('App\\Entity\\User'));
     }
 }
 

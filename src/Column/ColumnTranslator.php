@@ -22,7 +22,7 @@ final class ColumnTranslator
         foreach ($columns as $column) {
             $title = $column->getTitle();
             if (null !== $title) {
-                $column->setTitle($translator->trans($title));
+                $column->title($translator->trans($title));
             }
 
             if ($column instanceof ChoiceColumn) {

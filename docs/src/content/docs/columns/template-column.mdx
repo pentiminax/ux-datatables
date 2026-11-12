@@ -13,8 +13,8 @@ navTitle: Template
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 
 TemplateColumn::new('status_display', 'Status')
-    ->setField('status')
-    ->setTemplate('datatable/columns/user_status.html.twig');
+    ->field('status')
+    ->template('datatable/columns/user_status.html.twig');
 ```
 
 The column name (`status_display`) is the key used in `mapRow()`. `setField()` tells the row mapper which property to read from the row object.
@@ -59,7 +59,7 @@ Pass static parameters to the template via `setTemplate()`:
 
 ```php
 TemplateColumn::new('actions', 'Actions')
-    ->setTemplate('datatable/columns/row_actions.html.twig', [
+    ->template('datatable/columns/row_actions.html.twig', [
         'editRoute' => 'admin_user_edit',
     ]);
 ```
@@ -101,8 +101,8 @@ final class ProductsDataTable extends AbstractDataTable
         yield NumberColumn::new('id', 'ID');
         yield TextColumn::new('name', 'Name');
         yield TemplateColumn::new('stock_badge', 'Stock')
-            ->setField('stock')
-            ->setTemplate('datatable/columns/stock_badge.html.twig');
+            ->field('stock')
+            ->template('datatable/columns/stock_badge.html.twig');
     }
 
     protected function mapRow(mixed $row): array

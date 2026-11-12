@@ -63,14 +63,14 @@ final class ColumnInterfaceTest extends TestCase
     public function it_reflects_mutations_through_interface_getters(): void
     {
         $column = TextColumn::new('title', 'Title')
-            ->setVisible(false)
-            ->setOrderable(false)
-            ->setSearchable(false)
+            ->visible(false)
+            ->orderable(false)
+            ->searchable(false)
             ->disableGlobalSearch()
-            ->setExportable(false)
-            ->setClassName('col-title');
+            ->exportable(false)
+            ->className('col-title');
 
-        $column->setCustomOption('highlight', true);
+        $column->customOption('highlight', true);
 
         $this->assertFalse($column->isVisible());
         $this->assertFalse($column->isOrderable());

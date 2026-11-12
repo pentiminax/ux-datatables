@@ -84,11 +84,21 @@ final class Action implements \JsonSerializable, ExecutableActionInterface
         return $this;
     }
 
-    public function setClassName(string $className): self
+    public function className(string $className): self
     {
         $this->className = $className;
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use className() instead. Removed in 2.0.
+     */
+    public function setClassName(string $className): self
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "className()" instead.', __METHOD__);
+
+        return $this->className($className);
     }
 
     public function icon(string|Icon $icon): self
@@ -120,11 +130,21 @@ final class Action implements \JsonSerializable, ExecutableActionInterface
         return $this;
     }
 
-    public function setEntityClass(string $entityClass): self
+    public function entityClass(string $entityClass): self
     {
         $this->entityClass = ltrim($entityClass, '\\');
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use entityClass() instead. Removed in 2.0.
+     */
+    public function setEntityClass(string $entityClass): self
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "entityClass()" instead.', __METHOD__);
+
+        return $this->entityClass($entityClass);
     }
 
     public function getEntityClass(): ?string
@@ -142,11 +162,21 @@ final class Action implements \JsonSerializable, ExecutableActionInterface
         return $this;
     }
 
-    public function setIdField(string $idField): self
+    public function idField(string $idField): self
     {
         $this->idField = $idField;
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use idField() instead. Removed in 2.0.
+     */
+    public function setIdField(string $idField): self
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "idField()" instead.', __METHOD__);
+
+        return $this->idField($idField);
     }
 
     public function getIdField(): string
@@ -273,10 +303,12 @@ final class Action implements \JsonSerializable, ExecutableActionInterface
     }
 
     /**
-     * Alias for {@see self::csrfToken()}.
+     * @deprecated since 1.6, use csrfToken() instead. Removed in 2.0.
      */
     public function csrfTokenId(string|callable $csrfTokenId): self
     {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "csrfToken()" instead.', __METHOD__);
+
         return $this->csrfToken($csrfTokenId);
     }
 
@@ -366,7 +398,7 @@ final class Action implements \JsonSerializable, ExecutableActionInterface
      * A resolver used on both paths should tolerate either shape (entity or array), or the action
      * should use a static permission (no resolver) instead.
      */
-    public function setPermission(string|Expression $attribute, ?callable $subjectResolver = null): self
+    public function permission(string|Expression $attribute, ?callable $subjectResolver = null): self
     {
         $this->permission                = $attribute;
         $this->permissionSubjectResolver = null === $subjectResolver
@@ -374,6 +406,16 @@ final class Action implements \JsonSerializable, ExecutableActionInterface
             : ($subjectResolver instanceof \Closure ? $subjectResolver : $subjectResolver(...));
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use permission() instead. Removed in 2.0.
+     */
+    public function setPermission(string|Expression $attribute, ?callable $subjectResolver = null): self
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "permission()" instead.', __METHOD__);
+
+        return $this->permission($attribute, $subjectResolver);
     }
 
     public function getPermission(): string|Expression|null

@@ -95,8 +95,8 @@ A column backed by a subquery (not a real entity property) can't be sorted by th
 public function configureColumns(): iterable
 {
     yield NumberColumn::new('invoiceCount', 'Invoices')
-        ->setOrderExpression('invoiceCount') // matches the HIDDEN alias below
-        ->setSearchable(false)               // search would still resolve e.invoiceCount → error
+        ->orderExpression('invoiceCount') // matches the HIDDEN alias below
+        ->searchable(false)               // search would still resolve e.invoiceCount → error
         ->disableGlobalSearch();
 }
 

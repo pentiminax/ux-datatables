@@ -37,7 +37,7 @@ final class EditFormService
         private readonly RowScopeGuard $scopeGuard,
         ?AuthorizationChecker $permissionChecker = null,
     ) {
-        $this->permissionChecker = $permissionChecker ?? new AuthorizationChecker();
+        $this->permissionChecker = $permissionChecker ?? AuthorizationChecker::fallbackFor(self::class);
     }
 
     /**

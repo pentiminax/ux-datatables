@@ -28,25 +28,45 @@ class BooleanColumn extends AbstractColumn
      */
     public function renderAsSwitch(bool $defaultState = false): static
     {
-        $this->setCustomOption(self::OPTION_RENDER_AS_SWITCH, true);
-        $this->setCustomOption(self::OPTION_DEFAULT_STATE, $defaultState);
+        $this->customOption(self::OPTION_RENDER_AS_SWITCH, true);
+        $this->customOption(self::OPTION_DEFAULT_STATE, $defaultState);
 
         return $this;
     }
 
+    public function toggleAjax(string $idField = 'id', string $method = 'PATCH'): static
+    {
+        $this->customOption(self::OPTION_TOGGLE_ID_FIELD, $idField);
+        $this->customOption(self::OPTION_TOGGLE_METHOD, strtoupper($method));
+
+        return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use toggleAjax() instead. Removed in 2.0.
+     */
     public function setToggleAjax(string $idField = 'id', string $method = 'PATCH'): static
     {
-        $this->setCustomOption(self::OPTION_TOGGLE_ID_FIELD, $idField);
-        $this->setCustomOption(self::OPTION_TOGGLE_METHOD, strtoupper($method));
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "toggleAjax()" instead.', __METHOD__);
+
+        return $this->toggleAjax($idField, $method);
+    }
+
+    public function entityClass(string $entityClass): static
+    {
+        $this->customOption(self::OPTION_ENTITY_CLASS, ltrim($entityClass, '\\'));
 
         return $this;
     }
 
+    /**
+     * @deprecated since 1.6, use entityClass() instead. Removed in 2.0.
+     */
     public function setEntityClass(string $entityClass): static
     {
-        $this->setCustomOption(self::OPTION_ENTITY_CLASS, ltrim($entityClass, '\\'));
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "entityClass()" instead.', __METHOD__);
 
-        return $this;
+        return $this->entityClass($entityClass);
     }
 
     public function getEntityClass(): ?string

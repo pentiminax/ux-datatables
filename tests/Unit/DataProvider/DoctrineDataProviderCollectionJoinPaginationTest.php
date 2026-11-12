@@ -45,7 +45,7 @@ final class DoctrineDataProviderCollectionJoinPaginationTest extends TestCase
             {
             }
 
-            public function log($level, string|\Stringable $message, array $context = []): void
+            public function log($level, $message, array $context = []): void
             {
                 if (isset($context['sql'])) {
                     $this->statements[] = (string) $context['sql'];

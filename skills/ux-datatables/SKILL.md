@@ -42,7 +42,7 @@ final class UserDataTable extends AbstractDataTable
         return [
             NumberColumn::new('id', 'ID'),
             TextColumn::new('email', 'Email'),
-            DateColumn::new('createdAt', 'Created')->setFormat('d/m/Y'),
+            DateColumn::new('createdAt', 'Created')->format('d/m/Y'),
         ];
     }
 
@@ -84,7 +84,7 @@ Scaffold from an entity: `php bin/console make:datatable`.
 - `references/column-control.md` — ColumnControl placement, per-column overrides, search lists, enums, Ajax option providers, and custom content.
 - `references/exporters.md` — replacing the CSV/XLSX writer for server-side export (`ExporterInterface`, `AbstractExporter`).
 - `references/actions.md` — row actions, permissions, conditional display.
-- `references/security.md` — Ajax route protection, `Permission::DT_*` attributes, the row permission matrix, `DataTable::setPermission()`, per-row resolvers, CSRF.
+- `references/security.md` — Ajax route protection, `Permission::DT_*` attributes, the row permission matrix, `DataTable::permission()`, per-row resolvers, CSRF.
 - `references/filters.md` — declarative filter bar (`configureFilters()`): Text, Choice, Ternary, DateRange, NumberRange, Entity, Checkbox (server-side Doctrine).
 - `references/summaries.md` — footer figures with `AbstractColumn::summarize()` (`Sum`, `Average`, `Min`, `Max`, `Count`), `DataTableResult` `$summaries` for custom providers.
 - `references/polling.md` — `DataTable::poll()` timed reloads, when to prefer Mercure.

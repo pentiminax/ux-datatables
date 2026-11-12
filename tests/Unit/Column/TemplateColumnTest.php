@@ -20,8 +20,8 @@ final class TemplateColumnTest extends DataTableTestCase
     public function it_serializes_template_path(): void
     {
         $column = TemplateColumn::new('status_display')
-            ->setField('status')
-            ->setTemplate('datatable/columns/status_badge.html.twig');
+            ->field('status')
+            ->template('datatable/columns/status_badge.html.twig');
 
         $this->assertColumnHeader($column, 'html', 'status_display', 'status_display');
         $this->assertSame('status', $column->jsonSerialize()['field']);
@@ -31,10 +31,10 @@ final class TemplateColumnTest extends DataTableTestCase
     #[Test]
     public function it_is_not_exportable_by_default(): void
     {
-        $column = TemplateColumn::new('user')->setTemplate('datatable/columns/user.html.twig');
+        $column = TemplateColumn::new('user')->template('datatable/columns/user.html.twig');
 
         $this->assertFalse($column->isExportable());
-        $this->assertTrue($column->setExportable(true)->isExportable());
+        $this->assertTrue($column->exportable(true)->isExportable());
     }
 
     /**
@@ -56,7 +56,7 @@ final class TemplateColumnTest extends DataTableTestCase
     public static function provideInvalidTemplateConfigurations(): iterable
     {
         yield 'empty path' => [
-            static fn () => TemplateColumn::new('status_display')->setTemplate('   '),
+            static fn () => TemplateColumn::new('status_display')->template('   '),
             \InvalidArgumentException::class,
             'Template path cannot be empty.',
         ];
@@ -68,13 +68,13 @@ final class TemplateColumnTest extends DataTableTestCase
         ];
 
         yield 'reserved parameter' => [
-            static fn () => TemplateColumn::new('status_display')->setTemplate('column.html.twig', ['payload' => []]),
+            static fn () => TemplateColumn::new('status_display')->template('column.html.twig', ['payload' => []]),
             \InvalidArgumentException::class,
             'Template parameters "payload" are reserved by the renderer and cannot be overridden on column "status_display".',
         ];
 
         yield 'several reserved parameters are all reported' => [
-            static fn () => TemplateColumn::new('status_display')->setTemplate('column.html.twig', [
+            static fn () => TemplateColumn::new('status_display')->template('column.html.twig', [
                 'row'         => 1,
                 'badge_class' => 'badge-success',
                 'entity'      => 2,
@@ -91,7 +91,7 @@ final class TemplateColumnTest extends DataTableTestCase
 
         $this->assertSame([], $column->getTemplateParameters());
 
-        $column->setTemplate('some/template.html.twig', ['badge_class' => 'badge-success', 'show_icon' => true, 'item' => 'custom']);
+        $column->template('some/template.html.twig', ['badge_class' => 'badge-success', 'show_icon' => true, 'item' => 'custom']);
 
         $this->assertSame(['badge_class' => 'badge-success', 'show_icon' => true, 'item' => 'custom'], $column->getTemplateParameters());
 
@@ -119,9 +119,9 @@ final class TemplateColumnTest extends DataTableTestCase
     public function it_allows_re_enabling_query_behavior(): void
     {
         $column = TemplateColumn::new('email')
-            ->setField('email')
-            ->setOrderable(true)
-            ->setSearchable(true);
+            ->field('email')
+            ->orderable(true)
+            ->searchable(true);
 
         $this->assertTrue($column->isOrderable());
         $this->assertTrue($column->isSearchable());

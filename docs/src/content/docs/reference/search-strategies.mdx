@@ -89,7 +89,7 @@ already known — opt the column out:
 
 ```php
 TextColumn::new('reference', 'Reference')
-    ->setSearchNormalization(false);
+    ->searchNormalization(false);
 ```
 
 Opting out restores a bare `LIKE`, which follows the column's collation: case-sensitive on

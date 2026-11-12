@@ -26,13 +26,13 @@ final class LayoutOrdersDataTable extends AbstractDataTable
         yield TextColumn::new('reference', 'Reference');
 
         yield TextColumn::new('customer', 'Customer')
-            ->setField('customer.name');
+            ->field('customer.name');
 
         yield EmailColumn::new('email', 'Email')
-            ->setField('customer.email');
+            ->field('customer.email');
 
         yield TextColumn::new('country', 'Country')
-            ->setField('customer.country');
+            ->field('customer.country');
 
         yield NumberColumn::new('items', 'Items');
 
@@ -41,7 +41,7 @@ final class LayoutOrdersDataTable extends AbstractDataTable
             ->storedAsCents();
 
         yield ChoiceColumn::new('status', 'Status')
-            ->setChoices(OrderStatus::class);
+            ->choices(OrderStatus::class);
 
         yield IconColumn::new('express', 'Express')
             ->boolean()
@@ -51,11 +51,11 @@ final class LayoutOrdersDataTable extends AbstractDataTable
             ->falseColor('secondary');
 
         yield DateColumn::new('placedAt', 'Placed at')
-            ->setFormat('Y-m-d H:i');
+            ->format('Y-m-d H:i');
 
         yield DateColumn::new('shippedAt', 'Shipped at')
-            ->setFormat('Y-m-d H:i')
-            ->setDefaultContent('—');
+            ->format('Y-m-d H:i')
+            ->defaultContent('—');
     }
 
     public function configureDataTable(DataTable $table): DataTable

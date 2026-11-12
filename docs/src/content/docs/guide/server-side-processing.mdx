@@ -247,8 +247,8 @@ use Doctrine\ORM\QueryBuilder;
 public function configureColumns(): iterable
 {
     yield NumberColumn::new('invoiceCount', 'Invoices')
-        ->setOrderExpression('invoiceCount') // matches the HIDDEN alias below
-        ->setSearchable(false)               // no mapped field to search; hide the box
+        ->orderExpression('invoiceCount') // matches the HIDDEN alias below
+        ->searchable(false)               // no mapped field to search; hide the box
         ->disableGlobalSearch();
 }
 
@@ -298,17 +298,17 @@ public function configureColumns(): iterable
 {
     // 1. Search a related field instead. The relation is LEFT JOINed automatically.
     yield TextColumn::new('donorProviderName', 'Donor')
-        ->setSearchField('donorProvider.name');
+        ->searchField('donorProvider.name');
 
     // 2. Declare the join yourself when you need the alias, or a WITH condition.
     yield TextColumn::new('recipientProviderName', 'Recipient')
         ->addSearchJoin('e.recipientProvider', 'rp')
-        ->setSearchField('rp.name');
+        ->searchField('rp.name');
 
     // 3. Build the predicate yourself for anything a field path cannot express.
     yield TextColumn::new('dossierId', 'Dossier')
-        ->setOrderable(false)
-        ->setSearchPredicate(function (QueryBuilder $qb, string $alias, string $value, string $paramName): string {
+        ->orderable(false)
+        ->searchPredicate(function (QueryBuilder $qb, string $alias, string $value, string $paramName): string {
             $qb->setParameter($paramName, '%'.mb_strtolower($value).'%');
 
             return \sprintf(
@@ -321,7 +321,7 @@ public function configureColumns(): iterable
 
     // 4. Or opt out of search entirely.
     yield TextColumn::new('label', 'Label')
-        ->setSearchable(false)
+        ->searchable(false)
         ->disableGlobalSearch();
 }
 ```

@@ -22,7 +22,7 @@ final class ColumnToolsDataTable extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield ChoiceColumn::new('category', 'Category')
-            ->setChoices(Category::class);
+            ->choices(Category::class);
 
         yield TextColumn::new('name', 'Product');
 
@@ -35,7 +35,7 @@ final class ColumnToolsDataTable extends AbstractDataTable
         yield NumberColumn::new('stock', 'Stock');
 
         yield ChoiceColumn::new('status', 'Status')
-            ->setChoices(ProductStatus::class);
+            ->choices(ProductStatus::class);
     }
 
     public function configureDataTable(DataTable $table): DataTable

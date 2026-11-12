@@ -50,7 +50,7 @@ final class AbstractDataTableMapRowTest extends TestCase
     {
         $table = new MapRowTestTable($columns, $detailActionUrl, $this->urlGenerator());
 
-        $table->setData($data);
+        $table->data($data);
 
         $this->assertSame($expected, $table->getDataTable()->getOption('data'));
         $this->assertTrue($table->getDataTable()->areTemplateColumnsRendered());
@@ -81,8 +81,8 @@ final class AbstractDataTableMapRowTest extends TestCase
 
         yield 'nested object path' => [
             [
-                TextColumn::new('title')->setData('meta.title'),
-                DateColumn::new('releasedAt')->setData('meta.releasedAt'),
+                TextColumn::new('title')->data('meta.title'),
+                DateColumn::new('releasedAt')->data('meta.releasedAt'),
             ],
             new MovieWithMetaRow(new MetaRow('Alien', new \DateTimeImmutable('1979-05-25'))),
             ['meta.title' => 'Alien', 'meta.releasedAt' => '1979-05-25'],

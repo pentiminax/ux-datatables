@@ -27,7 +27,7 @@ Keep this rule in sync with the page rendering the table — a table on an admin
 use Pentiminax\UX\DataTables\Security\Permission;
 
 Permission::DT_ACCESS_TABLE;       // table rendering + Ajax table resolution
-Permission::DT_EXECUTE_ACTION;     // every Action::setPermission() check
+Permission::DT_EXECUTE_ACTION;     // every Action::permission() check
 Permission::DT_EDIT_ROW;           // edit modal + boolean toggle writes
 Permission::DT_DELETE_ROW;         // delete mutation
 Permission::DT_VIEW_ROW_DETAILS;   // collapsible detail rows
@@ -35,7 +35,7 @@ Permission::DT_VIEW_ROW_DETAILS;   // collapsible detail rows
 
 **Two families, do not confuse them.**
 
-- `DT_ACCESS_TABLE` and `DT_EXECUTE_ACTION` are handled by the bundle's own `SecurityVoter`. It supports only those two and abstains on everything else, so it never competes with your voters: it reads the attribute you passed to `DataTable::setPermission()` / `Action::setPermission()` and relays Symfony's decision on *that* attribute. **You never register a voter for these two.**
+- `DT_ACCESS_TABLE` and `DT_EXECUTE_ACTION` are handled by the bundle's own `SecurityVoter`. It supports only those two and abstains on everything else, so it never competes with your voters: it reads the attribute you passed to `DataTable::permission()` / `Action::permission()` and relays Symfony's decision on *that* attribute. **You never register a voter for these two.**
 - `DT_EDIT_ROW`, `DT_DELETE_ROW`, `DT_VIEW_ROW_DETAILS` are **yours**. No bundle voter supports them. With a firewall active and no voter granting them, Symfony denies — so every built-in mutation returns `403` until you write one.
 
 Symfony's default `affirmative` strategy is correct here. Do **not** switch the application to `unanimous` for the bundle's sake: when your voter denies, the bundle voter denies too.
@@ -90,7 +90,7 @@ The subject is always the **located Doctrine entity**.
 ```php
 public function configureDataTable(DataTable $table): DataTable
 {
-    return $table->setPermission('PRODUCT_TABLE_VIEW')->serverSide()->processing();
+    return $table->permission('PRODUCT_TABLE_VIEW')->serverSide()->processing();
 }
 ```
 
@@ -103,10 +103,10 @@ The voter receives the `AbstractDataTable` instance as subject.
 
 ## 4. Action & column permissions
 
-`Action::setPermission(string|Expression $attribute, ?callable $subjectResolver = null)`:
+`Action::permission(string|Expression $attribute, ?callable $subjectResolver = null)`:
 
-- **Static** (no resolver) — evaluated once before serialization; ungranted actions are removed entirely and the attribute never reaches the browser. Use for role checks: `->setPermission('ROLE_ADMIN')`.
-- **Per-row** (with resolver) — evaluated per row; the resolver returns the voter subject: `->setPermission('EDIT_PRODUCT', fn ($row) => $row)`.
+- **Static** (no resolver) — evaluated once before serialization; ungranted actions are removed entirely and the attribute never reaches the browser. Use for role checks: `->permission('ROLE_ADMIN')`.
+- **Per-row** (with resolver) — evaluated per row; the resolver returns the voter subject: `->permission('EDIT_PRODUCT', fn ($row) => $row)`.
 
 **What the resolver receives differs by call site** — the single sharpest gotcha here:
 
@@ -115,7 +115,7 @@ The voter receives the `AbstractDataTable` instance as subject.
 
 A resolver used on both paths must tolerate either shape, or the action should use a static permission instead.
 
-`AbstractColumn::setPermission()` exists too, but **static form only** — no resolver.
+`AbstractColumn::permission()` exists too, but **static form only** — no resolver.
 
 Ungranted per-row actions are reported to the browser in `__ux_datatables_denied_actions` so the renderer can hide them; the server re-checks on every mutation endpoint regardless, so a tampered client gains nothing.
 
@@ -123,7 +123,7 @@ Ungranted per-row actions are reported to the browser in `__ux_datatables_denied
 
 Delete, inline boolean toggle, and edit-form submit validate a session-backed token (`MutationTokenValidator`, `X-CSRF-Token` header). Without a session the payload carries `mutationsEnabled: false` and the controls are disabled client-side.
 
-Custom actions (`Action::new(...)->asAjaxRequest($csrfTokenId)`) post to **your** route with their own per-action token. `Action::setPermission()` only decides whether the button is rendered — your route still needs `#[IsGranted]` and its own CSRF validation. Same for API Platform endpoints: bundle row voters only run for rows the bundle backend processes.
+Custom actions (`Action::new(...)->asAjaxRequest($csrfTokenId)`) post to **your** route with their own per-action token. `Action::permission()` only decides whether the button is rendered — your route still needs `#[IsGranted]` and its own CSRF validation. Same for API Platform endpoints: bundle row voters only run for rows the bundle backend processes.
 
 ## Gotchas
 

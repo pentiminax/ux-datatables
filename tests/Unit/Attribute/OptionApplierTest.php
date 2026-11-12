@@ -36,13 +36,13 @@ final class OptionApplierTest extends TestCase
     }
 
     #[Test]
-    public function it_prefers_the_setter_over_the_bare_method(): void
+    public function it_prefers_the_bare_method_over_the_setter(): void
     {
         $target = new ApplierTarget();
 
         (new OptionApplier())->apply($target, ['both' => 'value']);
 
-        $this->assertSame('setter', $target->both);
+        $this->assertSame('bare', $target->both);
     }
 
     #[Test]

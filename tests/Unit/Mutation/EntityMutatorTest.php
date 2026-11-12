@@ -269,7 +269,7 @@ final class EntityMutatorTest extends TestCase
             new AccessDecisionManager([new SecurityVoter($decisionManager)], new AffirmativeStrategy(true)),
         ));
 
-        $action = Action::delete()->setPermission('DELETE_FIXTURE', static fn (mixed $subject): mixed => $subject);
+        $action = Action::delete()->permission('DELETE_FIXTURE', static fn (mixed $subject): mixed => $subject);
 
         $mutator = $this->mutator($manager, $publisher, permissionChecker: $checker);
 

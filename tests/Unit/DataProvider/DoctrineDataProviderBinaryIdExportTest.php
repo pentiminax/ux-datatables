@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\DataProvider;
 
+use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
@@ -30,6 +31,10 @@ final class DoctrineDataProviderBinaryIdExportTest extends TestCase
 
     protected function setUp(): void
     {
+        if (!enum_exists(ParameterType::class)) {
+            $this->markTestSkipped('The binary id fixture type targets the DBAL 4 binding type.');
+        }
+
         if (!Type::hasType(BinaryIdType::NAME)) {
             Type::addType(BinaryIdType::NAME, BinaryIdType::class);
         }

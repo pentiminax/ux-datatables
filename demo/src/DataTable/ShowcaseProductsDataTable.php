@@ -27,15 +27,15 @@ final class ShowcaseProductsDataTable extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield ImageColumn::new('image', 'Image')
-            ->setImageWidth(40)
-            ->setImageHeight(40)
+            ->imageWidth(40)
+            ->imageHeight(40)
             ->rounded()
-            ->setOrderable(false);
+            ->orderable(false);
 
         yield TextColumn::new('name', 'Product');
 
         yield ChoiceColumn::new('category', 'Category')
-            ->setChoices(Category::class)
+            ->choices(Category::class)
             ->renderAsBadges();
 
         yield MoneyColumn::new('price', 'Price')
@@ -45,7 +45,7 @@ final class ShowcaseProductsDataTable extends AbstractDataTable
         yield NumberColumn::new('stock', 'Stock');
 
         yield ChoiceColumn::new('status', 'Status')
-            ->setChoices(ProductStatus::class)
+            ->choices(ProductStatus::class)
             ->renderAsBadges(['active' => 'success', 'draft' => 'warning', 'archived' => 'secondary']);
 
         yield BooleanColumn::new('featured', 'Featured')

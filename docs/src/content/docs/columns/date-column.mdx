@@ -23,13 +23,13 @@ Use `setFormat()` to declare the date format of your values:
 
 ```php
 DateColumn::new('publishedAt', 'Published')
-    ->setFormat('d/m/Y');
+    ->format('d/m/Y');
 ```
 
 Pass `null` to revert to the default `Y-m-d`:
 
 ```php
-$column->setFormat(null);
+$column->format(null);
 ```
 
 ## Relative Dates
@@ -40,7 +40,7 @@ formatted date:
 ```php
 DateColumn::new('lastLoginAt', 'Last login')
     ->relative()
-    ->setDefaultContent('Never');
+    ->defaultContent('Never');
 ```
 
 The label is produced in the browser with
@@ -118,7 +118,7 @@ final class ArticlesDataTable extends AbstractDataTable
         yield NumberColumn::new('id', 'ID');
         yield TextColumn::new('title', 'Title');
         yield DateColumn::new('publishedAt', 'Published');
-        yield DateColumn::new('updatedAt', 'Updated')->setFormat('Y-m-d H:i');
+        yield DateColumn::new('updatedAt', 'Updated')->format('Y-m-d H:i');
     }
 
     protected function mapRow(mixed $row): array

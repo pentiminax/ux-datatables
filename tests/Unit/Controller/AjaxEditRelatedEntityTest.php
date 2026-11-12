@@ -220,8 +220,8 @@ final class RelatedToggleOrderDataTable extends AbstractDataTable
         yield TextColumn::new('label');
         yield BooleanColumn::new('vip')
             ->renderAsSwitch()
-            ->setEntityClass(RelatedToggleCustomer::class)
-            ->setToggleAjax(idField: 'customer.id');
+            ->entityClass(RelatedToggleCustomer::class)
+            ->toggleAjax(idField: 'customer.id');
     }
 
     protected function createDataProvider(): DataProviderInterface
@@ -236,6 +236,6 @@ final class RelatedToggleManualDataTable extends AbstractDataTable
     {
         yield BooleanColumn::new('vip')
             ->renderAsSwitch()
-            ->setEntityClass(RelatedToggleCustomer::class);
+            ->entityClass(RelatedToggleCustomer::class);
     }
 }

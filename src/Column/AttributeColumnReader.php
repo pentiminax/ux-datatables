@@ -33,11 +33,11 @@ final class AttributeColumnReader
             },
             'customOptions' => static function (AbstractColumn $column, array $customOptions): void {
                 foreach ($customOptions as $option => $value) {
-                    $column->setCustomOption($option, $value);
+                    $column->customOption($option, $value);
                 }
             },
             'searchNormalized' => static function (AbstractColumn $column, bool $normalized): void {
-                $column->setSearchNormalization($normalized);
+                $column->searchNormalization($normalized);
             },
         ]);
     }

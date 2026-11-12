@@ -304,8 +304,8 @@ final class RelationFieldResolverTest extends TestCase
     public function it_prefers_the_search_field_over_the_display_field(): void
     {
         $column = TextColumn::new('donorProviderName')
-            ->setField('donorProviderName')
-            ->setSearchField('donorProvider.name');
+            ->field('donorProviderName')
+            ->searchField('donorProvider.name');
 
         $this->assertSame('donorProvider.name', RelationFieldResolver::resolveSearchField($column));
     }

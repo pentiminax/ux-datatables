@@ -94,7 +94,7 @@ final class ColumnControlSearchFilterTest extends TestCase
             ->with($this->identicalTo($qb), $this->isInstanceOf(TextColumn::class), $this->equalTo($search), 0, 'e');
 
         $filter  = new ColumnControlSearchFilter(new SearchStrategyRegistry([], $strategy));
-        $column  = TextColumn::new('clientName', 'Client')->setField('client.name');
+        $column  = TextColumn::new('clientName', 'Client')->field('client.name');
         $context = $this->singleColumnContext($column, columnControl: new ColumnControl(search: $search));
 
         $filter->apply($qb, $context);
@@ -111,7 +111,7 @@ final class ColumnControlSearchFilterTest extends TestCase
             ->method('setParameter')
             ->with('cc_list_0', ['acme', 'beta']);
 
-        $this->applyList($qb, TextColumn::new('name')->setField('name'), ['acme', 'beta']);
+        $this->applyList($qb, TextColumn::new('name')->field('name'), ['acme', 'beta']);
     }
 
     #[Test]
@@ -124,7 +124,7 @@ final class ColumnControlSearchFilterTest extends TestCase
             ->with(new Expr\Comparison('e.name', 'IS', 'NULL'));
         $qb->expects($this->never())->method('setParameter');
 
-        $this->applyList($qb, TextColumn::new('name')->setField('name'), ['']);
+        $this->applyList($qb, TextColumn::new('name')->field('name'), ['']);
     }
 
     #[Test]
@@ -139,7 +139,7 @@ final class ColumnControlSearchFilterTest extends TestCase
             ->method('setParameter')
             ->with('cc_list_0', ['acme']);
 
-        $this->applyList($qb, TextColumn::new('name')->setField('name'), ['acme', '']);
+        $this->applyList($qb, TextColumn::new('name')->field('name'), ['acme', '']);
     }
 
     /**
@@ -157,7 +157,7 @@ final class ColumnControlSearchFilterTest extends TestCase
         $qb->expects($this->never())->method('andWhere');
         $qb->expects($this->never())->method('setParameter');
 
-        $this->applyList($qb, TextColumn::new('id')->setField('id'), $values);
+        $this->applyList($qb, TextColumn::new('id')->field('id'), $values);
     }
 
     /**
@@ -179,7 +179,7 @@ final class ColumnControlSearchFilterTest extends TestCase
         $qb->expects($this->never())->method('andWhere');
         $qb->expects($this->never())->method('setParameter');
 
-        $this->applyList($qb, TextColumn::new('id')->setField('id'), [self::UUID]);
+        $this->applyList($qb, TextColumn::new('id')->field('id'), [self::UUID]);
     }
 
     #[Test]
@@ -207,7 +207,7 @@ final class ColumnControlSearchFilterTest extends TestCase
             ->method('andWhere')
             ->with(new Expr\Orx($expectedOrArguments));
 
-        $this->applyList($qb, TextColumn::new('id')->setField('id'), $values);
+        $this->applyList($qb, TextColumn::new('id')->field('id'), $values);
 
         $this->assertSame($expectedParameters, $boundParameters);
     }
@@ -272,7 +272,7 @@ final class ColumnControlSearchFilterTest extends TestCase
         $qb->expects($this->never())->method('andWhere');
         $qb->expects($this->never())->method('setParameter');
 
-        $this->applyList($qb, TextColumn::new($field)->setField($field), $values);
+        $this->applyList($qb, TextColumn::new($field)->field($field), $values);
     }
 
     /**
@@ -308,7 +308,7 @@ final class ColumnControlSearchFilterTest extends TestCase
             ->method('andWhere')
             ->with(new Expr\Orx(['e.age = :cc_list_0', 'e.age = :cc_list_1']));
 
-        $this->applyList($qb, TextColumn::new('age')->setField('age'), ['  42  ', '7']);
+        $this->applyList($qb, TextColumn::new('age')->field('age'), ['  42  ', '7']);
 
         $this->assertSame([
             ['cc_list_0', '42', 'integer'],
@@ -328,7 +328,7 @@ final class ColumnControlSearchFilterTest extends TestCase
             ->method('andWhere')
             ->with(new Expr\Orx(['e.price = :cc_list_0']));
 
-        $this->applyList($qb, TextColumn::new('price')->setField('price'), ['19.99']);
+        $this->applyList($qb, TextColumn::new('price')->field('price'), ['19.99']);
     }
 
     #[Test]
@@ -347,7 +347,7 @@ final class ColumnControlSearchFilterTest extends TestCase
             ->method('andWhere')
             ->with(new Expr\Orx(['e.birthDate = :cc_list_0']));
 
-        $this->applyList($qb, TextColumn::new('birthDate')->setField('birthDate'), ['2026-08-19']);
+        $this->applyList($qb, TextColumn::new('birthDate')->field('birthDate'), ['2026-08-19']);
     }
 
     #[Test]
@@ -362,7 +362,7 @@ final class ColumnControlSearchFilterTest extends TestCase
             ->method('andWhere')
             ->with(new Expr\Orx(['e.active = :cc_list_0']));
 
-        $this->applyList($qb, TextColumn::new('active')->setField('active'), ['true']);
+        $this->applyList($qb, TextColumn::new('active')->field('active'), ['true']);
     }
 
     #[Test]
@@ -375,7 +375,7 @@ final class ColumnControlSearchFilterTest extends TestCase
             ->with(new Expr\Comparison('e.age', 'IS', 'NULL'));
         $qb->expects($this->never())->method('setParameter');
 
-        $this->applyList($qb, TextColumn::new('age')->setField('age'), ['']);
+        $this->applyList($qb, TextColumn::new('age')->field('age'), ['']);
     }
 
     #[Test]
@@ -390,7 +390,7 @@ final class ColumnControlSearchFilterTest extends TestCase
             ->method('andWhere')
             ->with(new Expr\Orx(['e.age = :cc_list_0', new Expr\Comparison('e.age', 'IS', 'NULL')]));
 
-        $this->applyList($qb, TextColumn::new('age')->setField('age'), ['42', '']);
+        $this->applyList($qb, TextColumn::new('age')->field('age'), ['42', '']);
     }
 
     /**
@@ -426,7 +426,7 @@ final class ColumnControlSearchFilterTest extends TestCase
             ->with('EXISTS (SELECT 1 FROM Review r WHERE r.book = e AND r.content LIKE :column_control_param_0)');
 
         $column = TextColumn::new('reviewCount', 'Reviews')
-            ->setSearchPredicate(static fn (QueryBuilder $qb, string $alias, string $value, string $paramName): string => \sprintf(
+            ->searchPredicate(static fn (QueryBuilder $qb, string $alias, string $value, string $paramName): string => \sprintf(
                 'EXISTS (SELECT 1 FROM Review r WHERE r.book = %s AND r.content LIKE :%s)',
                 $alias,
                 $paramName,
@@ -453,7 +453,7 @@ final class ColumnControlSearchFilterTest extends TestCase
         $filter = new ColumnControlSearchFilter(new SearchStrategyRegistry([], $strategy));
         $column = TextColumn::new('donorProviderName', 'Donor')
             ->addSearchJoin('e.donorProvider', 'dp')
-            ->setSearchField('dp.name');
+            ->searchField('dp.name');
 
         $filter->apply($qb, $this->singleColumnContext(
             $column,
@@ -482,7 +482,7 @@ final class ColumnControlSearchFilterTest extends TestCase
             }
         );
 
-        $customer     = TextColumn::new('customer')->setField('customer.name');
+        $customer     = TextColumn::new('customer')->field('customer.name');
         $customerName = TextColumn::new('customer_name');
 
         $context = $this->context(
@@ -515,7 +515,7 @@ final class ColumnControlSearchFilterTest extends TestCase
 
         $this->applyList(
             $qb,
-            TextColumn::new('donorProviderName')->setSearchField('legalName'),
+            TextColumn::new('donorProviderName')->searchField('legalName'),
             ['acme'],
         );
     }

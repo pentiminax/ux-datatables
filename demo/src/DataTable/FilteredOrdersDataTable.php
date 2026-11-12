@@ -31,14 +31,14 @@ final class FilteredOrdersDataTable extends AbstractDataTable
         yield TextColumn::new('reference', 'Reference');
 
         yield TextColumn::new('customer', 'Customer')
-            ->setField('customer.name');
+            ->field('customer.name');
 
         yield MoneyColumn::new('total', 'Total')
             ->currency('EUR')
             ->storedAsCents();
 
         yield ChoiceColumn::new('status', 'Status')
-            ->setChoices(OrderStatus::class)
+            ->choices(OrderStatus::class)
             ->renderAsBadges([
                 'pending'   => 'warning',
                 'paid'      => 'info',
@@ -55,7 +55,7 @@ final class FilteredOrdersDataTable extends AbstractDataTable
             ->falseColor('secondary');
 
         yield DateColumn::new('placedAt', 'Placed at')
-            ->setFormat('Y-m-d');
+            ->format('Y-m-d');
     }
 
     public function configureDataTable(DataTable $table): DataTable

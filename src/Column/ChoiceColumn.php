@@ -48,7 +48,7 @@ class ChoiceColumn extends AbstractColumn
      *
      * @param array<string|int, string|int>|list<\BackedEnum>|class-string<\BackedEnum> $choices
      */
-    public function setChoices(array|string $choices): static
+    public function choices(array|string $choices): static
     {
         $this->translatableCases = [];
 
@@ -64,9 +64,19 @@ class ChoiceColumn extends AbstractColumn
             return $this->setEnumChoices($choices);
         }
 
-        $this->setCustomOption(self::OPTION_CHOICES, $this->normalizeArrayChoices($choices));
+        $this->customOption(self::OPTION_CHOICES, $this->normalizeArrayChoices($choices));
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use choices() instead. Removed in 2.0.
+     */
+    public function setChoices(array|string $choices): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "choices()" instead.', __METHOD__);
+
+        return $this->choices($choices);
     }
 
     /**
@@ -87,7 +97,7 @@ class ChoiceColumn extends AbstractColumn
             $choices[$value] = $case->trans($translator, $locale);
         }
 
-        $this->setCustomOption(self::OPTION_CHOICES, $choices);
+        $this->customOption(self::OPTION_CHOICES, $choices);
     }
 
     /**
@@ -103,8 +113,8 @@ class ChoiceColumn extends AbstractColumn
     public function renderAsBadges(array|bool $badgeSelector = [], string $defaultVariant = 'secondary'): static
     {
         if (false === $badgeSelector) {
-            $this->setCustomOption(self::OPTION_RENDER_AS_BADGES, null);
-            $this->setCustomOption(self::OPTION_DEFAULT_BADGE_VARIANT, null);
+            $this->customOption(self::OPTION_RENDER_AS_BADGES, null);
+            $this->customOption(self::OPTION_DEFAULT_BADGE_VARIANT, null);
 
             return $this;
         }
@@ -121,8 +131,8 @@ class ChoiceColumn extends AbstractColumn
 
         $this->assertValidBadgeType($defaultVariant, 'The default variant passed to the "%s" method must be one of the following valid badge types: "%s" ("%s" given).');
 
-        $this->setCustomOption(self::OPTION_RENDER_AS_BADGES, $badgeSelector);
-        $this->setCustomOption(self::OPTION_DEFAULT_BADGE_VARIANT, $defaultVariant);
+        $this->customOption(self::OPTION_RENDER_AS_BADGES, $badgeSelector);
+        $this->customOption(self::OPTION_DEFAULT_BADGE_VARIANT, $defaultVariant);
 
         return $this;
     }
@@ -153,7 +163,7 @@ class ChoiceColumn extends AbstractColumn
     {
         $this->translatableCases = EnumChoices::translatableCases($cases);
 
-        return $this->setCustomOption(self::OPTION_CHOICES, EnumChoices::labels($cases));
+        return $this->customOption(self::OPTION_CHOICES, EnumChoices::labels($cases));
     }
 
     private function assertValidBadgeType(string $badgeType, string $message): void

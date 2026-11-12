@@ -22,12 +22,12 @@ final class AbstractColumnTest extends TestCase
     public function it_serializes_its_own_state(): void
     {
         $column = (new class extends AbstractColumn {})
-            ->setType(ColumnType::STRING)
-            ->setName('status')
-            ->setTitle('Status')
-            ->setExportable(false);
+            ->type(ColumnType::STRING)
+            ->name('status')
+            ->title('Status')
+            ->exportable(false);
 
-        $column->setCustomOption('format', 'badge');
+        $column->customOption('format', 'badge');
 
         $this->assertSame([
             'name'          => 'status',
@@ -45,8 +45,8 @@ final class AbstractColumnTest extends TestCase
     public function it_exposes_all_interface_getters_with_defaults(): void
     {
         $column = (new class extends AbstractColumn {})
-            ->setType(ColumnType::STRING)
-            ->setName('foo');
+            ->type(ColumnType::STRING)
+            ->name('foo');
 
         $this->assertSame(ColumnType::STRING, $column->getType());
         $this->assertTrue($column->isVisible());
@@ -67,9 +67,9 @@ final class AbstractColumnTest extends TestCase
     public function it_serializes_an_empty_default_content(): void
     {
         $column = (new class extends AbstractColumn {})
-            ->setType(ColumnType::STRING)
-            ->setName('foo')
-            ->setDefaultContent('');
+            ->type(ColumnType::STRING)
+            ->name('foo')
+            ->defaultContent('');
 
         $this->assertArrayHasKey('defaultContent', $column->jsonSerialize());
         $this->assertSame('', $column->jsonSerialize()['defaultContent']);
@@ -79,8 +79,8 @@ final class AbstractColumnTest extends TestCase
     public function it_can_disable_column_control_without_disabling_search(): void
     {
         $column = (new class extends AbstractColumn {})
-            ->setType(ColumnType::STRING)
-            ->setName('foo');
+            ->type(ColumnType::STRING)
+            ->name('foo');
 
         $this->assertSame($column, $column->disableColumnControl());
         $this->assertTrue($column->isSearchable());
@@ -91,15 +91,15 @@ final class AbstractColumnTest extends TestCase
     public function it_normalizes_search_unless_the_column_opts_out(): void
     {
         $column = (new class extends AbstractColumn {})
-            ->setType(ColumnType::STRING)
-            ->setName('name');
+            ->type(ColumnType::STRING)
+            ->name('name');
 
         $this->assertTrue($column->isSearchNormalized());
 
-        $this->assertSame($column, $column->setSearchNormalization(false));
+        $this->assertSame($column, $column->searchNormalization(false));
         $this->assertFalse($column->isSearchNormalized());
 
-        $this->assertSame($column, $column->setSearchNormalization());
+        $this->assertSame($column, $column->searchNormalization());
         $this->assertTrue($column->isSearchNormalized());
     }
 
@@ -107,12 +107,12 @@ final class AbstractColumnTest extends TestCase
     public function it_overrides_column_control_content_for_a_single_column(): void
     {
         $column = (new class extends AbstractColumn {})
-            ->setType(ColumnType::STRING)
-            ->setName('actions');
+            ->type(ColumnType::STRING)
+            ->name('actions');
 
         $this->assertNull($column->getColumnControl());
 
-        $this->assertSame($column, $column->setColumnControl(['colvisDropdown']));
+        $this->assertSame($column, $column->columnControl(['colvisDropdown']));
 
         $this->assertSame(['colvisDropdown'], $column->getColumnControl());
         $this->assertSame(['colvisDropdown'], $column->jsonSerialize()['columnControl']);
@@ -122,15 +122,15 @@ final class AbstractColumnTest extends TestCase
     public function setting_column_control_content_wins_over_disabling_it_regardless_of_call_order(): void
     {
         $disableThenOverride = (new class extends AbstractColumn {})
-            ->setType(ColumnType::STRING)
-            ->setName('foo')
+            ->type(ColumnType::STRING)
+            ->name('foo')
             ->disableColumnControl()
-            ->setColumnControl(['order']);
+            ->columnControl(['order']);
 
         $overrideThenDisable = (new class extends AbstractColumn {})
-            ->setType(ColumnType::STRING)
-            ->setName('foo')
-            ->setColumnControl(['order'])
+            ->type(ColumnType::STRING)
+            ->name('foo')
+            ->columnControl(['order'])
             ->disableColumnControl();
 
         $this->assertSame(['order'], $disableThenOverride->jsonSerialize()['columnControl']);
@@ -141,17 +141,17 @@ final class AbstractColumnTest extends TestCase
     public function it_exposes_mutated_getter_values(): void
     {
         $column = (new class extends AbstractColumn {})
-            ->setType(ColumnType::DATE)
-            ->setName('created_at')
-            ->setVisible(false)
-            ->setOrderable(false)
-            ->setExportable(false)
-            ->setWidth('120px')
-            ->setClassName('text-center')
-            ->setCellType('th')
-            ->setDefaultContent('—');
+            ->type(ColumnType::DATE)
+            ->name('created_at')
+            ->visible(false)
+            ->orderable(false)
+            ->exportable(false)
+            ->width('120px')
+            ->className('text-center')
+            ->cellType('th')
+            ->defaultContent('—');
 
-        $column->setCustomOption('highlight', true);
+        $column->customOption('highlight', true);
 
         $this->assertSame(ColumnType::DATE, $column->getType());
         $this->assertFalse($column->isVisible());
@@ -169,23 +169,23 @@ final class AbstractColumnTest extends TestCase
     public function it_omits_responsive_priority_until_it_is_set(): void
     {
         $column = (new class extends AbstractColumn {})
-            ->setType(ColumnType::STRING)
-            ->setName('email');
+            ->type(ColumnType::STRING)
+            ->name('email');
 
         $this->assertNull($column->getResponsivePriority());
         $this->assertArrayNotHasKey('responsivePriority', $column->jsonSerialize());
 
-        $this->assertSame($column, $column->setResponsivePriority(1));
+        $this->assertSame($column, $column->responsivePriority(1));
         $this->assertSame(1, $column->getResponsivePriority());
         $this->assertSame(1, $column->jsonSerialize()['responsivePriority']);
 
-        $column->setResponsivePriority(0);
+        $column->responsivePriority(0);
         $this->assertSame(0, $column->jsonSerialize()['responsivePriority']);
 
-        $column->setResponsivePriority(-1);
+        $column->responsivePriority(-1);
         $this->assertSame(-1, $column->jsonSerialize()['responsivePriority']);
 
-        $column->setResponsivePriority(null);
+        $column->responsivePriority(null);
         $this->assertNull($column->getResponsivePriority());
         $this->assertArrayNotHasKey('responsivePriority', $column->jsonSerialize());
     }
@@ -194,12 +194,12 @@ final class AbstractColumnTest extends TestCase
     public function permission_is_stored_server_side_and_never_serialized(): void
     {
         $column = (new class extends AbstractColumn {})
-            ->setType(ColumnType::STRING)
-            ->setName('salary');
+            ->type(ColumnType::STRING)
+            ->name('salary');
 
         $this->assertNull($column->getPermission());
 
-        $this->assertSame($column, $column->setPermission('ROLE_HR'));
+        $this->assertSame($column, $column->permission('ROLE_HR'));
         $this->assertSame('ROLE_HR', $column->getPermission());
         $this->assertArrayNotHasKey('permission', $column->jsonSerialize());
     }
@@ -209,9 +209,9 @@ final class AbstractColumnTest extends TestCase
     {
         $expression = new Expression('"ROLE_ADMIN" in role_names');
         $column     = (new class extends AbstractColumn {})
-            ->setType(ColumnType::STRING)
-            ->setName('salary')
-            ->setPermission($expression);
+            ->type(ColumnType::STRING)
+            ->name('salary')
+            ->permission($expression);
 
         $this->assertSame($expression, $column->getPermission());
         $this->assertArrayNotHasKey('permission', $column->jsonSerialize());

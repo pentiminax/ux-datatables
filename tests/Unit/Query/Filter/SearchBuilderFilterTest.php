@@ -103,7 +103,7 @@ final class SearchBuilderFilterTest extends TestCase
     #[Test]
     public function it_refuses_a_non_searchable_column(): void
     {
-        $columns = [NumberColumn::new('id', 'Id'), TextColumn::new('name', 'Name')->setSearchable(false)];
+        $columns = [NumberColumn::new('id', 'Id'), TextColumn::new('name', 'Name')->searchable(false)];
         $payload = ['criteria' => [['origData' => 'name', 'condition' => '=', 'value' => ['Bob']]]];
 
         $this->expectException(BadRequestHttpException::class);
@@ -143,7 +143,7 @@ final class SearchBuilderFilterTest extends TestCase
     #[Test]
     public function it_honors_a_column_that_opts_out_of_normalized_search(): void
     {
-        $column  = TextColumn::new('name', 'Name')->setSearchNormalization(false);
+        $column  = TextColumn::new('name', 'Name')->searchNormalization(false);
         $payload = ['criteria' => [['origData' => 'name', 'condition' => 'contains', 'value' => ['ALI']]]];
         $qb      = $this->query(CountCustomer::class, [$column], $payload);
 
@@ -199,7 +199,7 @@ final class SearchBuilderFilterTest extends TestCase
         $this->em->flush();
         $this->em->clear();
 
-        $columns = [TextColumn::new('label', 'Label'), TextColumn::new('customer', 'Customer')->setField('customer.name')];
+        $columns = [TextColumn::new('label', 'Label'), TextColumn::new('customer', 'Customer')->field('customer.name')];
         $payload = ['criteria' => [['origData' => 'customer', 'condition' => '=', 'value' => ['Bob']]]];
 
         $this->assertSame(['vip'], $this->names(CountTag::class, $columns, $payload, 'label'));

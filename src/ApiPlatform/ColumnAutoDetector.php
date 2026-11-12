@@ -80,13 +80,13 @@ class ColumnAutoDetector
             $column = $this->typeMapper->createColumn($propertyName, $label, $type);
 
             if ($isIdentifier) {
-                $column->setVisible(false);
+                $column->visible(false);
             }
 
             $phpPropertyName = $this->resolvePhpPropertyName($entityClass, $propertyName);
 
             if (null !== $phpPropertyName) {
-                $column->setField($phpPropertyName);
+                $column->field($phpPropertyName);
             }
 
             $columns[] = $column;

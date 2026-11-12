@@ -25,7 +25,7 @@ final class ExportProductsDataTable extends AbstractDataTable
         yield TextColumn::new('name', 'Product');
 
         yield ChoiceColumn::new('category', 'Category')
-            ->setChoices(Category::class);
+            ->choices(Category::class);
 
         yield MoneyColumn::new('price', 'Price')
             ->currency('EUR')
@@ -34,7 +34,7 @@ final class ExportProductsDataTable extends AbstractDataTable
         yield NumberColumn::new('stock', 'Stock');
 
         yield TextColumn::new('supplierEmail', 'Supplier')
-            ->setExportable(false);
+            ->exportable(false);
     }
 
     public function configureDataTable(DataTable $table): DataTable

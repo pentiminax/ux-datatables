@@ -31,6 +31,9 @@ export class PackageLoaderRegistry {
         this.loaders.set(name, loader);
         return this;
     }
+    isRegistered(name) {
+        return this.loaders.has(name);
+    }
     has(name, framework) {
         return this.resolve(name, framework) !== undefined;
     }

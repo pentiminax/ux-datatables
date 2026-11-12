@@ -35,28 +35,28 @@ final class OrderFilterTest extends TestCase
     public static function appliedOrders(): iterable
     {
         yield 'simple field' => [
-            TextColumn::new('name', 'Name')->setField('name'),
+            TextColumn::new('name', 'Name')->field('name'),
             'asc',
             'e.name',
             null,
         ];
 
         yield 'configured field wins over the request column name' => [
-            TextColumn::new('displayName', 'Display Name')->setField('customField'),
+            TextColumn::new('displayName', 'Display Name')->field('customField'),
             'desc',
             'e.customField',
             null,
         ];
 
         yield 'order expression used verbatim, without alias prefix or join resolution' => [
-            TextColumn::new('invoiceCount', 'Invoices')->setOrderExpression('invoiceCount'),
+            TextColumn::new('invoiceCount', 'Invoices')->orderExpression('invoiceCount'),
             'desc',
             'invoiceCount',
             null,
         ];
 
         yield 'dot notation field' => [
-            TextColumn::new('authorName', 'Author')->setField('author.firstName'),
+            TextColumn::new('authorName', 'Author')->field('author.firstName'),
             'asc',
             'author.firstName',
             ['e.author', 'author'],
@@ -68,7 +68,7 @@ final class OrderFilterTest extends TestCase
      */
     public static function skippedOrders(): iterable
     {
-        yield 'no order requested' => [[], [TextColumn::new('name', 'Name')->setField('name')]];
+        yield 'no order requested' => [[], [TextColumn::new('name', 'Name')->field('name')]];
 
         yield 'order column index out of bounds' => [[new Order(5, 'asc', 'name')], []];
     }
@@ -134,9 +134,9 @@ final class OrderFilterTest extends TestCase
         });
 
         $columns = [
-            TextColumn::new('city', 'City')->setField('city'),
-            TextColumn::new('invoiceCount', 'Invoices')->setOrderExpression('invoiceCount'),
-            TextColumn::new('name', 'Name')->setField('name'),
+            TextColumn::new('city', 'City')->field('city'),
+            TextColumn::new('invoiceCount', 'Invoices')->orderExpression('invoiceCount'),
+            TextColumn::new('name', 'Name')->field('name'),
         ];
 
         $request = new DataTableRequest(
@@ -157,7 +157,7 @@ final class OrderFilterTest extends TestCase
     #[Test]
     public function it_falls_back_to_the_single_order_column_when_an_intent_carries_no_orders(): void
     {
-        $column = TextColumn::new('name', 'Name')->setField('name');
+        $column = TextColumn::new('name', 'Name')->field('name');
         $intent = $this->orderedContext($column, 'desc')->intent;
 
         $legacyIntent = new DataTableQueryIntent(
@@ -210,7 +210,7 @@ final class OrderFilterTest extends TestCase
         $qb->expects($this->never())->method('addOrderBy');
         $qb->expects($this->never())->method('leftJoin');
 
-        $column = TextColumn::new('donorProviderName', 'Donor')->setSearchField('donorProvider.name');
+        $column = TextColumn::new('donorProviderName', 'Donor')->searchField('donorProvider.name');
 
         (new OrderFilter())->apply($qb, $this->orderedContext($column, 'asc'));
     }
@@ -224,7 +224,7 @@ final class OrderFilterTest extends TestCase
             ->method('addOrderBy')
             ->with('invoiceCount', DoctrineSortDirection::from('desc'));
 
-        $column = TextColumn::new('invoiceCount', 'Invoices')->setOrderExpression('invoiceCount');
+        $column = TextColumn::new('invoiceCount', 'Invoices')->orderExpression('invoiceCount');
 
         (new OrderFilter())->apply($qb, $this->orderedContext($column, 'desc'));
     }

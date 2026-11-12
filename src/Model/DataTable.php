@@ -220,11 +220,21 @@ class DataTable
         return $this->attributes;
     }
 
-    public function setAttributes(array $attributes): static
+    public function attributes(array $attributes): static
     {
         $this->attributes = $attributes;
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use attributes() instead. Removed in 2.0.
+     */
+    public function setAttributes(array $attributes): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "attributes()" instead.', __METHOD__);
+
+        return $this->attributes($attributes);
     }
 
     public function getDataController(): ?string
@@ -232,11 +242,21 @@ class DataTable
         return $this->attributes['data-controller'] ?? null;
     }
 
-    public function setPermission(string|Expression $attribute): static
+    public function permission(string|Expression $attribute): static
     {
         $this->permission = $attribute;
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use permission() instead. Removed in 2.0.
+     */
+    public function setPermission(string|Expression $attribute): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "permission()" instead.', __METHOD__);
+
+        return $this->permission($attribute);
     }
 
     public function getPermission(): string|Expression|null
@@ -582,11 +602,21 @@ class DataTable
         return $this;
     }
 
-    public function setHighlightConfig(HighlightConfig $config): static
+    public function highlightConfig(HighlightConfig $config): static
     {
         $this->highlightConfig = $config;
 
         return $this;
+    }
+
+    /**
+     * @deprecated since 1.6, use highlightConfig() instead. Removed in 2.0.
+     */
+    public function setHighlightConfig(HighlightConfig $config): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "highlightConfig()" instead.', __METHOD__);
+
+        return $this->highlightConfig($config);
     }
 
     public function getHighlightConfig(): ?HighlightConfig
@@ -780,8 +810,13 @@ class DataTable
         return $this->extensions;
     }
 
+    /**
+     * @deprecated since 1.6, declare extensions with extensions() instead. Removed in 2.0.
+     */
     public function setExtensions(DataTableExtensions $extensions): static
     {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, declare extensions with "extensions()" instead.', __METHOD__);
+
         $this->extensions = $extensions;
 
         return $this;
@@ -1046,7 +1081,7 @@ class DataTable
 
     public function language(Language $language): static
     {
-        $this->options->setLanguage($language);
+        $this->options->language($language);
 
         return $this;
     }
@@ -1075,7 +1110,7 @@ class DataTable
      */
     public function search(string $search): static
     {
-        $this->options->setSearch($search);
+        $this->options->search($search);
 
         return $this;
     }

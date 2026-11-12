@@ -24,7 +24,7 @@ final class QueryFilterContextTest extends TestCase
     #[Test]
     public function it_resolves_a_configured_column_by_name(): void
     {
-        $column  = TextColumn::new('name', 'Name')->setField('name');
+        $column  = TextColumn::new('name', 'Name')->field('name');
         $context = $this->context(new DataTableRequest(1, new Columns([])), [$column]);
 
         $this->assertSame($column, $context->columnByName('name'));
@@ -75,7 +75,7 @@ final class QueryFilterContextTest extends TestCase
     #[Test]
     public function it_returns_the_same_index_for_the_same_reference_within_one_scope(): void
     {
-        $column    = TextColumn::new('name', 'Name')->setField('name');
+        $column    = TextColumn::new('name', 'Name')->field('name');
         $context   = $this->context(new DataTableRequest(1, new Columns([])), [$column]);
         $reference = $context->intent->columns[0];
 
@@ -91,8 +91,8 @@ final class QueryFilterContextTest extends TestCase
     #[Test]
     public function it_draws_distinct_indices_for_distinct_references_within_one_scope(): void
     {
-        $columnA = TextColumn::new('name', 'Name')->setField('name');
-        $columnB = TextColumn::new('email', 'Email')->setField('email');
+        $columnA = TextColumn::new('name', 'Name')->field('name');
+        $columnB = TextColumn::new('email', 'Email')->field('email');
         $context = $this->context(new DataTableRequest(1, new Columns([])), [$columnA, $columnB]);
 
         [$referenceA, $referenceB] = $context->intent->columns;
@@ -105,7 +105,7 @@ final class QueryFilterContextTest extends TestCase
     #[Test]
     public function it_shares_the_counter_between_next_param_index_and_param_index_for(): void
     {
-        $column    = TextColumn::new('name', 'Name')->setField('name');
+        $column    = TextColumn::new('name', 'Name')->field('name');
         $context   = $this->context(new DataTableRequest(1, new Columns([])), [$column]);
         $reference = $context->intent->columns[0];
 
@@ -118,7 +118,7 @@ final class QueryFilterContextTest extends TestCase
     #[Test]
     public function it_forgets_param_index_for_stability_after_reset_param_index_scope(): void
     {
-        $column    = TextColumn::new('name', 'Name')->setField('name');
+        $column    = TextColumn::new('name', 'Name')->field('name');
         $context   = $this->context(new DataTableRequest(1, new Columns([])), [$column]);
         $reference = $context->intent->columns[0];
 

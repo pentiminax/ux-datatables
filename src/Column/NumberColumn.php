@@ -15,7 +15,7 @@ class NumberColumn extends AbstractColumn
 
     public function formatted(): static
     {
-        return $this->setType(match ($this->type) {
+        return $this->type(match ($this->type) {
             ColumnType::HTML_NUM, ColumnType::HTML_NUM_FMT => ColumnType::HTML_NUM_FMT,
             default                                        => ColumnType::NUM_FMT,
         });
@@ -23,7 +23,7 @@ class NumberColumn extends AbstractColumn
 
     public function html(): static
     {
-        return $this->setType(match ($this->type) {
+        return $this->type(match ($this->type) {
             ColumnType::NUM_FMT, ColumnType::HTML_NUM_FMT => ColumnType::HTML_NUM_FMT,
             default                                       => ColumnType::HTML_NUM,
         });

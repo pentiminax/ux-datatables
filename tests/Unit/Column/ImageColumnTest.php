@@ -54,10 +54,10 @@ final class ImageColumnTest extends DataTableTestCase
     public function it_serializes_full_configuration(): void
     {
         $column = ImageColumn::new('avatar', 'Avatar')
-            ->setImageWidth(50)
-            ->setImageHeight(50)
-            ->setAlt('Profile picture')
-            ->setPlaceholder('/images/default.png')
+            ->imageWidth(50)
+            ->imageHeight(50)
+            ->alt('Profile picture')
+            ->placeholder('/images/default.png')
             ->rounded()
             ->clickable();
 

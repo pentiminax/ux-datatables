@@ -30,7 +30,7 @@ final class ProductActionsDataTable extends AbstractDataTable
             ->hideWhenUpdating();
 
         yield ChoiceColumn::new('category', 'Category')
-            ->setChoices(Category::class);
+            ->choices(Category::class);
 
         yield MoneyColumn::new('price', 'Price')
             ->currency('EUR')
@@ -39,7 +39,7 @@ final class ProductActionsDataTable extends AbstractDataTable
         yield NumberColumn::new('stock', 'Stock');
 
         yield ChoiceColumn::new('status', 'Status')
-            ->setChoices(ProductStatus::class)
+            ->choices(ProductStatus::class)
             ->renderAsBadges(['active' => 'success', 'draft' => 'warning', 'archived' => 'secondary']);
 
         yield BooleanColumn::new('featured', 'Featured')

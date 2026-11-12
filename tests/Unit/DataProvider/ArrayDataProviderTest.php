@@ -214,7 +214,7 @@ final class ArrayDataProviderTest extends TestCase
     public function it_applies_the_global_search_to_a_column_whose_column_search_is_disabled(): void
     {
         $columns    = self::columns();
-        $columns[1] = TextColumn::new('name')->setSearchable(false);
+        $columns[1] = TextColumn::new('name')->searchable(false);
 
         $result = (new ArrayDataProvider(self::people(), new CountingRowMapper(), $columns))->fetchData(
             self::request(start: 0, length: 10, search: new Search('ali', false)),
@@ -269,7 +269,7 @@ final class ArrayDataProviderTest extends TestCase
             (object) ['id' => 4, 'customer' => (object) ['name' => 'Dave']],
             ['id' => 5, 'customer' => []],
         ];
-        $columns  = [TextColumn::new('customerName')->setField('customer.name')];
+        $columns  = [TextColumn::new('customerName')->field('customer.name')];
         $provider = new ArrayDataProvider($rows, new CountingRowMapper(), $columns);
 
         $global = $provider->fetchData(self::request(
@@ -302,8 +302,8 @@ final class ArrayDataProviderTest extends TestCase
             ['id' => 2, 'status' => ArrayProviderStatus::Active, 'priority' => ArrayProviderPriority::Low],
         ];
         $columns = [
-            ChoiceColumn::new('status')->setChoices(ArrayProviderStatus::class),
-            ChoiceColumn::new('priority')->setChoices(ArrayProviderPriority::class),
+            ChoiceColumn::new('status')->choices(ArrayProviderStatus::class),
+            ChoiceColumn::new('priority')->choices(ArrayProviderPriority::class),
         ];
         $provider = new ArrayDataProvider($rows, new CountingRowMapper(), $columns);
 
@@ -333,7 +333,7 @@ final class ArrayDataProviderTest extends TestCase
     public function it_ignores_a_column_search_on_a_non_searchable_column(): void
     {
         $columns    = self::columns();
-        $columns[1] = TextColumn::new('name')->setSearchable(false);
+        $columns[1] = TextColumn::new('name')->searchable(false);
 
         $result = (new ArrayDataProvider(self::people(), new CountingRowMapper(), $columns))->fetchData(
             self::request(

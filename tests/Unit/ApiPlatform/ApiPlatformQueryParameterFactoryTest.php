@@ -214,8 +214,8 @@ final class ApiPlatformQueryParameterFactoryTest extends TestCase
     private function columns(): array
     {
         return [
-            TextColumn::new('email', 'Email')->setField('user.email'),
-            TextColumn::new('createdAt', 'Created at')->setField('user.createdAt'),
+            TextColumn::new('email', 'Email')->field('user.email'),
+            TextColumn::new('createdAt', 'Created at')->field('user.createdAt'),
         ];
     }
 

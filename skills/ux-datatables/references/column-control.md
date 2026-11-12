@@ -74,7 +74,7 @@ final class EmployeeDataTable extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield TextColumn::new('name', 'Name');
-        yield TextColumn::new('status', 'Status')->setColumnControl([
+        yield TextColumn::new('status', 'Status')->columnControl([
             [
                 'target'  => 1,
                 'content' => [SearchList::new()->options(EmploymentStatus::class)],

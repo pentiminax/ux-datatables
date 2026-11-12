@@ -62,9 +62,9 @@ final class ExportValueFormatterTest extends TestCase
     public function it_writes_the_label_of_a_choice(): void
     {
         $formatter = new ExportValueFormatter();
-        $column    = ChoiceColumn::new('status')->setChoices(['Draft' => 'draft']);
+        $column    = ChoiceColumn::new('status')->choices(['Draft' => 'draft']);
 
-        $row = $formatter->formatRow([$column, ChoiceColumn::new('state')->setChoices(TestStatus::class)], [
+        $row = $formatter->formatRow([$column, ChoiceColumn::new('state')->choices(TestStatus::class)], [
             'status' => 'draft',
             'state'  => 'active',
         ]);
@@ -75,7 +75,7 @@ final class ExportValueFormatterTest extends TestCase
     #[Test]
     public function it_keeps_a_choice_value_without_a_label(): void
     {
-        $column = ChoiceColumn::new('status')->setChoices(['Draft' => 'draft']);
+        $column = ChoiceColumn::new('status')->choices(['Draft' => 'draft']);
 
         $row = (new ExportValueFormatter())->formatRow([$column], ['status' => 'archived']);
 

@@ -100,7 +100,7 @@ final class ColumnControlExtensionTest extends TestCase
         $tableControl = (new ColumnControlExtension([]))->add(1, [
             SearchList::new()->search(false),
         ]);
-        $column = TextColumn::new('status')->setColumnControl([
+        $column = TextColumn::new('status')->columnControl([
             SearchList::new()->options(['Draft' => 'draft']),
         ]);
 

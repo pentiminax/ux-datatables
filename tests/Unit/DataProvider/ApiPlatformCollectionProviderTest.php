@@ -546,7 +546,7 @@ final class ApiPlatformCollectionProviderTest extends TestCase
             columnResolver: new ColumnResolver(),
             requestStack: new RequestStack(),
             entityClass: self::ENTITY_CLASS,
-            columns: [TextColumn::new('title', 'Title')->setField('title')],
+            columns: [TextColumn::new('title', 'Title')->field('title')],
             rowMapper: $rowMapper,
             exportChunkSize: $exportChunkSize,
             pageProjector: $pageProjector,

@@ -75,7 +75,7 @@ final class EditFormServiceTest extends TestCase
     {
         $registry = $this->createStub(ManagerRegistry::class);
 
-        $deprecations = $this->deprecationsOf(fn () => $this->handleWithoutFormCollaborators(handler: 'view', registry: $registry));
+        $deprecations = $this->withoutAuthorizationFallback($this->deprecationsOf(fn () => $this->handleWithoutFormCollaborators(handler: 'view', registry: $registry)));
 
         $this->assertCount(1, $deprecations);
         $this->assertStringContainsString('renderForm()', $deprecations[0]);
@@ -86,7 +86,7 @@ final class EditFormServiceTest extends TestCase
     {
         $registry = $this->createStub(ManagerRegistry::class);
 
-        $deprecations = $this->deprecationsOf(fn () => $this->handleWithoutFormCollaborators(handler: 'submit', registry: $registry));
+        $deprecations = $this->withoutAuthorizationFallback($this->deprecationsOf(fn () => $this->handleWithoutFormCollaborators(handler: 'submit', registry: $registry)));
 
         $this->assertCount(1, $deprecations);
         $this->assertStringContainsString('submitForm()', $deprecations[0]);
@@ -557,7 +557,7 @@ final class StaticDeniedEditActionDataTable extends EditFormServiceFixtureDataTa
 {
     public function configureActions(Actions $actions): Actions
     {
-        return $actions->add(Action::edit()->setPermission('EDIT_BOOK'));
+        return $actions->add(Action::edit()->permission('EDIT_BOOK'));
     }
 }
 

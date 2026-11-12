@@ -83,7 +83,7 @@ final class QueryFilterPipelineMultiOrderTest extends TestCase
         (new QueryFilterPipeline(new DefaultDataTableQueryIntentFactory()))->apply(
             qb: $qb,
             request: $request,
-            columns: [TextColumn::new('name', 'Name')->setField('name'), NumberColumn::new('id', 'Id')->setField('id')],
+            columns: [TextColumn::new('name', 'Name')->field('name'), NumberColumn::new('id', 'Id')->field('id')],
             filters: null,
             registry: new DefaultSearchStrategyRegistry(),
         );

@@ -323,7 +323,7 @@ final class StaticDeniedDeleteActionDataTable extends DeletableEntityFixtureData
 {
     public function configureActions(Actions $actions): Actions
     {
-        return $actions->add(Action::delete()->setPermission('DELETE_BOOK'));
+        return $actions->add(Action::delete()->permission('DELETE_BOOK'));
     }
 }
 
@@ -332,6 +332,6 @@ final class RowDeniedDeleteActionDataTable extends DeletableEntityFixtureDataTab
 {
     public function configureActions(Actions $actions): Actions
     {
-        return $actions->add(Action::delete()->setPermission('DELETE_BOOK', static fn (object $entity): object => $entity));
+        return $actions->add(Action::delete()->permission('DELETE_BOOK', static fn (object $entity): object => $entity));
     }
 }

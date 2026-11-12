@@ -45,7 +45,7 @@ final class ColumnSearchFilterTest extends TestCase
             ->method('andWhere')
             ->with("LOWER(e.name) LIKE :column_control_param_0 ESCAPE '!'");
 
-        $context = $this->singleColumnContext(TextColumn::new('name', 'Name')->setField('name'), new Search('ali', false));
+        $context = $this->singleColumnContext(TextColumn::new('name', 'Name')->field('name'), new Search('ali', false));
 
         (new ColumnSearchFilter())->apply($qb, $context);
     }
@@ -56,7 +56,7 @@ final class ColumnSearchFilterTest extends TestCase
     public static function appliedColumnSearches(): iterable
     {
         yield 'text field' => [
-            TextColumn::new('name', 'Name')->setField('name'),
+            TextColumn::new('name', 'Name')->field('name'),
             'test',
             "LOWER(e.name) LIKE :column_control_param_0 ESCAPE '!'",
             '%test%',
@@ -64,7 +64,7 @@ final class ColumnSearchFilterTest extends TestCase
         ];
 
         yield 'text field with like wildcards is escaped, not interpreted' => [
-            TextColumn::new('name', 'Name')->setField('name'),
+            TextColumn::new('name', 'Name')->field('name'),
             '50%_off',
             "LOWER(e.name) LIKE :column_control_param_0 ESCAPE '!'",
             '%50!%!_off%',
@@ -72,7 +72,7 @@ final class ColumnSearchFilterTest extends TestCase
         ];
 
         yield 'numeric field with a numeric value' => [
-            NumberColumn::new('id', 'ID')->setField('id'),
+            NumberColumn::new('id', 'ID')->field('id'),
             '123',
             'e.id = :column_control_param_0',
             '123',
@@ -80,7 +80,7 @@ final class ColumnSearchFilterTest extends TestCase
         ];
 
         yield 'dot notation field' => [
-            TextColumn::new('authorName', 'Author')->setField('author.firstName'),
+            TextColumn::new('authorName', 'Author')->field('author.firstName'),
             'john',
             "LOWER(author.firstName) LIKE :column_control_param_0 ESCAPE '!'",
             '%john%',
@@ -94,37 +94,37 @@ final class ColumnSearchFilterTest extends TestCase
     public static function skippedColumnSearches(): iterable
     {
         yield 'numeric field with a non numeric value' => [
-            NumberColumn::new('id', 'ID')->setField('id'),
+            NumberColumn::new('id', 'ID')->field('id'),
             new Search('abc', false),
             true,
         ];
 
         yield 'non searchable column' => [
-            TextColumn::new('name', 'Name')->setField('name')->setSearchable(false),
+            TextColumn::new('name', 'Name')->field('name')->searchable(false),
             new Search('test', false),
             true,
         ];
 
         yield 'empty value' => [
-            TextColumn::new('name', 'Name')->setField('name'),
+            TextColumn::new('name', 'Name')->field('name'),
             new Search('', false),
             true,
         ];
 
         yield 'null value' => [
-            TextColumn::new('name', 'Name')->setField('name'),
+            TextColumn::new('name', 'Name')->field('name'),
             new Search(null, false),
             true,
         ];
 
         yield 'whitespace only value' => [
-            TextColumn::new('name', 'Name')->setField('name'),
+            TextColumn::new('name', 'Name')->field('name'),
             new Search('   ', false),
             true,
         ];
 
         yield 'column missing from the request' => [
-            TextColumn::new('name', 'Name')->setField('name'),
+            TextColumn::new('name', 'Name')->field('name'),
             null,
             false,
         ];
@@ -215,7 +215,7 @@ final class ColumnSearchFilterTest extends TestCase
         ]);
 
         $context = $this->context(new DataTableRequest(1, $requestColumns), [
-            TextColumn::new('name', 'Name')->setField('name'),
+            TextColumn::new('name', 'Name')->field('name'),
         ]);
 
         $this->filter()->apply($qb, $context);
@@ -252,8 +252,8 @@ final class ColumnSearchFilterTest extends TestCase
         ]);
 
         $context = $this->context(new DataTableRequest(1, $requestColumns), [
-            TextColumn::new('name', 'Name')->setField('name'),
-            TextColumn::new('email', 'Email')->setField('email'),
+            TextColumn::new('name', 'Name')->field('name'),
+            TextColumn::new('email', 'Email')->field('email'),
         ]);
 
         $this->filter()->apply($qb, $context);
@@ -314,7 +314,7 @@ final class ColumnSearchFilterTest extends TestCase
 
         $column = TextColumn::new('donorProviderName', 'Donor')
             ->addSearchJoin('e.donorProvider', 'dp')
-            ->setSearchField('dp.name');
+            ->searchField('dp.name');
 
         $this->filter()->apply($qb, $this->columnSearchContext($column, 'acme'));
 
@@ -336,7 +336,7 @@ final class ColumnSearchFilterTest extends TestCase
             ->with('column_control_param_0', '%42%')
             ->willReturn($qb);
 
-        $column = TextColumn::new('dossierId', 'Dossier')->setSearchPredicate(
+        $column = TextColumn::new('dossierId', 'Dossier')->searchPredicate(
             static function (QueryBuilder $qb, string $alias, string $value, string $paramName): string {
                 $qb->setParameter($paramName, \sprintf('%%%s%%', $value));
 

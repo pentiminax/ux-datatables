@@ -7,8 +7,9 @@ namespace Pentiminax\UX\DataTables\Attribute;
 /**
  * Applies an option map to a built object through whichever fluent method carries it.
  *
- * Columns expose setters (`setField()`) while filters expose bare fluent methods (`field()`), so
- * both spellings are tried before the alias table, which holds only what follows neither.
+ * Every option resolves to its bare fluent method (`field()`) first, then to the legacy `setField()`
+ * spelling, so attribute-configured tables raise no deprecation. The alias table holds only what
+ * follows neither.
  */
 final class OptionApplier
 {
@@ -56,7 +57,7 @@ final class OptionApplier
      */
     private function resolveMethod(object|string $target, string $option): ?string
     {
-        foreach (['set'.ucfirst($option), $option] as $method) {
+        foreach ([$option, 'set'.ucfirst($option)] as $method) {
             if (method_exists($target, $method)) {
                 return $method;
             }
