@@ -65,7 +65,7 @@ variants such as `hover:bg-red-50` or `bg-red-500/10` work. DataTables adds the 
 list, never as raw HTML. Return `null` for no class.
 
 It works for server-side tables, API Platform tables rendered through the bundle's Ajax endpoint,
-and client-side tables filled with `setData()`. A table that reads a Hydra collection directly in
+and client-side tables filled with `rows()`. A table that reads a Hydra collection directly in
 the browser has no PHP row to hand to the callable, so `rowClass()` does not apply there.
 
 ## Clickable Rows

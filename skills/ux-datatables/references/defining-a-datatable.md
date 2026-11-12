@@ -49,7 +49,7 @@ Override only what you need; each returns its argument fluently.
 For client-side tables (no `serverSide()`), provide rows in one of three ways:
 
 1. **Auto-hydration** — if the attribute is set and no `data()`/`ajax()`/`apiPlatform`, the bundle fetches & maps rows automatically at render time.
-2. **Domain objects** — in the controller: `$table->data($users);` runs the row-mapper pipeline (template columns, typed actions).
+2. **Domain objects** — in the controller: `$table->rows($users);` runs the row-mapper pipeline (template columns, typed actions).
 3. **Inline arrays** — `configureDataTable`: `$table->data([['id' => 1, 'name' => 'Alice']]);`
 
 ## Data providers

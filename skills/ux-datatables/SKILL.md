@@ -20,7 +20,7 @@ the user explicitly asks for a minimal diff.
 
 ```
 Dataset < ~5k rows AND can load all upfront?
-├── yes → CLIENT-SIDE: define columns, optionally setData()/data(). Browser paginates/filters/sorts.
+├── yes → CLIENT-SIDE: define columns, optionally DataTable::data() (arrays) or rows() (objects). Browser paginates/filters/sorts.
 └── no  → SERVER-SIDE: configureDataTable(fn) → $table->serverSide()->processing()
           DB handles paging/filter/sort. Doctrine provider auto-wired from #[AsDataTable(Entity::class)].
           MUST import bundle routes (see references/server-side.md).

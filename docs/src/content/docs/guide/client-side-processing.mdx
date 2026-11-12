@@ -34,12 +34,12 @@ sorting, searching, and paging in the browser as long as `serverSide(true)` is n
   headers={['Setup', 'Use when', 'What UX DataTables gives you']}
   rows={[
     [
-      '`data()`',
+      '`DataTable::data()`',
       'You already have array rows in the controller',
       'The fastest path for small in-memory datasets',
     ],
     [
-      '`setData()`',
+      '`AbstractDataTable::rows()`',
       'You have domain objects and want the `AbstractDataTable` row pipeline',
       'Reads each column from the object, formats values, renders templates, and resolves typed actions',
     ],
@@ -117,12 +117,12 @@ final class UserController extends AbstractController
 ```
 
 This setup is ideal when the page already owns the dataset and no extra HTTP request is needed.
-When the rows are computed in the controller, call `$table->data($rows)` there instead of
+When the rows are computed in the controller, call `$table->rows($rows)` there instead of
 hardcoding them in `configureDataTable()`.
 
-## Domain Objects With `setData()`
+## Domain Objects With `rows()`
 
-Use `setData()` on `AbstractDataTable` when your source rows are objects and you want UX
+Use `rows()` on `AbstractDataTable` when your source rows are objects and you want UX
 DataTables to keep using the normal row-processing pipeline.
 
 ```php
@@ -173,7 +173,7 @@ final class UserController extends AbstractController
     {
         $data = $users->findBy([], ['lastName' => 'ASC'])
 
-        $table->data($data);
+        $table->rows($data);
 
         return $this->render('admin/users/index.html.twig', [
             'table' => $table,
@@ -182,7 +182,7 @@ final class UserController extends AbstractController
 }
 ```
 
-`setData()` is the right choice when you need:
+`rows()` is the right choice when you need:
 
 - columns that read their own property, with `formatValueUsing()` for a computed cell
 - `mapRow()` only when the whole row needs reshaping, such as a DTO or a row with no matching
@@ -258,8 +258,8 @@ This is especially useful with Ajax payloads built from nested JSON objects.
 
 - Returning only one page of rows from your Ajax endpoint while expecting client-side pagination
   across the full dataset.
-- Using `data([...])` with domain objects while expecting typed action callables; use `setData()`
-  on `AbstractDataTable` instead.
+- Using `DataTable::data([...])` with domain objects while expecting typed action callables; use
+  `rows()` on `AbstractDataTable` instead.
 - Forgetting `dataSrc` when your API does not return `data`.
 - Enabling `serverSide(true)` by habit even though the endpoint returns the full dataset once.
 - Loading too many rows eagerly; once the browser cost becomes noticeable, move to

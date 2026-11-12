@@ -50,7 +50,7 @@ final class AbstractDataTableMapRowTest extends TestCase
     {
         $table = new MapRowTestTable($columns, $detailActionUrl, $this->urlGenerator());
 
-        $table->data($data);
+        $table->rows($data);
 
         $this->assertSame($expected, $table->getDataTable()->getOption('data'));
         $this->assertTrue($table->getDataTable()->areTemplateColumnsRendered());

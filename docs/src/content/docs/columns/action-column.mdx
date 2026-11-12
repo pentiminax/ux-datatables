@@ -124,7 +124,7 @@ When `configureActions()` returns at least one action, `AbstractDataTable` autom
     ],
     [
       '`csrfToken(string|callable $csrfTokenId)`',
-      'Define a custom CSRF token id (static string or per-row callable). Alias: `csrfTokenId()`',
+      'Define a custom CSRF token id (static string or per-row callable). `csrfTokenId()` is a deprecated alias, removed in 2.0',
     ],
     [
       "`asAjaxRequest(string|callable|null $csrfTokenId = null, string $method = 'POST')`",
@@ -227,7 +227,7 @@ Action::delete('')
 
 When `linkToUrl()` receives a callable, the argument depends on how the row was produced:
 
-- `AbstractDataTable` + provider or `setData($objects)`: the callable receives the original source object
+- `AbstractDataTable` + provider or `rows($objects)`: the callable receives the original source object
 - manual `DataTable::data([...])` inline rows: the callable receives the row array
 
 ### Custom Link Actions

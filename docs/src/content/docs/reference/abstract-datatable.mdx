@@ -308,7 +308,7 @@ the table declaratively and let the request-scoped boundaries do the rest:
   request, per row, at the output boundary.
 - `customizeQueryBuilder()` and `getRequest()` for anything that depends on the
   incoming request.
-- `setData()` for data resolved by the controller.
+- `rows()` for data resolved by the controller.
 
 ### Data Methods
 
@@ -322,7 +322,7 @@ the table declaratively and let the request-scoped boundaries do the rest:
     ['`getHttpRequest()`', 'Get the current Symfony HTTP request after `handleRequest()`'],
     ['`mapRow(mixed $row)`', 'Map a single row to array'],
     [
-      '`setData(array $data)`',
+      '`rows(array $data)`',
       'Set inline data through the same row-processing pipeline used by providers',
     ],
     ['`createRowMapper()`', 'Final protected helper returning the internal row-processing mapper'],
@@ -398,12 +398,12 @@ final class CustomUsersDataTable extends AbstractDataTable
 }
 ```
 
-`createRowMapper()` and `setData()` both run the built-in row-processing pipeline. That means
+`createRowMapper()` and `rows()` both run the built-in row-processing pipeline. That means
 template columns and action URLs are resolved before the rows are stored for inline rendering.
 
-## Inline Data with `setData()`
+## Inline Data with `rows()`
 
-When you already have rows in memory, `setData()` is the simplest way to populate an
+When you already have rows in memory, `rows()` is the simplest way to populate an
 `AbstractDataTable` without building a custom provider:
 
 ```php
@@ -428,11 +428,15 @@ final class UsersDataTable extends AbstractDataTable
 ```
 
 ```php
-$table->data($users);
+$table->rows($users);
 ```
 
-Use `setData()` when your rows are domain objects or preloaded arrays and you still want
+Use `rows()` when your rows are domain objects or preloaded arrays and you still want
 `mapRow()`, template columns, and typed action callables to work consistently.
+
+`rows()` fills the DataTables.net [`data`](https://datatables.net/reference/option/data) option
+after mapping each row through the pipeline. `DataTable::data()` sets that option directly, with
+rows that are already arrays.
 
 If an Ajax request is handled and the resolved provider is `null`, `getResponse()` returns an
 empty DataTables payload using the current `draw` value:

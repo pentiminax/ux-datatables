@@ -348,7 +348,7 @@ final class DataTablesExtensionTest extends TestCase
      */
     public static function inlineObjectRowCases(): iterable
     {
-        yield 'rows passed to setData()' => ['setData', [
+        yield 'rows passed to rows()' => ['setData', [
             'id'                      => 5,
             'title'                   => 'Dune',
             'status_display'          => '<span class="badge">5-active</span>',
@@ -685,7 +685,7 @@ final class DataTablesExtensionTest extends TestCase
         $table->setDataTableInfrastructure($this->container->get('test.datatables.infrastructure'));
 
         if ('setData' === $mode) {
-            $table->data($rows);
+            $table->rows($rows);
         }
 
         return $table;
