@@ -16,6 +16,10 @@ use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
  * 2.0 no longer allows. Row scope and identifier collection are not query features: they follow
  * {@see IdentifierDataProviderInterface}, whose implementer is trusted to cover both unless it
  * declares otherwise here.
+ *
+ * A feature supports() does not know, such as a case an exhaustive match lacks, counts as
+ * unsupported: the bundle catches the \UnhandledMatchError and refuses. Answer false for features
+ * you do not apply, or let the match throw; never assume an unknown feature is supported.
  */
 interface FeatureAwareDataProviderInterface
 {

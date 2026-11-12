@@ -16,13 +16,27 @@ use PHPUnit\Framework\TestCase;
 final class OptionApplierTest extends TestCase
 {
     #[Test]
-    public function it_applies_an_option_through_its_setter(): void
+    public function it_applies_an_option_through_its_deprecated_setter(): void
     {
-        $target = new ApplierTarget();
+        $target       = new ApplierTarget();
+        $deprecations = [];
 
-        (new OptionApplier())->apply($target, ['title' => 'Name']);
+        set_error_handler(static function (int $level, string $message) use (&$deprecations): bool {
+            $deprecations[] = $message;
+
+            return true;
+        }, \E_USER_DEPRECATED);
+
+        try {
+            (new OptionApplier())->apply($target, ['title' => 'Name', 'label' => 'Status']);
+        } finally {
+            restore_error_handler();
+        }
 
         $this->assertSame('Name', $target->title);
+        $this->assertCount(1, $deprecations);
+        $this->assertStringContainsString('setTitle()', $deprecations[0]);
+        $this->assertStringContainsString('"title()"', $deprecations[0]);
     }
 
     #[Test]

@@ -8,8 +8,8 @@ namespace Pentiminax\UX\DataTables\Attribute;
  * Applies an option map to a built object through whichever fluent method carries it.
  *
  * Every option resolves to its bare fluent method (`field()`) first, then to the legacy `setField()`
- * spelling, so attribute-configured tables raise no deprecation. The alias table holds only what
- * follows neither.
+ * spelling, which raises a deprecation since 1.6 and is removed in 2.0: every bundle class declares
+ * the bare method, so only a custom class reaches it. The alias table holds only what follows neither.
  */
 final class OptionApplier
 {
@@ -38,6 +38,10 @@ final class OptionApplier
 
             if (null === $method) {
                 throw new \InvalidArgumentException(\sprintf('Option "%s" is not supported by "%s".', $option, $target::class));
+            }
+
+            if ($method !== $option) {
+                trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Applying option "%s" through "%s::%s()" is deprecated and removed in 2.0. Add a "%s()" method instead.', $option, $target::class, $method, $option);
             }
 
             $target->{$method}($value);
