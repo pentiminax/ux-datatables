@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\Rendering\UrlColumnDataResolver;
+use Pentiminax\UX\DataTables\Column\VisibleColumns;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\Contracts\RowStageInterface;
@@ -17,15 +18,12 @@ final class RowProcessingPipeline implements RowMapperInterface
     /** @var RowStageInterface[] */
     private array $stages = [];
 
-    /** @var ColumnInterface[]|null */
-    private ?array $visibleColumns = null;
-
-    /** @var list<string>|null */
-    private ?array $deniedPaths = null;
+    private ?VisibleColumns $visibleColumns = null;
 
     /**
-     * @param ColumnInterface[]     $columns
-     * @param \Closure(mixed):array $baseMapper
+     * @param ColumnInterface[]                $columns
+     * @param \Closure(mixed):array            $baseMapper
+     * @param (\Closure():VisibleColumns)|null $visibleColumnsFactory
      */
     public function __construct(
         private readonly \Closure $baseMapper,
@@ -35,6 +33,7 @@ final class RowProcessingPipeline implements RowMapperInterface
         private readonly TemplateColumnRenderer $templateColumnRenderer = new TemplateColumnRenderer(),
         private readonly ActionRowDataResolver $actionRowDataResolver = new ActionRowDataResolver(),
         private readonly ?string $dataTableClass = null,
+        private ?\Closure $visibleColumnsFactory = null,
     ) {
     }
 
@@ -48,9 +47,11 @@ final class RowProcessingPipeline implements RowMapperInterface
     public function map(mixed $row): array
     {
         // Static permissions do not depend on the row. Safe to memoize because a pipeline is built per request.
-        $visibleColumns = $this->visibleColumns ??= $this->columnResolver->filterStaticPermissions($this->columns, $this->dataTableClass);
-        $deniedPaths    = $this->deniedPaths    ??= $this->columnResolver->deniedColumnPaths($this->columns, $this->dataTableClass);
-        $mappedRow      = $this->columnResolver->removePaths(($this->baseMapper)($row), $deniedPaths);
+        $visible = $this->visibleColumns ??= $this->visibleColumnsFactory
+            ? ($this->visibleColumnsFactory)()
+            : $this->columnResolver->visibleColumns($this->columns, $this->dataTableClass);
+        $visibleColumns = $visible->columns;
+        $mappedRow      = $this->columnResolver->removePaths(($this->baseMapper)($row), $visible->deniedPaths);
 
         foreach ($this->stages as $stage) {
             $mappedRow = $stage->process($mappedRow, $row, $visibleColumns);

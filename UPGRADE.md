@@ -29,6 +29,16 @@ with one of these names (`rows()`, `data()`, `name()`, `type()`, `title()`, `for
 `setX()` must override `x()` instead: the bundle now calls `x()`, so the override is no longer
 reached.
 
+### Displayed to-one relations are loaded with the page
+
+A server-side table backed by the Doctrine data provider now fetch-joins the to-one associations
+its displayed columns read through a dot path (`customer.name`), instead of lazy-loading one
+related entity per row. Rows, counts and the JSON payload are identical, and the number of queries
+per draw no longer grows with the page length. An application that relied on the related entity
+being a lazy proxy (an `instanceof Proxy` check, or a `postLoad` listener on the related entity
+firing later) sees it loaded earlier. A join you add in `customizeQueryBuilder()` is reused when it
+is a plain `LEFT JOIN`; a join with a condition, or an `INNER JOIN`, is left alone.
+
 ### Ajax data and export refuse an API Platform table without a collection
 
 A table opted into API Platform (`#[AsDataTable(apiPlatform: true)]` or `apiPlatform()`) whose

@@ -11,6 +11,7 @@ use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\Rendering\UrlColumnDataResolver;
+use Pentiminax\UX\DataTables\Column\VisibleColumns;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
@@ -44,8 +45,9 @@ final class DataTableRuntimeFactory
     }
 
     /**
-     * @param ColumnInterface[]     $columns
-     * @param \Closure(mixed):array $baseMapper
+     * @param ColumnInterface[]                $columns
+     * @param \Closure(mixed):array            $baseMapper
+     * @param (\Closure():VisibleColumns)|null $visibleColumns resolved on the first row, once permissions can be checked
      */
     public function createRowMapper(
         \Closure $baseMapper,
@@ -56,6 +58,7 @@ final class DataTableRuntimeFactory
         ?string $entityClass = null,
         ?\Closure $rowClass = null,
         ?\Closure $recordUrl = null,
+        ?\Closure $visibleColumns = null,
     ): RowMapperInterface {
         $pipeline = (new RowProcessingPipeline(
             $baseMapper,
@@ -65,6 +68,7 @@ final class DataTableRuntimeFactory
             $this->templateColumnRenderer ?? new TemplateColumnRenderer(),
             $this->actionRowDataResolver  ?? new ActionRowDataResolver(),
             $dataTableClass,
+            $visibleColumns,
         ))
             ->add(new NormalizationStage())
             ->add(new ValueFormattingStage())
@@ -109,6 +113,10 @@ final class DataTableRuntimeFactory
         ?ResolvedOptIns $optIns = null,
     ): DataTableRuntime {
         $optIns ??= ResolvedOptIns::resolve($table, $asDataTable);
+        $computed       = null;
+        $visibleColumns = function () use (&$computed, $columns, $table): VisibleColumns {
+            return $computed ??= $this->columnResolver()->visibleColumns($columns, $table->getDataTableClass());
+        };
 
         $rowMapper = $this->createRowMapper(
             baseMapper: $baseMapper,
@@ -119,6 +127,7 @@ final class DataTableRuntimeFactory
             entityClass: $asDataTable?->entityClass,
             rowClass: $table->getRowClassResolver(),
             recordUrl: $table->getRecordUrlResolver(),
+            visibleColumns: $visibleColumns,
         );
 
         // An export writes only the exportable columns, so its mapper is built from them alone:
@@ -142,6 +151,7 @@ final class DataTableRuntimeFactory
                 configureBaseQueryBuilder: $configureBaseQueryBuilder,
                 apiPlatform: $optIns->apiPlatform,
                 columns: array_values($columns),
+                visibleColumns: $visibleColumns,
                 dataTableClass: $table->getDataTableClass(),
                 // A client-side table sums its rows in the browser, and its hydration drops the result.
                 summarize: $table->isServerSide(),
@@ -151,6 +161,7 @@ final class DataTableRuntimeFactory
             searchListOptionsResolver: $this->searchListOptionsResolver ?? new SearchListOptionsResolver(
                 columnResolver: $this->columnResolver(),
             ),
+            visibleColumns: $visibleColumns,
         );
     }
 
@@ -164,10 +175,18 @@ final class DataTableRuntimeFactory
         ?callable $configureBaseQueryBuilder = null,
         bool $apiPlatform = false,
         array $columns = [],
+        ?\Closure $visibleColumns = null,
         ?string $dataTableClass = null,
         bool $summarize = true,
     ): ?DataProviderInterface {
-        return $manualDataProviderFactory() ?? $this->getAutoDataProviderFactory()->create(
+        $manual = $manualDataProviderFactory();
+        if (null !== $manual) {
+            return $manual;
+        }
+
+        $visible = null === $visibleColumns ? null : $visibleColumns();
+
+        return $this->getAutoDataProviderFactory()->create(
             asDataTable: $asDataTable,
             rowMapper: $rowMapper,
             configureQueryBuilder: $configureQueryBuilder,
@@ -175,9 +194,10 @@ final class DataTableRuntimeFactory
             pageProjector: $pageProjector,
             configureBaseQueryBuilder: $configureBaseQueryBuilder,
             apiPlatform: $apiPlatform,
-            columns: array_values($this->columnResolver()->filterStaticPermissions($columns, $dataTableClass)),
+            columns: $visible?->columns ?? array_values($this->columnResolver()->filterStaticPermissions($columns, $dataTableClass)),
             dataTableClass: $dataTableClass,
             summarize: $summarize,
+            visibleColumns: $visible,
         );
     }
 

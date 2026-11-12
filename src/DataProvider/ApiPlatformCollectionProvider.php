@@ -11,6 +11,7 @@ use Pentiminax\UX\DataTables\ApiPlatform\ApiPlatformQueryParameterFactory;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\ApiPlatform\ResolvedCollectionOperation;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
+use Pentiminax\UX\DataTables\Column\VisibleColumns;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
@@ -59,6 +60,7 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
         private readonly int $exportChunkSize = 250,
         /** @var (\Closure(list<mixed>):(list<mixed>|null))|null */
         private readonly ?\Closure $pageProjector = null,
+        private readonly ?VisibleColumns $visibleColumns = null,
     ) {
     }
 
@@ -290,7 +292,7 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
     {
         $intent = $this->intentFactory->create(
             $request,
-            array_values($this->columnResolver->filterStaticPermissions($this->columns, $this->dataTableClass)),
+            $this->visibleColumns?->columns ?? array_values($this->columnResolver->filterStaticPermissions($this->columns, $this->dataTableClass)),
         );
 
         if ([] !== $intent->columnControls && !DataSourceCapability::supports($this, DataSourceFeature::ColumnControl)) {

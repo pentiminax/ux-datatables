@@ -438,7 +438,8 @@ abstract class AbstractDataTable
         return $this->infrastructure()->queryFilterPipeline->apply(
             qb: $qb,
             request: $request,
-            columns: $this->infrastructure()->columnResolver->filterStaticPermissions($this->columns),
+            columns: $this->runtime?->getVisibleColumns()?->columns
+                                    ?? $this->infrastructure()->columnResolver->filterStaticPermissions($this->columns, static::class),
             filters: $this->filters ?? null,
             registry: $this->createSearchStrategyRegistry(),
             predicateBuilder: $this->createSearchPredicateBuilder(),
@@ -529,7 +530,8 @@ abstract class AbstractDataTable
     {
         $this->initialize();
 
-        return $this->infrastructure()->columnResolver->filterStaticPermissions($this->columns, static::class);
+        return $this->runtime?->getVisibleColumns()?->columns
+            ?? $this->infrastructure()->columnResolver->filterStaticPermissions($this->columns, static::class);
     }
 
     final protected function createRowMapper(): RowMapperInterface

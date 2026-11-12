@@ -36,6 +36,7 @@ final class EditFormService
         private readonly MutationFlusher $flusher,
         private readonly RowScopeGuard $scopeGuard,
         ?AuthorizationChecker $permissionChecker = null,
+        private readonly ?ColumnResolver $columnResolver = null,
     ) {
         $this->permissionChecker = $permissionChecker ?? AuthorizationChecker::fallbackFor(self::class);
     }
@@ -158,8 +159,9 @@ final class EditFormService
     {
         $resolvedColumns = $this->templateResolver->resolveColumns($dataTable->dataTableClass);
 
-        $columns = (new ColumnResolver(permissionChecker: $this->permissionChecker))
-            ->filterStaticPermissions($resolvedColumns, $dataTable->dataTableClass);
+        $columns = ($this->columnResolver ?? new ColumnResolver(permissionChecker: $this->permissionChecker))
+            ->visibleColumns($resolvedColumns, $dataTable->dataTableClass)
+            ->columns;
 
         $identifierFields = $context->manager
             ->getClassMetadata($dataTable->requireEntityClass())
