@@ -8,6 +8,7 @@ use Doctrine\DBAL\Logging\Middleware as LoggingMiddleware;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
@@ -16,12 +17,15 @@ use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Summary\Count;
+use Pentiminax\UX\DataTables\Model\Summary\Sum;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountCustomer;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountInvoice;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountTag;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Count\SummaryNote;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Count\SummaryOrder;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\SummaryRegion;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -68,6 +72,8 @@ final class DoctrineDataProviderReadPathBudgetTest extends TestCase
             CountCustomer::class,
             CountTag::class,
             SummaryRegion::class,
+            SummaryOrder::class,
+            SummaryNote::class,
         );
 
         for ($i = 1; $i <= 30; ++$i) {
@@ -183,6 +189,55 @@ final class DoctrineDataProviderReadPathBudgetTest extends TestCase
         $this->assertSame(30, $result->recordsTotal);
         $this->assertSame(1, $result->recordsFiltered);
         $this->assertSame(2, $this->countStatements());
+    }
+
+    #[Test]
+    public function a_to_many_search_with_a_fetch_joined_relation_and_summaries_keeps_rows_counts_and_totals(): void
+    {
+        $north = new SummaryRegion(101, 'North');
+        $south = new SummaryRegion(102, 'South');
+        $first = new SummaryOrder(1, 'paid', 1000, $north);
+        $first->addNote('urgent');
+        $first->addNote('urgent soon');
+        $second = new SummaryOrder(2, 'paid', 2000, $north);
+        $second->addNote('urgent');
+        $second->addNote('plain');
+        $third = new SummaryOrder(3, 'pending', 500, $south);
+        $third->addNote('plain');
+
+        foreach ([$first, $second, $third, new SummaryOrder(4, 'paid', null, $south), new SummaryOrder(5, 'pending', 700)] as $order) {
+            $this->em->persist($order);
+        }
+
+        $this->em->flush();
+        $this->em->clear();
+
+        $urgent = static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->leftJoin('e.notes', 'n')
+            ->andWhere('n.text LIKE :text')
+            ->setParameter('text', 'urgent%')
+            ->leftJoin('e.region', 'region')
+            ->addSelect('region');
+
+        $provider = new DoctrineDataProvider(
+            em: $this->em,
+            entityClass: SummaryOrder::class,
+            rowMapper: new class implements RowMapperInterface {
+                public function map(mixed $row): array
+                {
+                    return ['id' => $row->id, 'region' => $row->region?->name];
+                }
+            },
+            configureQueryBuilder: $urgent,
+            columns: [NumberColumn::new('amount')->field('amount')->summarize(new Sum(), new Count())],
+        );
+
+        $result = $provider->fetchData($this->request(10));
+
+        $this->assertSame([['id' => 1, 'region' => 'North'], ['id' => 2, 'region' => 'North']], array_values(iterator_to_array($result->data)));
+        $this->assertSame(5, $result->recordsTotal);
+        $this->assertSame(2, $result->recordsFiltered);
+        $this->assertSame(['amount' => ['sum' => 3000, 'count' => 2]], $result->summaries);
     }
 
     #[Test]

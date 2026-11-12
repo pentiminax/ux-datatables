@@ -34,6 +34,11 @@ final class HydratedTableCostTest extends TestCase
 {
     use CollectsDeprecations;
 
+    protected function setUp(): void
+    {
+        (new \ReflectionProperty(AbstractDataTable::class, 'implicitClientSideReported'))->setValue(null, []);
+    }
+
     #[Test]
     public function an_entity_table_without_an_explicit_choice_is_deprecated_once_per_class(): void
     {
