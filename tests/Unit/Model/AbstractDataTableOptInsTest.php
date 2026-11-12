@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
+use Pentiminax\UX\DataTables\ApiPlatform\ColumnAutoDetector;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
@@ -72,16 +74,42 @@ final class AbstractDataTableOptInsTest extends TestCase
         $this->assertSame([], $this->matching($notices, '2.0 sends the API Platform flag'));
     }
 
+    /**
+     * @param class-string<OptInFixture> $tableClass
+     * @param array<string, mixed>       $source
+     */
     #[Test]
-    public function it_keeps_an_explicit_fluent_opt_out_on_an_ajax_table_the_attribute_opts_into(): void
+    #[DataProvider('provideFluentOptOutsOverPayloadSources')]
+    public function it_keeps_the_fluent_opt_out_in_the_payload_and_deprecates_what_the_server_still_reads(string $tableClass, array $source, string $notice): void
     {
+        $detector = $this->createStub(ColumnAutoDetector::class);
+        $detector->method('supports')->willReturn(true);
+        $detector->method('detectColumns')->willReturn([TextColumn::new('detected')]);
+
         $payload = [];
-        $notices = $this->deprecationsOf(function () use (&$payload): void {
-            $payload = $this->render(AttributeAjaxFluentOptOutFixture::class, '/plain');
+        $notices = $this->deprecationsOf(function () use (&$payload, $tableClass, $detector): void {
+            $payload = $this->render($tableClass, '/api/books', $detector);
         });
 
         $this->assertFalse($payload['apiPlatform']);
-        $this->assertSame([], $this->matching($notices, 'API Platform'));
+        foreach ($source as $option => $value) {
+            $this->assertSame($value, $payload[$option]);
+        }
+        $this->assertSame([\sprintf($notice, $tableClass)], $this->apiPlatformNotices($notices));
+    }
+
+    public static function provideFluentOptOutsOverPayloadSources(): iterable
+    {
+        $autoDetected = 'Since pentiminax/ux-datatables 1.6: Table "%s" opts into API Platform on #[AsDataTable] and out through apiPlatform(false): the payload already follows apiPlatform(false), but the server still auto-detects its columns from the API Platform resource and reads the rows of exports, bulk and row actions through the API Platform provider. In 2.0 apiPlatform(false) wins there too: the table gets no auto-detected columns, and those reads go through Doctrine. Declare the columns in configureColumns() and remove the attribute flag.';
+        $explicit     = 'Since pentiminax/ux-datatables 1.6: Table "%s" opts into API Platform on #[AsDataTable] and out through apiPlatform(false): the payload already follows apiPlatform(false), but the server still reads the rows of exports, bulk and row actions through the API Platform provider. In 2.0 apiPlatform(false) wins there too, and those reads go through Doctrine. Remove the attribute flag.';
+
+        yield 'data(), auto-detected columns' => [AttributeInlineFluentOptOutAutoDetectedFixture::class, ['data' => [['id' => 1]]], $autoDetected];
+
+        yield 'data(), explicit columns' => [AttributeInlineFluentOptOutFixture::class, ['data' => [['id' => 1]]], $explicit];
+
+        yield 'ajax(), auto-detected columns' => [AttributeAjaxFluentOptOutAutoDetectedFixture::class, [], $autoDetected];
+
+        yield 'ajax(), explicit columns' => [AttributeAjaxFluentOptOutFixture::class, [], $explicit];
     }
 
     #[Test]
@@ -161,7 +189,7 @@ final class AbstractDataTableOptInsTest extends TestCase
             $payload = $this->render(AttributeOptInFluentOptOutFixture::class, '/api/books');
         });
 
-        $this->assertCount(1, $this->matching($notices, 'will win in 2.0'));
+        $this->assertSame([\sprintf('Since pentiminax/ux-datatables 1.6: Table "%s" opts into API Platform on #[AsDataTable] and out through apiPlatform(false): the attribute wins today, the fluent value will win in 2.0. Remove one of them.', AttributeOptInFluentOptOutFixture::class)], $this->apiPlatformNotices($notices));
         $this->assertTrue($payload['apiPlatform'], 'The 1.x precedence is unchanged in 1.6.');
     }
 
@@ -190,9 +218,19 @@ final class AbstractDataTableOptInsTest extends TestCase
     }
 
     /**
+     * @param list<string> $notices
+     *
+     * @return list<string>
+     */
+    private function apiPlatformNotices(array $notices): array
+    {
+        return array_values(array_filter($notices, static fn (string $notice): bool => str_contains($notice, 'API Platform') || str_contains($notice, 'apiPlatform')));
+    }
+
+    /**
      * @return array<string, mixed>
      */
-    private function render(string $tableClass, ?string $collectionUrl): array
+    private function render(string $tableClass, ?string $collectionUrl, ?ColumnAutoDetector $detector = null): array
     {
         $urlResolver = new class($collectionUrl) extends ApiResourceCollectionUrlResolver {
             public function __construct(private readonly ?string $url)
@@ -205,7 +243,7 @@ final class AbstractDataTableOptInsTest extends TestCase
             }
         };
 
-        $options = (new $tableClass($urlResolver))->getDataTable()->getOptions();
+        $options = (new $tableClass($urlResolver, $detector))->getDataTable()->getOptions();
         unset($options['columns']);
 
         return $options;
@@ -214,9 +252,10 @@ final class AbstractDataTableOptInsTest extends TestCase
 
 abstract class OptInFixture extends AbstractDataTable
 {
-    public function __construct(?ApiResourceCollectionUrlResolver $urlResolver)
+    public function __construct(?ApiResourceCollectionUrlResolver $urlResolver, ?ColumnAutoDetector $detector = null)
     {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            columnResolver: new ColumnResolver(columnAutoDetector: $detector),
             renderingPreparer: new RenderingPreparer(urlResolver: $urlResolver),
         ));
     }
@@ -292,5 +331,42 @@ final class AttributeOptInFluentOptOutFixture extends OptInFixture
     public function configureDataTable(DataTable $table): DataTable
     {
         return $table->apiPlatform(false);
+    }
+}
+
+#[AsDataTable(entityClass: \stdClass::class, apiPlatform: true)]
+final class AttributeInlineFluentOptOutFixture extends OptInFixture
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->data([['id' => 1]])->apiPlatform(false);
+    }
+}
+
+#[AsDataTable(entityClass: \stdClass::class, apiPlatform: true)]
+final class AttributeInlineFluentOptOutAutoDetectedFixture extends OptInFixture
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->data([['id' => 1]])->apiPlatform(false);
+    }
+
+    public function configureColumns(): iterable
+    {
+        return AbstractDataTable::configureColumns();
+    }
+}
+
+#[AsDataTable(entityClass: \stdClass::class, apiPlatform: true)]
+final class AttributeAjaxFluentOptOutAutoDetectedFixture extends OptInFixture
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->ajax('/plain')->apiPlatform(false);
+    }
+
+    public function configureColumns(): iterable
+    {
+        return AbstractDataTable::configureColumns();
     }
 }

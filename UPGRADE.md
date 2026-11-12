@@ -158,10 +158,18 @@ $table->editModalTemplate('modal/edit.html.twig');
   its Mercure updates are then auto-resolved, which an embedded table does not get. The bundle also
   logs a warning past `data_tables.hydration_row_threshold` embedded rows (default `5000`, `0`
   disables it).
-- `data()` combined with `apiPlatform()`, or with `#[AsDataTable(apiPlatform: true)]`, logs a
-  deprecation, and 2.0 throws a `LogicException`: the two read rows from different places. Keep one.
+- `data()` combined with `apiPlatform()`, or with `#[AsDataTable(apiPlatform: true)]` unless
+  `apiPlatform(false)` is also set, logs a deprecation, and 2.0 throws a `LogicException`: the two read
+  rows from different places. Keep one.
 - `#[AsDataTable(apiPlatform: true)]` combined with `apiPlatform(false)` still opts in, and logs a
-  deprecation: 2.0 lets the fluent value win. Remove one of the two. Combined with `ajax()`, the fluent `false` already wins and raises no notice.
+  deprecation: 2.0 lets the fluent value win. Remove one of the two. Combined with `data()` or `ajax()`,
+  the payload already follows the fluent `false`, but the server still follows the attribute: it
+  auto-detects the columns from the API Platform resource when `configureColumns()` declares none, and
+  reads the rows of exports, bulk actions and row actions through the API Platform provider. 2.0 lets
+  `apiPlatform(false)` win there too: auto-detected columns disappear and those reads go through
+  Doctrine. The table cannot tell whether an export or an action will ever read rows, so the
+  combination always logs one deprecation, which names the auto-detected columns when the table relies
+  on them. Declare the columns in `configureColumns()` and remove the attribute flag.
 - `#[AsDataTable(apiPlatform: true)]` combined with `ajax()` and no `apiPlatform()` call renders plain
   DataTables JSON today and logs a deprecation: 2.0 sends the API Platform flag for it, so the browser
   reads the response through the Hydra adapter. Add `->apiPlatform(false)` to keep plain DataTables

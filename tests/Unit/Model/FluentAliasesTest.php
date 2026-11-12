@@ -14,6 +14,7 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 use Pentiminax\UX\DataTables\Enum\Language;
+use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\BulkAction;
@@ -114,6 +115,7 @@ final class FluentAliasesTest extends TestCase
         yield 'DataTableOptions::setSearch' => [static fn () => new DataTableOptions(), 'setSearch', 'search', ['foo']];
         yield 'DataTable::setAttributes' => [static fn () => new DataTable('t'), 'setAttributes', 'attributes', [['class' => 'x']]];
         yield 'DataTable::setPermission' => [static fn () => new DataTable('t'), 'setPermission', 'permission', ['ROLE_ADMIN']];
+        yield 'DataTable::setHighlightConfig' => [static fn () => new DataTable('t'), 'setHighlightConfig', 'highlightConfig', [new HighlightConfig()]];
     }
 
     #[Test]
