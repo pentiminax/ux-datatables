@@ -1,5 +1,7 @@
 import { STYLE_FRAMEWORKS, type StyleFramework } from '../types/styleFramework.js'
 
+let warnedDeprecatedFramework = false
+
 /**
  * Detects which DataTables styling framework is loaded by inspecting
  * the page's stylesheets. Returns the framework key (e.g. 'bs5', 'dt').
@@ -15,6 +17,8 @@ export function detectStyleFramework(): StyleFramework {
         )
 
         if (matched) {
+            warnOnceAboutDeprecatedFramework(key)
+
             return key
         }
     }
@@ -24,4 +28,15 @@ export function detectStyleFramework(): StyleFramework {
     )
 
     return 'dt'
+}
+
+function warnOnceAboutDeprecatedFramework(key: StyleFramework): void {
+    if ((key !== 'bs' && key !== 'bs4') || warnedDeprecatedFramework) {
+        return
+    }
+
+    warnedDeprecatedFramework = true
+    console.warn(
+        'Bootstrap 3 and 4 styling is deprecated and removed in 2.0. Load the Bootstrap 5 stylesheet ("bs5") or the DataTables stylesheet ("dt") instead.'
+    )
 }

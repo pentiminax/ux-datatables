@@ -7,7 +7,6 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\DependencyInjection;
 use Pentiminax\UX\DataTables\PentiminaxDataTablesBundle;
 use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\Definition\Processor;
@@ -36,24 +35,27 @@ final class PackageLoadingConfigurationTest extends TestCase
     }
 
     #[Test]
-    #[DataProvider('explicitPackageLoadings')]
-    public function it_accepts_an_explicit_package_loading_without_deprecation(string $packageLoading, string $controllerName): void
+    public function it_deprecates_an_explicit_builtin_package_loading_and_keeps_the_builtin_loaders(): void
     {
         $deprecations = [];
-        $builder      = $this->collect(static fn (): ContainerBuilder => new ContainerBuilder(), $deprecations, ['package_loading' => $packageLoading]);
+        $builder      = $this->collect(static fn (): ContainerBuilder => new ContainerBuilder(), $deprecations, ['package_loading' => 'builtin']);
 
-        $this->assertSame([], $deprecations);
-        $this->assertSame($packageLoading, $builder->getParameter('datatables.package_loading'));
-        $this->assertSame($controllerName, $builder->getParameter('datatables.controller_name'));
+        $this->assertCount(1, $deprecations);
+        $this->assertStringContainsString('"builtin" is deprecated', $deprecations[0]);
+        $this->assertStringContainsString('ux-datatables:install', $deprecations[0]);
+        $this->assertSame('builtin', $builder->getParameter('datatables.package_loading'));
+        $this->assertSame(DataTablesExtension::CONTROLLER_NAME, $builder->getParameter('datatables.controller_name'));
     }
 
-    /**
-     * @return iterable<string, array{string, string}>
-     */
-    public static function explicitPackageLoadings(): iterable
+    #[Test]
+    public function it_accepts_registered_package_loading_without_deprecation(): void
     {
-        yield 'builtin' => ['builtin', DataTablesExtension::CONTROLLER_NAME];
-        yield 'registered' => ['registered', DataTablesExtension::CORE_CONTROLLER_NAME];
+        $deprecations = [];
+        $builder      = $this->collect(static fn (): ContainerBuilder => new ContainerBuilder(), $deprecations, ['package_loading' => 'registered']);
+
+        $this->assertSame([], $deprecations);
+        $this->assertSame('registered', $builder->getParameter('datatables.package_loading'));
+        $this->assertSame(DataTablesExtension::CORE_CONTROLLER_NAME, $builder->getParameter('datatables.controller_name'));
     }
 
     /**

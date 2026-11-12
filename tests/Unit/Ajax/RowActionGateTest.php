@@ -176,8 +176,10 @@ final class RowActionGateTest extends TestCase
     }
 
     #[Test]
-    public function it_authorizes_a_toggle_on_a_table_without_an_entity_class(): void
+    public function it_authorizes_a_toggle_on_a_table_without_an_entity_class_and_deprecates_it(): void
     {
+        $this->expectUserDeprecationMessageMatches('/has no entity class, skips the row scope check: 2\.0 refuses the request/');
+
         $authorized = $this->authorize(RowActionRequest::toggle($this->token(GateManualDataTable::class), 'vip', 30));
 
         $this->assertNull($authorized->table->entityClass);

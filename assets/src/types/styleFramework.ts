@@ -1,4 +1,10 @@
-export type StyleFramework = 'dt' | 'bs' | 'bs4' | 'bs5'
+export type StyleFramework =
+    | 'dt'
+    /** @deprecated since 1.5, use 'bs5' or 'dt' instead. Removed in 2.0. */
+    | 'bs'
+    /** @deprecated since 1.5, use 'bs5' or 'dt' instead. Removed in 2.0. */
+    | 'bs4'
+    | 'bs5'
 
 export interface StyleFrameworkConfig {
     key: StyleFramework
