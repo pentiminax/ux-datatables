@@ -16,6 +16,9 @@
                 },
                 "DELETE": {
                     "id": "1"
+                },
+                "archive": {
+                    "url": "/books/archive"
                 }
             }
         }
@@ -44,6 +47,9 @@
             "search",
             "bulkActions"
         ]
+    },
+    "language": {
+        "url": "https://cdn.datatables.net/plug-ins/3.0.1/i18n/fr-FR.json"
     },
     "columns": [
         {
@@ -151,6 +157,15 @@
                     "className": "btn btn-danger",
                     "idField": "id",
                     "htmlAttributes": []
+                },
+                {
+                    "type": "CUSTOM",
+                    "name": "archive",
+                    "label": "Archive",
+                    "className": "",
+                    "idField": "id",
+                    "htmlAttributes": [],
+                    "url": "/books/archive"
                 }
             ]
         }
@@ -172,7 +187,7 @@
         ],
         "selectCurrentPageOnly": false,
         "idField": "id",
-        "url": null,
+        "url": "/datatables/ajax/bulk",
         "labels": {
             "trigger": "Bulk actions",
             "selected": "{count} records selected",
@@ -188,6 +203,13 @@
         "position": "topEnd"
     },
     "rowId": "DT_RowId",
+    "rowActionUrls": {
+        "delete": "/datatables/ajax/delete",
+        "toggle": "/datatables/ajax/edit",
+        "detail": "/datatables/ajax/detail",
+        "editForm": "/datatables/ajax/edit-form/view",
+        "editFormSubmit": "/datatables/ajax/edit-form"
+    },
     "actionLabels": {
         "failed": "The action could not be completed.",
         "forbidden": "You are not allowed to do this.",
