@@ -103,11 +103,11 @@ final class PentiminaxDataTablesBundleTest extends TestCase
         /** @var AbstractDataTable $table */
         $table = $this->kernel->getContainer()->get('test.datatables.server_side_template');
 
-        $configured = $table->getDataTable();
+        $configured = $table->prepareDataTableForRendering();
 
         $this->container->get('services_resetter')->reset();
 
-        self::assertNotSame($configured, $table->getDataTable());
+        self::assertNotSame($configured, $table->prepareDataTableForRendering());
     }
 
     #[Test]
@@ -124,6 +124,12 @@ final class PentiminaxDataTablesBundleTest extends TestCase
     public function it_defines_the_maximum_page_length_parameter(): void
     {
         self::assertSame(1000, $this->kernel->getContainer()->getParameter('datatables.max_page_length'));
+    }
+
+    #[Test]
+    public function it_defines_the_hydration_row_threshold_parameter(): void
+    {
+        self::assertSame(5000, $this->kernel->getContainer()->getParameter('datatables.hydration_row_threshold'));
     }
 
     #[Test]

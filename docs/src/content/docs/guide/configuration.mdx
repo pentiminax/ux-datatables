@@ -12,6 +12,7 @@ Configure bundle-wide defaults in `config/packages/data_tables.yaml`.
 data_tables:
   style_framework: dt
   max_page_length: 1000
+  hydration_row_threshold: 5000
   options:
     language: en-GB
     layout:
@@ -85,6 +86,23 @@ $table->pageLength(2000)->lengthMenu([500, 2000]);
 ```
 
 Exports are not affected: they read every filtered row by design.
+
+## hydration_row_threshold
+
+Row count above which a table that embeds its rows in the page is reported. An entity table that
+does not call `serverSide()` reads every matching row at render time and embeds it in the HTML (see
+[Client-side Processing](/guide/client-side-processing/)). Past the threshold, the bundle logs a
+warning through the `logger` service naming the table class, the row count and the fix, and the
+[profiler panel](/reference/profiler/) highlights the table.
+
+```yaml
+data_tables:
+  hydration_row_threshold: 5000
+```
+
+The default is `5000`. Set `0` to disable the warning and the highlight. The threshold never
+truncates anything: all rows are still embedded. The warning holds class names and counts only,
+never row content.
 
 ## Options
 

@@ -42,6 +42,17 @@ final class EditModalTemplateResolverTest extends TestCase
             static fn (): FluentEditModalDataTable => new FluentEditModalDataTable(),
         ];
 
+        yield 'blank fluent template falls back to the attribute, rendered or not' => [
+            'attribute.html.twig',
+            BlankFluentEditModalDataTable::class,
+            static function (): BlankFluentEditModalDataTable {
+                $table = new BlankFluentEditModalDataTable();
+                $table->getDataTable();
+
+                return $table;
+            },
+        ];
+
         yield 'attribute template without a fluent override' => [
             'attribute.html.twig',
             AttributeEditModalDataTable::class,
@@ -126,6 +137,20 @@ final class FluentEditModalDataTable extends AbstractDataTable
     public function configureDataTable(DataTable $table): DataTable
     {
         return $table->editModalTemplate('fluent.html.twig');
+    }
+
+    public function configureColumns(): iterable
+    {
+        return [];
+    }
+}
+
+#[AsDataTable(entityClass: \stdClass::class, editModalTemplate: 'attribute.html.twig')]
+final class BlankFluentEditModalDataTable extends AbstractDataTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->editModalTemplate('')->data([]);
     }
 
     public function configureColumns(): iterable

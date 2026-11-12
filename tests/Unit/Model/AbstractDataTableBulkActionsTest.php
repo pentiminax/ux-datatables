@@ -28,7 +28,7 @@ final class AbstractDataTableBulkActionsTest extends TestCase
     #[Test]
     public function it_enables_a_multi_selection_with_checkboxes_when_bulk_actions_exist(): void
     {
-        $select = $this->table()->getDataTable()->getExtensionsCollection()->getSelectExtension();
+        $select = $this->table()->prepareDataTableForRendering()->getExtensionsCollection()->getSelectExtension();
 
         $this->assertNotNull($select);
         $this->assertSame(SelectStyle::MULTI, $select->getStyle());
@@ -44,7 +44,7 @@ final class AbstractDataTableBulkActionsTest extends TestCase
 
         $table = $this->table(static fn (DataTable $t): DataTable => $t->extensions([$configured]));
 
-        $this->assertSame($configured, $table->getDataTable()->getExtensionsCollection()->getSelectExtension());
+        $this->assertSame($configured, $table->prepareDataTableForRendering()->getExtensionsCollection()->getSelectExtension());
     }
 
     #[Test]
@@ -53,7 +53,7 @@ final class AbstractDataTableBulkActionsTest extends TestCase
         $table = $this->table();
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(extensions: ['select' => ['style' => 'single']]));
 
-        $dataTable = $table->getDataTable();
+        $dataTable = $table->prepareDataTableForRendering();
         $payload   = $dataTable->getExtensionsCollection()->getSelectExtension()?->jsonSerialize();
 
         $this->assertSame('multi', $payload['style'] ?? null);
@@ -68,7 +68,7 @@ final class AbstractDataTableBulkActionsTest extends TestCase
         $table = $this->table();
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(extensions: ['select' => ['style' => 'multi']]));
 
-        $payload = $table->getDataTable()->getExtensionsCollection()->getSelectExtension()?->jsonSerialize();
+        $payload = $table->prepareDataTableForRendering()->getExtensionsCollection()->getSelectExtension()?->jsonSerialize();
 
         $this->assertTrue($payload['withCheckbox'] ?? null);
     }
@@ -85,7 +85,7 @@ final class AbstractDataTableBulkActionsTest extends TestCase
 
         $this->expectException(\LogicException::class);
 
-        $table->getDataTable();
+        $table->prepareDataTableForRendering();
     }
 
     #[Test]
@@ -98,7 +98,7 @@ final class AbstractDataTableBulkActionsTest extends TestCase
         });
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(extensions: ['select' => ['style' => 'multi']]));
 
-        $dataTable = $table->getDataTable();
+        $dataTable = $table->prepareDataTableForRendering();
         $payload   = $dataTable->getExtensionsCollection()->getSelectExtension()?->jsonSerialize();
 
         $this->assertTrue($payload['withCheckbox'] ?? null);
@@ -111,7 +111,7 @@ final class AbstractDataTableBulkActionsTest extends TestCase
     {
         $table = $this->table(static fn (DataTable $t): DataTable => $t->extensions([new SelectExtension(style: SelectStyle::MULTI)]));
 
-        $this->assertFalse($table->getDataTable()->isSelectionForBulkActions());
+        $this->assertFalse($table->prepareDataTableForRendering()->isSelectionForBulkActions());
     }
 
     #[Test]
@@ -120,7 +120,7 @@ final class AbstractDataTableBulkActionsTest extends TestCase
         $this->expectException(\LogicException::class);
 
         $this->table(static fn (DataTable $t): DataTable => $t->extensions([new SelectExtension(style: SelectStyle::SINGLE)]))
-            ->getDataTable();
+            ->prepareDataTableForRendering();
     }
 
     #[Test]
@@ -128,14 +128,14 @@ final class AbstractDataTableBulkActionsTest extends TestCase
     {
         $table = new ConfigurableDataTable([TextColumn::new('id')]);
 
-        $this->assertNull($table->getDataTable()->getExtensionsCollection()->getSelectExtension());
-        $this->assertArrayNotHasKey('bulkActions', $table->getDataTable()->getOptions());
+        $this->assertNull($table->prepareDataTableForRendering()->getExtensionsCollection()->getSelectExtension());
+        $this->assertArrayNotHasKey('bulkActions', $table->prepareDataTableForRendering()->getOptions());
     }
 
     #[Test]
     public function it_places_the_bulk_bar_marker_and_forces_a_row_id_in_the_payload(): void
     {
-        $options = $this->table()->getDataTable()->getOptions();
+        $options = $this->table()->prepareDataTableForRendering()->getOptions();
 
         $this->assertSame(HighlightConfig::ROW_ID_KEY, $options['rowId']);
         $this->assertSame(['approve'], array_column($options['bulkActions']['actions'], 'name'));
@@ -153,7 +153,7 @@ final class AbstractDataTableBulkActionsTest extends TestCase
             bulkActions: static fn (BulkActions $actions): BulkActions => $actions
                 ->add(BulkAction::new('approve'))
                 ->idField('sku'),
-        ))->getDataTable()->getOptions();
+        ))->prepareDataTableForRendering()->getOptions();
 
         $this->assertSame('sku', $options['bulkActions']['idField']);
     }
@@ -161,7 +161,7 @@ final class AbstractDataTableBulkActionsTest extends TestCase
     #[Test]
     public function it_sends_the_resolved_row_id_field_on_the_bulk_actions_payload(): void
     {
-        $table = $this->table()->getDataTable()->setBulkRowIdField('sku');
+        $table = $this->table()->prepareDataTableForRendering()->setBulkRowIdField('sku');
 
         $this->assertSame('sku', $table->getOptions()['bulkActions']['idField']);
     }
@@ -172,7 +172,7 @@ final class AbstractDataTableBulkActionsTest extends TestCase
         $table = $this->table();
         $table->rows([['id' => 7, 'title' => 'Heat']]);
 
-        $rows = $table->getDataTable()->getOption('data');
+        $rows = $table->prepareDataTableForRendering()->getOption('data');
 
         $this->assertSame('7', $rows[0][HighlightConfig::ROW_ID_KEY]);
     }

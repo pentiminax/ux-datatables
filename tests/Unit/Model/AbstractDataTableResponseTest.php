@@ -82,14 +82,14 @@ final class AbstractDataTableResponseTest extends TestCase
         $table = new RetryPreparationTestTable();
 
         try {
-            $table->getDataTable();
+            $table->prepareDataTableForRendering();
             $this->fail('Expected first rendering preparation to fail.');
         } catch (\LogicException $exception) {
             $this->assertSame('First hydration failed.', $exception->getMessage());
         }
 
-        $table->getDataTable();
-        $table->getDataTable();
+        $table->prepareDataTableForRendering();
+        $table->prepareDataTableForRendering();
 
         $this->assertSame(2, $table->providerCalls);
     }
@@ -176,7 +176,7 @@ final class AbstractDataTableResponseTest extends TestCase
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('EntityManagerInterface is required to auto-configure a DoctrineDataProvider');
 
-        $table->getDataTable();
+        $table->prepareDataTableForRendering();
     }
 }
 
@@ -265,6 +265,11 @@ final class RetryPreparationTestTable extends AbstractDataTable
 #[AsDataTable(entityClass: \stdClass::class)]
 final class MissingEntityManagerHydrationTestTable extends AbstractDataTable
 {
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->serverSide(false);
+    }
+
     public function configureColumns(): iterable
     {
         yield TextColumn::new('id');

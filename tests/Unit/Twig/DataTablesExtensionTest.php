@@ -24,6 +24,7 @@ use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoAjaxServerSideDataTable;
 use Pentiminax\UX\DataTables\Tests\Support\BootsTwigKernel;
+use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -45,6 +46,7 @@ use Symfony\UX\StimulusBundle\Helper\StimulusHelper;
 final class DataTablesExtensionTest extends TestCase
 {
     use BootsTwigKernel;
+    use CollectsDeprecations;
 
     #[Test]
     public function it_renders_the_legacy_controller_by_default(): void
@@ -255,12 +257,32 @@ final class DataTablesExtensionTest extends TestCase
     }
 
     #[Test]
-    public function it_uses_get_data_table_for_abstract_datatable(): void
+    public function it_prepares_the_table_through_the_internal_path(): void
     {
         $table = new class extends AbstractDataTable {
-            public bool $getDataTableCalled        = false;
-            public bool $prepareForRenderingCalled = false;
+            public bool $prepareCalled = false;
 
+            public function configureColumns(): iterable
+            {
+                yield TextColumn::new('firstColumn');
+            }
+
+            public function prepareDataTableForRendering(): DataTable
+            {
+                $this->prepareCalled = true;
+
+                return parent::prepareDataTableForRendering();
+            }
+        };
+
+        $this->container->get('test.datatables.twig_extension')->renderDataTable($table);
+        $this->assertTrue($table->prepareCalled);
+    }
+
+    #[Test]
+    public function it_calls_a_get_data_table_override_and_raises_its_deprecation(): void
+    {
+        $table = new class extends AbstractDataTable {
             public function configureColumns(): iterable
             {
                 yield TextColumn::new('firstColumn');
@@ -268,23 +290,43 @@ final class DataTablesExtensionTest extends TestCase
 
             public function getDataTable(): DataTable
             {
-                $this->getDataTableCalled = true;
+                return parent::getDataTable()->pageLength(99);
+            }
+        };
 
-                return parent::getDataTable();
+        $html    = '';
+        $notices = $this->deprecationsOf(function () use ($table, &$html): void {
+            $html = $this->container->get('test.datatables.twig_extension')->renderDataTable($table);
+        });
+
+        $this->assertStringContainsString('"pageLength":99', html_entity_decode($html));
+        $this->assertNotEmpty(array_filter($notices, static fn (string $n): bool => str_contains($n, 'getDataTable()')));
+    }
+
+    #[Test]
+    public function it_calls_a_prepare_for_rendering_override_and_raises_its_deprecation(): void
+    {
+        $table = new class extends AbstractDataTable {
+            public bool $overrideCalled = false;
+
+            public function configureColumns(): iterable
+            {
+                yield TextColumn::new('firstColumn');
             }
 
             public function prepareForRendering(): void
             {
-                $this->prepareForRenderingCalled = true;
-
+                $this->overrideCalled = true;
                 parent::prepareForRendering();
             }
         };
 
-        $this->container->get('test.datatables.twig_extension')->renderDataTable($table);
+        $notices = $this->deprecationsOf(function () use ($table): void {
+            $this->container->get('test.datatables.twig_extension')->renderDataTable($table);
+        });
 
-        $this->assertTrue($table->getDataTableCalled);
-        $this->assertTrue($table->prepareForRenderingCalled);
+        $this->assertTrue($table->overrideCalled);
+        $this->assertNotEmpty(array_filter($notices, static fn (string $n): bool => str_contains($n, 'prepareForRendering()')));
     }
 
     /**
@@ -300,13 +342,13 @@ final class DataTablesExtensionTest extends TestCase
 
         if (null === $expectedRow) {
             $this->assertArrayNotHasKey('data', $actual);
-            $this->assertFalse($table->getDataTable()->areTemplateColumnsRendered());
+            $this->assertFalse($table->prepareDataTableForRendering()->areTemplateColumnsRendered());
 
             return;
         }
 
         $this->assertSame($expectedRow, $this->trimRow($actual['data'][0]));
-        $this->assertTrue($table->getDataTable()->areTemplateColumnsRendered());
+        $this->assertTrue($table->prepareDataTableForRendering()->areTemplateColumnsRendered());
     }
 
     /**
@@ -340,7 +382,7 @@ final class DataTablesExtensionTest extends TestCase
         $actual = $this->renderPayload($table);
 
         $this->assertSame($expectedRow, $this->trimRow($actual['data'][0]));
-        $this->assertTrue($table->getDataTable()->areTemplateColumnsRendered());
+        $this->assertTrue($table->prepareDataTableForRendering()->areTemplateColumnsRendered());
     }
 
     /**
@@ -368,7 +410,7 @@ final class DataTablesExtensionTest extends TestCase
     {
         $table = $this->createInlineObjectTable('setData');
 
-        $this->assertTrue($table->getDataTable()->areTemplateColumnsRendered());
+        $this->assertTrue($table->prepareDataTableForRendering()->areTemplateColumnsRendered());
     }
 
     #[Test]

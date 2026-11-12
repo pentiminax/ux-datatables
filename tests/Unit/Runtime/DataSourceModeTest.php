@@ -85,6 +85,13 @@ final class DataSourceModeTest extends TestCase
 
         yield 'fluent opt-in' => [$fluentOptIn, $attribute, '/api/books', DataSourceMode::ApiPlatform];
 
+        yield 'fluent opt-out keeps the attribute opt-in in 1.x' => [
+            static fn (DataTable $table): DataTable => $table->apiPlatform(false),
+            $optedIn,
+            '/api/books',
+            DataSourceMode::ApiPlatform,
+        ];
+
         yield 'fluent opt-in without an entity' => [$fluentOptIn, null, '/api/books', DataSourceMode::ApiPlatformUnavailable];
 
         yield 'opt-in, no collection operation' => [$plain, $optedIn, null, DataSourceMode::ApiPlatformUnavailable];

@@ -33,7 +33,7 @@ final class AbstractDataTableApiPlatformUnavailableTest extends TestCase
     ): void {
         $table = new $tableClass($urlResolver);
 
-        $dataTable = $table->getDataTable();
+        $dataTable = $table->prepareDataTableForRendering();
 
         $this->assertNull($dataTable->getOption('ajax'));
         $this->assertNull($dataTable->getOption('data'));

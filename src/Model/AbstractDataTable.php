@@ -26,6 +26,7 @@ use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
+use Pentiminax\UX\DataTables\Runtime\ResolvedOptIns;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -69,6 +70,8 @@ abstract class AbstractDataTable
 
     private ?AsDataTable $asDataTable = null;
 
+    private ?ResolvedOptIns $optIns = null;
+
     private ?DataTableInfrastructure $infrastructure = null;
 
     private ?DataTableRuntime $runtime = null;
@@ -76,6 +79,11 @@ abstract class AbstractDataTable
     private bool $initialized = false;
 
     private bool $renderingPrepared = false;
+
+    private ?DataSourceMode $renderedDataSourceMode = null;
+
+    /** @var array<class-string, true> */
+    private static array $implicitClientSideReported = [];
 
     /**
      * @internal
@@ -98,6 +106,7 @@ abstract class AbstractDataTable
 
         $this->defaultRowMapper  = null;
         $this->asDataTable       = null;
+        $this->optIns            = null;
         $this->runtime           = null;
         $this->initialized       = false;
         $this->renderingPrepared = false;
@@ -118,6 +127,12 @@ abstract class AbstractDataTable
         $this->table = $this->configureDataTable($table);
 
         $this->table->setDataTableClass(static::class);
+
+        $this->optIns = ResolvedOptIns::resolve($this->table, $this->asDataTable);
+
+        if ($this->optIns->apiPlatformOptOutOverridden && null === $this->table->getOption('ajax')) {
+            trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Table "%s" opts into API Platform on #[AsDataTable] and out through apiPlatform(false): the attribute wins today, the fluent value will win in 2.0. Remove one of them.', static::class);
+        }
 
         $this->columns = iterator_to_array($this->configureColumns());
 
@@ -187,20 +202,38 @@ abstract class AbstractDataTable
         return $response;
     }
 
+    /**
+     * @deprecated since 1.6, use getConfiguredDataTable() to read the table or render_datatable() to render it. Removed in 2.0.
+     */
     public function prepareForRendering(): void
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "getConfiguredDataTable()" to read the table or "render_datatable()" to render it. Removed in 2.0.', __METHOD__);
+
+        $this->prepareDataTableForRendering();
+    }
+
+    /**
+     * Prepares the table for rendering, once, and returns it.
+     *
+     * @internal
+     */
+    public function prepareDataTableForRendering(): DataTable
     {
         $this->initialize();
 
         if ($this->renderingPrepared) {
-            return;
+            return $this->table;
         }
+
+        $this->optIns = ResolvedOptIns::resolve($this->table, $this->asDataTable);
 
         $renderingPreparer = $this->infrastructure()->renderingPreparer;
 
-        $renderingPreparer->prepareBeforeDataHydration($this->table, $this->asDataTable);
+        $renderingPreparer->prepareBeforeDataHydration($this->table, $this->asDataTable, $this->optIns);
+        $this->renderedDataSourceMode = $this->dataSourceMode();
         $this->prepareExplicitInlineData();
         $this->hydrateClientSideData();
-        $renderingPreparer->prepareAfterDataHydration($this->table, $this->asDataTable);
+        $renderingPreparer->prepareAfterDataHydration($this->table, $this->asDataTable, $this->optIns);
 
         if ($this->table->hasBulkActions()) {
             $this->table->setBulkRowIdField($this->infrastructure()->runtimeFactory->resolveRowIdField(
@@ -211,13 +244,24 @@ abstract class AbstractDataTable
         }
 
         $this->renderingPrepared = true;
-    }
-
-    public function getDataTable(): DataTable
-    {
-        $this->prepareForRendering();
 
         return $this->table;
+    }
+
+    /**
+     * @deprecated since 1.6, use getConfiguredDataTable() to read the table or render_datatable() to render it. Removed in 2.0.
+     */
+    public function getDataTable(): DataTable
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "getConfiguredDataTable()" to read the table or "render_datatable()" to render it. Removed in 2.0.', __METHOD__);
+
+        if (self::class !== (new \ReflectionMethod($this, 'prepareForRendering'))->getDeclaringClass()->getName()) {
+            $this->prepareForRendering();
+
+            return $this->getConfiguredDataTable();
+        }
+
+        return $this->prepareDataTableForRendering();
     }
 
     public function getConfiguredDataTable(): DataTable
@@ -241,7 +285,7 @@ abstract class AbstractDataTable
             return null;
         }
 
-        return $this->infrastructure()->renderingPreparer->resolveMercureConfig($this->table, $this->asDataTable);
+        return $this->infrastructure()->renderingPreparer->resolveMercureConfig($this->table, $this->asDataTable, $this->optIns);
     }
 
     final public function getEntityClass(): ?string
@@ -263,14 +307,23 @@ abstract class AbstractDataTable
             }
         }
 
-        // The fluent `->apiPlatform()` opt-in counts here too, now that configureDataTable() has run.
-        $apiPlatform = isset($this->table) && true === $this->table->getOption('apiPlatform');
+        $asDataTable = $this->asDataTable ?? $this->resolveAsDataTable();
 
         return $this->infrastructure()->columnResolver->resolveColumns(
-            $this->asDataTable ?? $this->resolveAsDataTable(),
-            $apiPlatform,
-            static::class,
+            $asDataTable,
+            dataTableClass: static::class,
+            optIns: $this->optIns ?? (isset($this->table) ? ResolvedOptIns::resolve($this->table, $asDataTable) : null),
         );
+    }
+
+    /**
+     * @internal
+     */
+    public function getResolvedOptIns(): ResolvedOptIns
+    {
+        $this->initialize();
+
+        return $this->optIns;
     }
 
     public function configureDataTable(DataTable $table): DataTable
@@ -336,13 +389,54 @@ abstract class AbstractDataTable
         return $this->runtime()->fetchData($request);
     }
 
+    /**
+     * The mode the table resolved as before hydration turned a ClientHydrated table into an Inline one.
+     *
+     * @internal
+     */
+    public function getRenderedDataSourceMode(): ?DataSourceMode
+    {
+        return $this->renderedDataSourceMode;
+    }
+
     private function hydrateClientSideData(): void
     {
         if (DataSourceMode::ClientHydrated !== $this->dataSourceMode()) {
             return;
         }
 
+        $this->deprecateImplicitClientSide();
+
         $this->fetchData($this->createClientSideDataRequest());
+
+        $this->warnWhenHydrationIsLarge();
+    }
+
+    private function deprecateImplicitClientSide(): void
+    {
+        if (null === $this->asDataTable?->entityClass || null !== $this->table->getOption('serverSide') || isset(self::$implicitClientSideReported[static::class])) {
+            return;
+        }
+
+        self::$implicitClientSideReported[static::class] = true;
+
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The entity table "%s" reads and embeds every row because it never called serverSide(). In 2.0 an entity table is server-side by default: call serverSide() to adopt that now, or serverSide(false) to keep embedding its rows.', static::class);
+    }
+
+    private function warnWhenHydrationIsLarge(): void
+    {
+        $infrastructure = $this->infrastructure();
+        $threshold      = $infrastructure->hydrationRowThreshold;
+        $rows           = \count($this->table->getOption('data') ?? []);
+
+        if ($threshold <= 0 || $rows <= $threshold) {
+            return;
+        }
+
+        $infrastructure->logger?->warning(\sprintf('The table "%s" embeds %d rows in the page, above the hydration_row_threshold of %d. Call serverSide() so the browser fetches one page at a time.', static::class, $rows, $threshold), [
+            'table' => static::class,
+            'rows'  => $rows,
+        ]);
     }
 
     private function prepareExplicitInlineData(): void
@@ -369,7 +463,7 @@ abstract class AbstractDataTable
 
     private function dataSourceMode(): DataSourceMode
     {
-        return $this->infrastructure()->renderingPreparer->resolveDataSourceMode($this->table, $this->asDataTable);
+        return $this->infrastructure()->renderingPreparer->resolveDataSourceMode($this->table, $this->asDataTable, $this->optIns);
     }
 
     private function createClientSideDataRequest(): DataTableRequest
@@ -389,6 +483,7 @@ abstract class AbstractDataTable
             columns: new RequestColumns($columns),
             start: 0,
             length: 0,
+            rowsOnly: true,
         );
     }
 
@@ -399,7 +494,8 @@ abstract class AbstractDataTable
         return $this->infrastructure()->queryFilterPipeline->apply(
             qb: $qb,
             request: $request,
-            columns: $this->infrastructure()->columnResolver->filterStaticPermissions($this->columns),
+            columns: $this->runtime?->getVisibleColumns()?->columns
+                                    ?? $this->infrastructure()->columnResolver->filterStaticPermissions($this->columns, static::class),
             filters: $this->filters ?? null,
             registry: $this->createSearchStrategyRegistry(),
             predicateBuilder: $this->createSearchPredicateBuilder(),
@@ -490,7 +586,8 @@ abstract class AbstractDataTable
     {
         $this->initialize();
 
-        return $this->infrastructure()->columnResolver->filterStaticPermissions($this->columns, static::class);
+        return $this->runtime?->getVisibleColumns()?->columns
+            ?? $this->infrastructure()->columnResolver->filterStaticPermissions($this->columns, static::class);
     }
 
     final protected function createRowMapper(): RowMapperInterface
@@ -578,6 +675,7 @@ abstract class AbstractDataTable
             columns: $this->columns,
             asDataTable: $this->asDataTable,
             baseMapper: $this->mapRow(...),
+            optIns: $this->optIns,
             manualDataProviderFactory: $this->createDataProviderUnlessUnavailable(...),
             configureQueryBuilder: $this->configureQueryBuilder(...),
             pageProjector: $this->projectPage(...),

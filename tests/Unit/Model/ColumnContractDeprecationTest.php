@@ -49,7 +49,7 @@ final class ColumnContractDeprecationTest extends TestCase
     {
         $table = new ConfigurableDataTable([$this->directImplementer()]);
 
-        $deprecations = $this->withoutAuthorizationFallback($this->deprecationsOf(static fn () => $table->getDataTable()));
+        $deprecations = $this->withoutAuthorizationFallback($this->deprecationsOf(static fn () => $table->prepareDataTableForRendering()));
 
         $this->assertCount(1, $deprecations);
         $this->assertStringContainsString('does not extend', $deprecations[0]);
@@ -70,7 +70,7 @@ final class ColumnContractDeprecationTest extends TestCase
             }
         };
 
-        $deprecations = $this->withoutAuthorizationFallback($this->deprecationsOf(static fn () => $table->getDataTable()));
+        $deprecations = $this->withoutAuthorizationFallback($this->deprecationsOf(static fn () => $table->prepareDataTableForRendering()));
 
         $this->assertCount(1, $deprecations);
     }
@@ -82,7 +82,7 @@ final class ColumnContractDeprecationTest extends TestCase
 
         $deprecations = $this->deprecationsOf(static function () use ($table): void {
             (new DataTable('users'))->add(TextColumn::new('name'))->columns([TextColumn::new('id')]);
-            $table->getDataTable();
+            $table->prepareDataTableForRendering();
         });
 
         $this->assertSame([], $this->withoutAuthorizationFallback($deprecations));

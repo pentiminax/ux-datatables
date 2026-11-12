@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\BulkActions;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
@@ -57,6 +58,26 @@ class DataTablesExtension extends AbstractExtension
         ];
     }
 
+    private function prepare(AbstractDataTable $table): DataTable
+    {
+        if ($this->isOverridden($table, 'getDataTable')) {
+            return $table->getDataTable();
+        }
+
+        if ($this->isOverridden($table, 'prepareForRendering')) {
+            $table->prepareForRendering();
+
+            return $table->getConfiguredDataTable();
+        }
+
+        return $table->prepareDataTableForRendering();
+    }
+
+    private function isOverridden(AbstractDataTable $table, string $method): bool
+    {
+        return AbstractDataTable::class !== (new \ReflectionMethod($table, $method))->getDeclaringClass()->getName();
+    }
+
     public function renderDataTable(AbstractDataTable $table, array $attributes = []): string
     {
         $dataTableClass = $table::class;
@@ -66,7 +87,7 @@ class DataTablesExtension extends AbstractExtension
             throw new AccessDeniedException('Access to this DataTable is denied.');
         }
 
-        $dataTable = $table->getDataTable();
+        $dataTable = $this->prepare($table);
 
         $originalColumns = array_values($dataTable->getColumns());
         $columns         = $this->columnResolver->filterStaticPermissions($originalColumns, $dataTableClass);
@@ -132,14 +153,18 @@ class DataTablesExtension extends AbstractExtension
             }
         }
 
+        $html = \sprintf('<table id="%s" %s></table>', htmlspecialchars($id, \ENT_QUOTES | \ENT_HTML5, 'UTF-8'), $stimulusAttributes);
+
         $this->profiler?->collectRenderedTable($dataTableClass, $dataTable, [
             'id'              => $id,
             'entityClass'     => $table->getEntityClass(),
             'originalColumns' => $originalColumns,
             'allowedColumns'  => $columns,
+            'dataSourceMode'  => $table->getRenderedDataSourceMode()?->name,
+            'payloadBytes'    => \strlen($html),
         ]);
 
-        return \sprintf('<table id="%s" %s></table>', htmlspecialchars($id, \ENT_QUOTES | \ENT_HTML5, 'UTF-8'), $stimulusAttributes);
+        return $html;
     }
 
     /**

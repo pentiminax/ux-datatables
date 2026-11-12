@@ -260,6 +260,8 @@ When boolean inline edit is called with `topics`, the controller publishes:
 ```
 
 You can also publish manually with `MercureUpdatePublisher::publish()` or `publishForDataTable()`.
+Pass your `AbstractDataTable` instance to `publishForDataTable()`: it resolves the Mercure config without
+rendering the table. Passing a prepared `DataTable` is deprecated since 1.6.
 
 ## Highlighting Updated Cells
 

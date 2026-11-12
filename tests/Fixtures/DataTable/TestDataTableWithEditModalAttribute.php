@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 
@@ -24,6 +25,11 @@ class TestDataTableWithEditModalAttribute extends AbstractDataTable
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             renderingPreparer: new RenderingPreparer(),
         ));
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->serverSide(false);
     }
 
     public function configureColumns(): iterable

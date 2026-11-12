@@ -36,6 +36,7 @@ use Pentiminax\UX\DataTables\Model\Summary\Sum;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsAjaxRegistry;
+use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -72,6 +73,7 @@ enum RenderingPreparerSearchListStatus: string implements TranslatableInterface
 #[CoversClass(RenderingPreparer::class)]
 final class RenderingPreparerTest extends TestCase
 {
+    use CollectsDeprecations;
     use BuildsAjaxRegistry;
 
     private const TABLE_CLASS = 'App\\DataTables\\UserDataTable';
@@ -254,8 +256,9 @@ final class RenderingPreparerTest extends TestCase
             ->setDataTableClass(self::TABLE_CLASS)
             ->columns($columns);
 
-        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
+        $deprecations = $this->deprecationsOf(static fn () => $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true)));
 
+        $this->assertSame([], $this->withoutAuthorizationFallback($deprecations));
         $this->assertCount($expectsServerSide ? 1 : 0, array_keys($generated, 'ux_datatables_ajax_data', true));
         $this->assertTrue($table->getOption('apiPlatform'));
 
@@ -301,6 +304,27 @@ final class RenderingPreparerTest extends TestCase
         yield 'with a url column carrying no url' => [[UrlColumn::new('profile', 'Profile')], false];
 
         yield 'without an entity dependent column' => [[TextColumn::new('email', 'Email')], false];
+    }
+
+    #[Test]
+    public function it_treats_a_blank_fluent_edit_modal_value_as_unset(): void
+    {
+        $table = (new DataTable('Test'))->editModalTemplate(' ')->editModalAdapter('');
+
+        (new RenderingPreparer())->prepare($table, new AsDataTable(entityClass: \stdClass::class, editModalTemplate: 'attribute.html.twig', editModalAdapter: 'bootstrap'));
+
+        $this->assertSame('attribute.html.twig', $table->getEditModalTemplate());
+        $this->assertSame('bootstrap', $table->getEditModalAdapter());
+    }
+
+    #[Test]
+    public function it_leaves_a_blank_edit_modal_value_unset_without_an_attribute_value(): void
+    {
+        $table = (new DataTable('Test'))->editModalAdapter('');
+
+        (new RenderingPreparer())->prepare($table, new AsDataTable(entityClass: \stdClass::class));
+
+        $this->assertNull($table->getEditModalAdapter());
     }
 
     #[Test]

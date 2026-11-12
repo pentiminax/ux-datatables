@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Runtime;
 
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
+use Pentiminax\UX\DataTables\Column\VisibleColumns;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchListOptionsProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
@@ -41,7 +42,7 @@ final readonly class SearchListOptionsResolver
     /**
      * @param list<ColumnInterface> $columns configured columns; permission filtering happens here
      */
-    public function resolve(DataTable $table, array $columns, DataTableRequest $request): ?\stdClass
+    public function resolve(DataTable $table, array $columns, DataTableRequest $request, ?VisibleColumns $visibleColumns = null): ?\stdClass
     {
         $tableGroups = $this->groups($this->tableConfiguration($table));
         $response    = new \stdClass();
@@ -60,7 +61,7 @@ final readonly class SearchListOptionsResolver
             return null;
         }
 
-        $columns = ($this->columnResolver ?? new ColumnResolver())->filterStaticPermissions(
+        $columns = $visibleColumns?->columns ?? ($this->columnResolver ?? new ColumnResolver())->filterStaticPermissions(
             $columns,
             $table->getDataTableClass(),
         );

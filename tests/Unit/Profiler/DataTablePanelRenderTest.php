@@ -83,6 +83,30 @@ final class DataTablePanelRenderTest extends TestCase
         $this->assertStringNotContainsString('Sensitive-Row-Value', $panel);
     }
 
+    #[Test]
+    public function the_panel_highlights_a_hydrated_table_above_the_threshold(): void
+    {
+        $kernel = new ProfilerPanelAppKernel('test', true);
+        $kernel->boot();
+        $container = $kernel->getContainer()->get('test.service_container');
+
+        $profiler = new DataTableProfiler(hydrationRowThreshold: 1);
+        $profiler->collectRenderedTable('App\\ProductDataTable', (new DataTable('big'))->data([['id' => 1], ['id' => 2]]), ['dataSourceMode' => 'ClientHydrated', 'payloadBytes' => 777]);
+        $profiler->collectRenderedTable('App\\SmallDataTable', (new DataTable('small'))->data([['id' => 1]]), ['dataSourceMode' => 'ClientHydrated', 'payloadBytes' => 55]);
+
+        $collector = new DataTableCollector($profiler);
+        $collector->collect(Request::create('/'), new Response());
+
+        $panel = $container->get('test.twig')
+            ->load('@PentiminaxDataTables/Collector/data_collector.html.twig')
+            ->renderBlock('panel', ['collector' => $collector]);
+
+        $this->assertStringContainsString('ClientHydrated', $panel);
+        $this->assertStringContainsString('777 B', $panel);
+        $this->assertSame(1, substr_count($panel, 'class="status-warning"'));
+        $this->assertStringContainsString('serverSide()', $panel);
+    }
+
     /**
      * The value "0" is a real, meaningful search predicate, not the absence of one -- covered
      * end to end through the real render pipeline alongside the null-check refinement in

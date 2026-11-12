@@ -27,8 +27,8 @@ final class AbstractDataTableRowPresentationTest extends TestCase
         $this->assertSame([
             ['id' => 1, 'late' => true, 'DT_RowClass' => 'table-danger', 'DT_RowAttr' => ['data-record-url' => '/items/1']],
             ['id' => 2, 'late' => false, 'DT_RowAttr' => ['data-record-url' => '/items/2']],
-        ], $table->getDataTable()->getOption('data'));
-        $this->assertTrue($table->getDataTable()->getOptions()['recordUrl']);
+        ], $table->prepareDataTableForRendering()->getOption('data'));
+        $this->assertTrue($table->prepareDataTableForRendering()->getOptions()['recordUrl']);
     }
 }
 

@@ -288,6 +288,20 @@ final class ColumnResolverTest extends TestCase
     }
 
     #[Test]
+    public function visible_columns_carry_the_granted_columns_the_denied_paths_and_the_table_class(): void
+    {
+        $resolver = $this->createResolverWithPermissions([['ROLE_HR', null, false]]);
+        $columns  = [TextColumn::new('salary', 'Salary')->permission('ROLE_HR'), TextColumn::new('name', 'Name')];
+
+        $visible = $resolver->visibleColumns($columns, SilentTableFixture::class);
+
+        $this->assertSame(['name'], array_map(static fn (ColumnInterface $column): string => $column->getName(), $visible->columns));
+        $this->assertSame($resolver->deniedColumnPaths($columns), $visible->deniedPaths);
+        $this->assertSame(['salary'], $visible->deniedPaths);
+        $this->assertSame(SilentTableFixture::class, $visible->dataTableClass);
+    }
+
+    #[Test]
     #[IgnoreDeprecations]
     public function the_deprecated_denied_value_removal_still_delegates_to_the_path_helpers(): void
     {

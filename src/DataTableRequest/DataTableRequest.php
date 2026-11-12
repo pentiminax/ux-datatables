@@ -23,6 +23,9 @@ final readonly class DataTableRequest
 
         /** @var array{logic: string, criteria: list<array<string, mixed>>}|null Validated SearchBuilder tree. */
         public ?array $searchBuilder = null,
+
+        /** A hint a provider may ignore: the caller reads rows only, so counts and summaries would be discarded. */
+        public bool $rowsOnly = false,
     ) {
     }
 
@@ -90,6 +93,7 @@ final readonly class DataTableRequest
             order: $this->order,
             filters: $this->filters,
             searchBuilder: $this->searchBuilder,
+            rowsOnly: $this->rowsOnly,
         );
     }
 
@@ -107,6 +111,7 @@ final readonly class DataTableRequest
             order: $this->order,
             filters: $this->filters,
             searchBuilder: $this->searchBuilder,
+            rowsOnly: $this->rowsOnly,
         );
     }
 

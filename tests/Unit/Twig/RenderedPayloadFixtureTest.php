@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Twig;
 
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\PayloadFixtureDataTable;
-use Pentiminax\UX\DataTables\Tests\Support\BootsTwigKernel;
+use Pentiminax\UX\DataTables\Tests\Kernel\TestHarnessAppKernel;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\HttpKernel\KernelInterface;
 
 /**
  * Pins the payload the PHP side renders for the Stimulus controller. The same file is loaded by
@@ -17,9 +18,8 @@ use PHPUnit\Framework\TestCase;
  *
  * @internal
  */
-final class RenderedPayloadFixtureTest extends TestCase
+final class RenderedPayloadFixtureTest extends KernelTestCase
 {
-    use BootsTwigKernel;
     use CollectsDeprecations;
 
     private const FIXTURE = __DIR__.'/../../Fixtures/rendered-payload.json';
@@ -27,12 +27,14 @@ final class RenderedPayloadFixtureTest extends TestCase
     #[Test]
     public function it_renders_the_pinned_payload_with_the_bare_fluent_api_and_no_deprecation(): void
     {
-        $table = new PayloadFixtureDataTable();
-        $table->setDataTableInfrastructure($this->container->get('test.datatables.infrastructure'));
+        static::bootKernel();
+        $container = static::getContainer();
+        $table     = new PayloadFixtureDataTable();
+        $table->setDataTableInfrastructure($container->get('datatables.infrastructure'));
 
         $rendered     = '';
-        $deprecations = $this->deprecationsOf(function () use ($table, &$rendered): void {
-            $rendered = $this->container->get('test.datatables.twig_extension')->renderDataTable($table);
+        $deprecations = $this->deprecationsOf(function () use ($table, $container, &$rendered): void {
+            $rendered = $container->get('datatables.twig_extension')->renderDataTable($table);
         });
 
         $this->assertSame([], array_values(array_filter($deprecations, static fn (string $m): bool => str_contains($m, 'pentiminax/ux-datatables'))));
@@ -50,5 +52,10 @@ final class RenderedPayloadFixtureTest extends TestCase
             json_decode((string) file_get_contents(self::FIXTURE), true, 512, \JSON_THROW_ON_ERROR),
             $payload,
         );
+    }
+
+    protected static function createKernel(array $options = []): KernelInterface
+    {
+        return new TestHarnessAppKernel('test', true);
     }
 }

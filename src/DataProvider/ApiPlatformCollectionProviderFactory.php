@@ -8,6 +8,7 @@ use ApiPlatform\State\ProviderInterface;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiPlatformQueryParameterFactory;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
+use Pentiminax\UX\DataTables\Column\VisibleColumns;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
@@ -42,6 +43,7 @@ final class ApiPlatformCollectionProviderFactory
         ?RowMapperInterface $exportRowMapper = null,
         ?string $dataTableClass = null,
         ?\Closure $pageProjector = null,
+        ?VisibleColumns $visibleColumns = null,
     ): ?ApiPlatformCollectionProvider {
         if (null === $this->collectionResolver->resolveCollection($entityClass)) {
             return null;
@@ -60,6 +62,7 @@ final class ApiPlatformCollectionProviderFactory
             exportRowMapper: $exportRowMapper,
             dataTableClass: $dataTableClass,
             pageProjector: $pageProjector,
+            visibleColumns: $visibleColumns,
         );
     }
 }

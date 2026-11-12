@@ -16,7 +16,7 @@ Deprecated APIs keep working for the whole 1.x line and are removed in 2.0.
 
 ## Upgrading to 1.6.0
 
-Everything in this release is backward compatible, except the API Platform behavior change below. An application that runs 1.6.0 with no
+Everything in this release is backward compatible, except the behavior changes below. An application that runs 1.6.0 with no
 deprecation notice and no console warning upgrades to 2.0 with `composer update` and one install
 command. To rename everything with an AI coding agent, give it [UPGRADE-AI.md](UPGRADE-AI.md).
 
@@ -28,6 +28,16 @@ with one of these names (`rows()`, `data()`, `name()`, `type()`, `title()`, `for
 `choices()`, ...) must rename it or match the new signature. A subclass that overrides a deprecated
 `setX()` must override `x()` instead: the bundle now calls `x()`, so the override is no longer
 reached.
+
+### Displayed to-one relations are loaded with the page
+
+A server-side table backed by the Doctrine data provider now fetch-joins the to-one associations
+its displayed columns read through a dot path (`customer.name`), instead of lazy-loading one
+related entity per row. Rows, counts and the JSON payload are identical, and the number of queries
+per draw no longer grows with the page length. An application that relied on the related entity
+being a lazy proxy (an `instanceof Proxy` check, or a `postLoad` listener on the related entity
+firing later) sees it loaded earlier. A join you add in `customizeQueryBuilder()` is reused when it
+is a plain `LEFT JOIN`; a join with a condition, or an `INNER JOIN`, is left alone.
 
 ### Ajax data and export refuse an API Platform table without a collection
 
@@ -59,6 +69,35 @@ unsupported everywhere, query features included, and that stays true in 2.0: a r
 refused instead of crashing. Your own code that iterates `DataSourceFeature::cases()` or matches on
 it exhaustively must handle them: add the two cases or a `default` arm.
 
+### The fluent API Platform flag is withdrawn from a table with embedded rows
+
+A table that combines `data()` with the fluent `apiPlatform()` used to send the API Platform flag
+with its embedded rows, and the browser adapter then failed on the missing Ajax option. The flag is
+now withdrawn from the payload and the table renders its rows. Drop the call:
+
+```php
+// Before
+$table->data($rows)->apiPlatform();
+
+// After
+$table->data($rows);
+```
+
+### A blank edit modal template or adapter counts as unset
+
+`editModalTemplate('')` and `editModalAdapter('')` used to override the `#[AsDataTable]` value on the
+page while the Ajax edit route ignored them. A blank value now counts as unset in both places, so
+the attribute's value (or the default) applies. Replace a blank call with the template or adapter
+you want, or remove it:
+
+```php
+// Before
+$table->editModalTemplate('');
+
+// After
+$table->editModalTemplate('modal/edit.html.twig');
+```
+
 ### Deprecations
 
 - Acting on rows (delete, toggle, edit form, detail, bulk explicit selection) of a table whose data
@@ -77,6 +116,14 @@ it exhaustively must handle them: add the two cases or a `default` arm.
 - A data provider that does not implement `FeatureAwareDataProviderInterface` is deprecated: the
   bundle assumes it supports every query feature, and 2.0 requires `supports()`. Implement
   `FeatureAwareDataProviderInterface`.
+- `AbstractDataTable::getDataTable()` and `prepareForRendering()` mutate the table while preparing it
+  for rendering. Use `getConfiguredDataTable()` to read the table and `render_datatable()` to render
+  it.
+- `MercureUpdatePublisher::publishForDataTable()` with a prepared `DataTable` is deprecated. Pass the
+  `AbstractDataTable` instead: `publishForDataTable($table)` rather than
+  `publishForDataTable($table->getDataTable())`.
+- `DataTable::apiPlatformServerSide()` is deprecated: the bundle sets the flag itself when a table
+  needs it, so remove the call.
 - Every user-facing `setX()` method of columns, actions, bulk actions, table options and the table
   model gains a bare `x()` method with the same arguments, and `setX()` is deprecated. Rename the
   calls, for example `setTitle('Name')` becomes `title('Name')`. Getters, `@internal` methods and
@@ -101,6 +148,32 @@ it exhaustively must handle them: add the two cases or a `default` arm.
   registered and built-in package loading alike, and 2.0 removes it: the default becomes `dt`.
   Set `data_tables.style_framework` to `dt` or `bs5`, call `styleFramework()` on the table, or
   re-run `bin/console ux-datatables:install`, which now writes the key.
+- An API Platform opt-in (`#[AsDataTable(apiPlatform: true)]` or `apiPlatform()`) with no collection
+  to read, because the entity exposes no collection operation or API Platform is not installed, logs
+  a deprecation, and 2.0 throws a `LogicException`. Expose a collection operation or drop the opt-in.
+- An entity table that never calls `serverSide()` reads and embeds every row at render time, and now
+  logs a deprecation once per table class: 2.0 makes server-side the default. Call `serverSide()`
+  to adopt it now, or `serverSide(false)` to keep embedding the rows. A server-side table is served
+  through the bundle's Ajax data route, which your Symfony Security configuration must protect, and
+  its Mercure updates are then auto-resolved, which an embedded table does not get. The bundle also
+  logs a warning past `data_tables.hydration_row_threshold` embedded rows (default `5000`, `0`
+  disables it).
+- `data()` combined with `apiPlatform()`, or with `#[AsDataTable(apiPlatform: true)]`, logs a
+  deprecation, and 2.0 throws a `LogicException`: the two read rows from different places. Keep one.
+- `#[AsDataTable(apiPlatform: true)]` combined with `apiPlatform(false)` still opts in, and logs a
+  deprecation: 2.0 lets the fluent value win. Remove one of the two. Combined with `ajax()`, the fluent `false` already wins and raises no notice.
+- `#[AsDataTable(apiPlatform: true)]` combined with `ajax()` and no `apiPlatform()` call renders plain
+  DataTables JSON today and logs a deprecation: 2.0 sends the API Platform flag for it, so the browser
+  reads the response through the Hydra adapter. Add `->apiPlatform(false)` to keep plain DataTables
+  JSON, or `->apiPlatform()` to opt in now. `ajax()` combined with the fluent `apiPlatform()` is
+  unchanged.
+
+### The option bag returns only DataTables.net options in 2.0
+
+`DataTable::getOption()` and `getOptions()` also return bundle keys today (`apiPlatform`,
+`apiPlatformServerSide`, `mercure`, `bulkActions`, ...). 2.0 returns only DataTables.net options, and
+the bundle keys live on the prepared payload. No notice can be raised for a read, so check code that
+reads a bundle key from the option bag and read the table configuration instead.
 
 ### Doctrine ORM 3.3 and OpenSpout 4.13 are the tested floors
 

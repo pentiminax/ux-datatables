@@ -56,6 +56,11 @@ class PentiminaxDataTablesBundle extends AbstractBundle
                     ->defaultValue(1000)
                     ->info('Upper bound applied to the DataTables "length" parameter on Ajax requests. "length=-1" (show all) is honored only when the table declares -1 in lengthMenu(); otherwise it is capped to this value.')
                 ->end()
+                ->integerNode('hydration_row_threshold')
+                    ->min(0)
+                    ->defaultValue(5000)
+                    ->info('Row count above which a table that embeds its rows in the page (client-side processing of an entity) is logged as a warning and highlighted in the profiler. 0 disables both.')
+                ->end()
                 ->arrayNode('options')
                     ->info('Defaults stamped onto every table; each key maps to the DataTables.net option of the same name.')
                     ->validate()
@@ -180,7 +185,8 @@ class PentiminaxDataTablesBundle extends AbstractBundle
             ->set('datatables.edit_modal.template', $config['edit_modal']['template'])
             ->set('datatables.edit_modal.body_template', $config['edit_modal']['body_template'])
             ->set('datatables.edit_modal.default_title', $config['edit_modal']['default_title'])
-            ->set('datatables.max_page_length', $config['max_page_length']);
+            ->set('datatables.max_page_length', $config['max_page_length'])
+            ->set('datatables.hydration_row_threshold', $config['hydration_row_threshold']);
 
         $container->import('../config/services.php');
 
