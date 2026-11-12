@@ -80,6 +80,8 @@ abstract class AbstractDataTable
 
     private bool $renderingPrepared = false;
 
+    private bool $columnsAutoDetected = false;
+
     private ?DataSourceMode $renderedDataSourceMode = null;
 
     /** @var array<class-string, true> */
@@ -104,12 +106,36 @@ abstract class AbstractDataTable
     {
         unset($this->table, $this->columns, $this->filters);
 
-        $this->defaultRowMapper  = null;
-        $this->asDataTable       = null;
-        $this->optIns            = null;
-        $this->runtime           = null;
-        $this->initialized       = false;
-        $this->renderingPrepared = false;
+        $this->defaultRowMapper    = null;
+        $this->asDataTable         = null;
+        $this->optIns              = null;
+        $this->runtime             = null;
+        $this->initialized         = false;
+        $this->renderingPrepared   = false;
+        $this->columnsAutoDetected = false;
+    }
+
+    /**
+     * The attribute opts into API Platform and apiPlatform(false) opts out. Over data() or ajax() the
+     * payload already follows the fluent value, but the server still follows the attribute for column
+     * auto-detection and for the provider of exports, bulk and row actions, which 2.0 changes. The
+     * table cannot tell whether those reads ever happen, so it always warns.
+     */
+    private function deprecateOverriddenApiPlatformOptOut(): void
+    {
+        if (null === $this->table->getOption('ajax') && null === $this->table->getOption('data')) {
+            trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Table "%s" opts into API Platform on #[AsDataTable] and out through apiPlatform(false): the attribute wins today, the fluent value will win in 2.0. Remove one of them.', static::class);
+
+            return;
+        }
+
+        if ($this->columnsAutoDetected) {
+            trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Table "%s" opts into API Platform on #[AsDataTable] and out through apiPlatform(false): the payload already follows apiPlatform(false), but the server still auto-detects its columns from the API Platform resource and reads the rows of exports, bulk and row actions through the API Platform provider. In 2.0 apiPlatform(false) wins there too: the table gets no auto-detected columns, and those reads go through Doctrine. Declare the columns in configureColumns() and remove the attribute flag.', static::class);
+
+            return;
+        }
+
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Table "%s" opts into API Platform on #[AsDataTable] and out through apiPlatform(false): the payload already follows apiPlatform(false), but the server still reads the rows of exports, bulk and row actions through the API Platform provider. In 2.0 apiPlatform(false) wins there too, and those reads go through Doctrine. Remove the attribute flag.', static::class);
     }
 
     private function initialize(): void
@@ -130,11 +156,11 @@ abstract class AbstractDataTable
 
         $this->optIns = ResolvedOptIns::resolve($this->table, $this->asDataTable);
 
-        if ($this->optIns->apiPlatformOptOutOverridden && null === $this->table->getOption('ajax') && null === $this->table->getOption('data')) {
-            trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Table "%s" opts into API Platform on #[AsDataTable] and out through apiPlatform(false): the attribute wins today, the fluent value will win in 2.0. Remove one of them.', static::class);
-        }
-
         $this->columns = iterator_to_array($this->configureColumns());
+
+        if ($this->optIns->apiPlatformOptOutOverridden) {
+            $this->deprecateOverriddenApiPlatformOptOut();
+        }
 
         $columnResolver = $this->infrastructure()->columnResolver;
 
@@ -308,12 +334,19 @@ abstract class AbstractDataTable
         }
 
         $asDataTable = $this->asDataTable ?? $this->resolveAsDataTable();
+        $resolver    = $this->infrastructure()->columnResolver;
+        $optIns      = $this->optIns ?? (isset($this->table) ? ResolvedOptIns::resolve($this->table, $asDataTable) : null);
 
-        return $this->infrastructure()->columnResolver->resolveColumns(
-            $asDataTable,
-            dataTableClass: static::class,
-            optIns: $this->optIns ?? (isset($this->table) ? ResolvedOptIns::resolve($this->table, $asDataTable) : null),
-        );
+        $columns = $resolver->resolveColumns($asDataTable, dataTableClass: static::class, optIns: $optIns);
+
+        // Only an overridden opt-out reports where the columns came from, so other tables skip the lookup.
+        if (true === $optIns?->apiPlatformOptOutOverridden) {
+            $this->columnsAutoDetected = [] !== $columns
+                && [] === $resolver->columnsFromClassAttributes(static::class)
+                && [] === $resolver->columnsFromAttributes($asDataTable);
+        }
+
+        return $columns;
     }
 
     /**
