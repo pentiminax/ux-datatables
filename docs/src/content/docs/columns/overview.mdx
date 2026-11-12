@@ -101,7 +101,7 @@ a class that only implements `ColumnInterface` is deprecated since 1.6 and is al
 
 By default, server-side ordering targets `<alias>.<field>`. For a **computed column** — one
 backed by a `SELECT` alias instead of a mapped entity field — that resolution fails
-(`has no field or association named …`). Use `setOrderExpression()` to provide the raw DQL
+(`has no field or association named …`). Use `orderExpression()` to provide the raw DQL
 expression or SELECT alias used verbatim in the `ORDER BY`, bypassing the default resolution:
 
 ```php
@@ -121,15 +121,15 @@ column** — one whose value is assembled in `mapRow()` rather than mapped on th
 column is skipped by the search rather than breaking the query, so its search box silently
 returns nothing until you point it at real data.
 
-`setSearchField()` does that. It affects search only: the rendered value, the row mapping, the
-form mapping, the ordering and the client payload all keep using `setField()`.
+`searchField()` does that. It affects search only: the rendered value, the row mapping, the
+form mapping, the ordering and the client payload all keep using `field()`.
 
 ```php
 TextColumn::new('donorProviderName', 'Donor')
     ->searchField('donorProvider.name'); // LEFT JOINs e.donorProvider automatically
 ```
 
-The path uses the same dot-notation as `setField()`, so a relation path is resolved through a
+The path uses the same dot-notation as `field()`, so a relation path is resolved through a
 `LEFT JOIN`. An embeddable field (`address.city`) stays on the owning alias: it is a mapped
 field, not an association, and joining it makes Doctrine reject the query. Use `addSearchJoin()`
 when you need the alias yourself, a `WITH` condition, or the relation is already joined under a
@@ -148,7 +148,7 @@ search in a single request.
 #### Searching with a custom predicate
 
 For what a field path cannot express — several fields at once, an `EXISTS` subquery, a database
-function — build the condition yourself with `setSearchPredicate()`:
+function — build the condition yourself with `searchPredicate()`:
 
 ```php
 use Doctrine\ORM\QueryBuilder;
@@ -180,7 +180,7 @@ concatenating the search value — bind the value as a parameter, as above.
 
 Custom predicates apply to global search, per-column search, and the ColumnControl `contains`
 logic. The ColumnControl list, comparison, and empty/not-empty logics keep their own predicate
-shapes; they honor `setSearchField()` and `addSearchJoin()` but not `setSearchPredicate()`, and
+shapes; they honor `searchField()` and `addSearchJoin()` but not `searchPredicate()`, and
 they skip a column whose search field the root entity does not map.
 
 ### Cell Type

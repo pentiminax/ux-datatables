@@ -53,7 +53,7 @@ Renders as: `<a href="mailto:user&#64;example&#46;com">u***@example.com</a>`
 
 ## Custom Display Text
 
-Use `setDisplayValue()` to replace the displayed text entirely. This takes priority over `mask()` when both are set.
+Use `displayValue()` to replace the displayed text entirely. This takes priority over `mask()` when both are set.
 
 ```php
 EmailColumn::new('email', 'Email Address')
@@ -64,7 +64,7 @@ Renders as: `<a href="mailto:user@example.com">Contact us</a>`
 
 ## Plain Text Display
 
-`renderAsText()` renders the email as plain escaped text without a `mailto:` link. `mask()` and `setDisplayValue()` still apply to the displayed text. `obfuscate()` has no effect in this mode because there is no `mailto:` href.
+`renderAsText()` renders the email as plain escaped text without a `mailto:` link. `mask()` and `displayValue()` still apply to the displayed text. `obfuscate()` has no effect in this mode because there is no `mailto:` href.
 
 ```php
 EmailColumn::new('email', 'Email Address')
@@ -88,7 +88,7 @@ Renders as: `user@example.com`
     ],
     ['`mask(bool $mask = true)`', 'Partially hides the displayed address: `u***@example.com`'],
     [
-      '`setDisplayValue(string $displayValue)`',
+      '`displayValue(string $displayValue)`',
       'Sets a fixed display text (takes priority over `mask()`)',
     ],
     [

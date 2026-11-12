@@ -42,7 +42,7 @@ ImageColumn::new('avatar', 'Avatar')
 
 ## Placeholder Fallback
 
-`setPlaceholder()` sets a fallback image URL rendered when the source image is missing or broken. If the cell value is empty, the placeholder is rendered directly. If the cell value exists but fails to load, an `onerror` handler switches to the placeholder.
+`placeholder()` sets a fallback image URL rendered when the source image is missing or broken. If the cell value is empty, the placeholder is rendered directly. If the cell value exists but fails to load, an `onerror` handler switches to the placeholder.
 
 ```php
 ImageColumn::new('avatar', 'Avatar')
@@ -85,10 +85,10 @@ ImageColumn::new('avatar', 'Avatar')
       "`ImageColumn::new(string $name, string $title = '')`",
       'Creates a new ImageColumn (type: `html`). Lazy loading enabled by default.',
     ],
-    ['`setImageWidth(int $px)`', 'Sets the `width` HTML attribute on the `<img>` tag'],
-    ['`setImageHeight(int $px)`', 'Sets the `height` HTML attribute on the `<img>` tag'],
-    ['`setAlt(string $alt)`', 'Sets the `alt` attribute (defaults to empty string)'],
-    ['`setPlaceholder(string $url)`', 'Fallback image URL for missing or broken sources'],
+    ['`imageWidth(int $px)`', 'Sets the `width` HTML attribute on the `<img>` tag'],
+    ['`imageHeight(int $px)`', 'Sets the `height` HTML attribute on the `<img>` tag'],
+    ['`alt(string $alt)`', 'Sets the `alt` attribute (defaults to empty string)'],
+    ['`placeholder(string $url)`', 'Fallback image URL for missing or broken sources'],
     [
       '`rounded(bool $rounded = true)`',
       'Adds `class="rounded-circle rounded-full"` for circular avatar display with Bootstrap, Tailwind, or the bundled theme',

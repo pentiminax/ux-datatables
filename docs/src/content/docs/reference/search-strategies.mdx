@@ -138,7 +138,7 @@ final class WordPrefixStartsSearchStrategy implements SearchStrategyInterface
         string $alias,
     ): void {
         $value = trim($search->value);
-        // Honors the column's setSearchField() override when it has one, and falls back to
+        // Honors the column's searchField() override when it has one, and falls back to
         // the displayed field otherwise -- including for a column that implements only
         // ColumnInterface.
         $fieldPath = RelationFieldResolver::resolveSearchField($column);

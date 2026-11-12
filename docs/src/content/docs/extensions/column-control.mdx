@@ -131,7 +131,7 @@ final class EmployeeDataTable extends AbstractDataTable
 }
 ```
 
-`setColumnControl()` takes precedence over `disableColumnControl()` regardless of call order. Both
+`columnControl()` takes precedence over `disableColumnControl()` regardless of call order. Both
 need the table-level extension because that is what loads the ColumnControl frontend bundle.
 
 ## Search Lists
@@ -486,7 +486,7 @@ plugin has not loaded, and `datatables:connect` is too late because construction
 
 ## Frequent Pitfalls
 
-- Calling `setColumnControl()` or `disableColumnControl()` without enabling ColumnControl in
+- Calling `columnControl()` or `disableColumnControl()` without enabling ColumnControl in
   `configureDataTable()`.
 - Enabling controls on columns that are not searchable or orderable.
 - Passing a target and expecting default order controls to stay. Add every required group through

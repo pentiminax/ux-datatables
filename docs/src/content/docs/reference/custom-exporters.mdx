@@ -91,7 +91,7 @@ falls back to `fetchData()->data`, which materializes the whole result set and i
 1.6: 2.0 requires `iterateRows()`. `DoctrineDataProvider`
 and `ArrayDataProvider` both implement the streaming interface.
 
-Columns come from `filterExportable()`, so `setExportable(false)`, hidden columns, action columns,
+Columns come from `filterExportable()`, so `exportable(false)`, hidden columns, action columns,
 and template columns are excluded unless explicitly opted back in. Because the export mapper is
 built from the exportable columns alone, template Twig, action voters, URL generation, and CSRF
 tokens do not run for exported rows.

@@ -144,7 +144,7 @@ per-row permission instead when the rule is about what the current user may do.
       'Create an action; `$name` must be unique within the table',
     ],
     ['``label($label)``', 'Override the button label'],
-    ['``setClassName($className)``', 'CSS classes for the button'],
+    ['``className($className)``', 'CSS classes for the button'],
     ['``icon($icon)``', 'A Lucide `Icon` case or a raw icon class string'],
     [
       '``askConfirmation($message, $buttonLabel = null)``',
@@ -152,7 +152,7 @@ per-row permission instead when the rule is about what the current user may do.
     ],
     ['``successMessage($message)``', 'Message shown in the bar instead of the processed count'],
     [
-      '``setPermission($attribute, $subjectResolver = null)``',
+      '``permission($attribute, $subjectResolver = null)``',
       'Static permission, or a per-row one when a resolver is given',
     ],
     ['``chunk($size)``', 'Rows loaded and flushed per batch (default `250`)'],
@@ -176,7 +176,7 @@ per-row permission instead when the rule is about what the current user may do.
       'Forbid selecting every matching row; the server rejects such a request too',
     ],
     [
-      '``setIdField($field)``',
+      '``idField($field)``',
       'Override the row identifier written as `DT_RowId`; Doctrine identifiers are detected automatically, otherwise the default is `id`',
     ],
     [
@@ -195,7 +195,7 @@ unchecked afterwards.
 
 This requires a data provider implementing `IdentifierDataProviderInterface` and declaring
 `DataSourceFeature::IdentifierCollection` in `supports()`; `DoctrineDataProvider` does. The provider
-is asked for the field the selection speaks in — the one written as `DT_RowId`, which `setIdField()` may point away from the primary key — so a custom
+is asked for the field the selection speaks in — the one written as `DT_RowId`, which `idField()` may point away from the primary key — so a custom
 implementation must answer with values from that field. A table that calls `highlightUpdates()` writes
 `DT_RowId` from its `idField` instead. Either way, that field must be a mapped, unique Doctrine field:
 the rows are loaded back by its values, so a value shared by several rows would pull in every one of
@@ -206,9 +206,9 @@ declaring `selectCurrentPageOnly()`.
 
 Every bulk action goes through `Permission::DT_EXECUTE_ACTION`, exactly like a row action:
 
-- a **static** permission (`setPermission('ORDER_APPROVE')`) is checked twice — once while rendering,
+- a **static** permission (`permission('ORDER_APPROVE')`) is checked twice — once while rendering,
   so a denied action is never drawn, and once in the endpoint before any entity is loaded;
-- a **per-row** permission (`setPermission('ORDER_APPROVE', fn (Order $o) => $o)`) is checked for
+- a **per-row** permission (`permission('ORDER_APPROVE', fn (Order $o) => $o)`) is checked for
   each loaded entity. Denied rows are excluded from the handler and counted as skipped; the run is
   not aborted.
 

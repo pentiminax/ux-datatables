@@ -86,7 +86,7 @@ scopes to a moderate number of rows.
 Sums of `DECIMAL` columns are returned as floats, so very large totals or many decimals can lose
 precision; format them with `MoneyColumn` or round in your own provider.
 
-Summaries never include a column the user may not see (`setPermission()`).
+Summaries never include a column the user may not see (`permission()`).
 
 ## Footer Markup and Styling
 
