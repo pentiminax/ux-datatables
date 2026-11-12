@@ -96,19 +96,28 @@ final class RenderingPreparer
     ) {
     }
 
-    public function prepare(DataTable $table, ?AsDataTable $asDataTable): void
+    public function prepare(DataTable $table, ?AsDataTable $asDataTable, ?ResolvedOptIns $optIns = null): void
     {
-        $this->prepareBeforeDataHydration($table, $asDataTable);
-        $this->prepareAfterDataHydration($table, $asDataTable);
+        $optIns ??= ResolvedOptIns::resolve($table, $asDataTable);
+
+        $this->prepareBeforeDataHydration($table, $asDataTable, $optIns);
+        $this->prepareAfterDataHydration($table, $asDataTable, $optIns);
     }
 
-    public function prepareBeforeDataHydration(DataTable $table, ?AsDataTable $asDataTable): void
+    public function prepareBeforeDataHydration(DataTable $table, ?AsDataTable $asDataTable, ?ResolvedOptIns $optIns = null): void
     {
-        $mode = $this->resolveDataSourceMode($table, $asDataTable);
+        $optIns ??= ResolvedOptIns::resolve($table, $asDataTable);
+
+        $mode = $this->resolveDataSourceMode($table, $asDataTable, $optIns);
         $this->featureGuard->assertConfigurable($table, $mode);
 
         if (DataSourceMode::ApiPlatform === $mode) {
-            $this->configureApiPlatform($table, $asDataTable);
+            $this->configureApiPlatform($table, $optIns);
+        }
+
+        if (DataSourceMode::Ajax === $mode && $optIns->apiPlatform) {
+            // A custom Hydra collection: the adapter is the browser's only way to read it.
+            $table->apiPlatform();
         }
 
         if (DataSourceMode::ServerSide === $mode) {
@@ -125,7 +134,7 @@ final class RenderingPreparer
         $this->configureSummaryLabels($table);
         $this->configureEmptyStateLabels($table);
         $this->configureForwardedQueryParameters($table);
-        $this->configureEditModal($table, $asDataTable);
+        $this->configureEditModal($table, $optIns);
         $this->translateColumnTitles($table);
         $this->resolveFilterEntityOptions($table);
         $this->translateFilterLabels($table);
@@ -153,11 +162,13 @@ final class RenderingPreparer
         ($this->filterEntityOptionsResolver ?? new FilterEntityOptionsResolver())->prepare($table);
     }
 
-    public function prepareAfterDataHydration(DataTable $table, ?AsDataTable $asDataTable): void
+    public function prepareAfterDataHydration(DataTable $table, ?AsDataTable $asDataTable, ?ResolvedOptIns $optIns = null): void
     {
+        $optIns ??= ResolvedOptIns::resolve($table, $asDataTable);
+
         $this->assertPollingHasAjaxSource($table);
-        $this->configureMercure($table, $asDataTable);
-        $this->withdrawUnreadApiPlatformOptIn($table, $asDataTable);
+        $this->configureMercure($table, $asDataTable, $optIns);
+        $this->withdrawUnreadApiPlatformOptIn($table, $asDataTable, $optIns);
     }
 
     private function assertPollingHasAjaxSource(DataTable $table): void
@@ -172,14 +183,14 @@ final class RenderingPreparer
     /**
      * @internal
      */
-    public function resolveDataSourceMode(DataTable $table, ?AsDataTable $asDataTable): DataSourceMode
+    public function resolveDataSourceMode(DataTable $table, ?AsDataTable $asDataTable, ?ResolvedOptIns $optIns = null): DataSourceMode
     {
-        return DataSourceMode::resolve($table, $asDataTable, $this->urlResolver);
+        return DataSourceMode::resolve($table, $asDataTable, $this->urlResolver, $optIns);
     }
 
-    private function configureApiPlatform(DataTable $table, ?AsDataTable $asDataTable): void
+    private function configureApiPlatform(DataTable $table, ResolvedOptIns $optIns): void
     {
-        $collectionUrl = null === $asDataTable ? null : $this->urlResolver?->resolveCollectionUrl($asDataTable->entityClass);
+        $collectionUrl = null === $optIns->entityClass ? null : $this->urlResolver?->resolveCollectionUrl($optIns->entityClass);
 
         if (null === $collectionUrl) {
             return;
@@ -198,16 +209,29 @@ final class RenderingPreparer
     }
 
     /**
-     * Withdraws a flag the browser cannot honor without a collection URL; last, so the table never
-     * reads its rows around the collection's authorization.
+     * Withdraws a flag the browser cannot honor, whichever surface declared it: without a collection
+     * URL, or over rows embedded in the page. Last, so the table never reads its rows around the
+     * collection's authorization.
      */
-    private function withdrawUnreadApiPlatformOptIn(DataTable $table, ?AsDataTable $asDataTable): void
+    private function withdrawUnreadApiPlatformOptIn(DataTable $table, ?AsDataTable $asDataTable, ResolvedOptIns $optIns): void
     {
-        if (true !== $table->getOption('apiPlatform') || DataSourceMode::ApiPlatformUnavailable !== $this->resolveDataSourceMode($table, $asDataTable)) {
+        if (!$optIns->apiPlatform) {
             return;
         }
 
-        $table->apiPlatform(false);
+        $mode = $this->resolveDataSourceMode($table, $asDataTable, $optIns);
+
+        if (DataSourceMode::ApiPlatformUnavailable === $mode) {
+            trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Table "%s" opts into API Platform but "%s" exposes no collection operation, or API Platform is not installed: it reads no rows, and 2.0 throws a LogicException. Expose a collection operation or remove the apiPlatform opt-in.', $table->getDataTableClass() ?? $table->getId(), $optIns->entityClass ?? 'no entity class');
+        }
+
+        if (DataSourceMode::Inline === $mode) {
+            trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Table "%s" combines data() with apiPlatform(), which read rows from two places: the flag is now withdrawn from the payload, and 2.0 throws a LogicException. Drop one of them.', $table->getDataTableClass() ?? $table->getId());
+        }
+
+        if (true === $table->getOption('apiPlatform') && \in_array($mode, [DataSourceMode::ApiPlatformUnavailable, DataSourceMode::Inline], true)) {
+            $table->apiPlatform(false);
+        }
     }
 
     /**
@@ -416,9 +440,9 @@ final class RenderingPreparer
         $table->setPreparedForwardedQuery($forwarded);
     }
 
-    private function configureMercure(DataTable $table, ?AsDataTable $asDataTable): void
+    private function configureMercure(DataTable $table, ?AsDataTable $asDataTable, ResolvedOptIns $optIns): void
     {
-        $config = $this->resolveMercureConfig($table, $asDataTable);
+        $config = $this->resolveMercureConfig($table, $asDataTable, $optIns);
 
         if (null !== $config) {
             $table->setMercureConfig($config);
@@ -435,28 +459,30 @@ final class RenderingPreparer
      * exact topics the client subscribed to. Returns null when the table
      * exposes no live Mercure config.
      */
-    public function resolveMercureConfig(DataTable $table, ?AsDataTable $asDataTable): ?MercureConfig
+    public function resolveMercureConfig(DataTable $table, ?AsDataTable $asDataTable, ?ResolvedOptIns $optIns = null): ?MercureConfig
     {
-        $manualConfig = $table->getMercureConfig();
-        if (null !== $manualConfig) {
-            return $manualConfig
+        $optIns ??= ResolvedOptIns::resolve($table, $asDataTable);
+        $mercure = $optIns->mercure;
+
+        if ($mercure instanceof MercureConfig) {
+            return $mercure
                 ->withHubUrl($this->resolveHubUrlOrThrow())
                 ->withProtocolVersion($this->resolveProtocolVersion());
         }
 
-        if (null === $asDataTable || false === $asDataTable->mercure) {
+        if (false === $mercure || null === $optIns->entityClass) {
             return null;
         }
 
-        if (DataSourceMode::Inline === $this->resolveDataSourceMode($table, $asDataTable)) {
+        if (DataSourceMode::Inline === $this->resolveDataSourceMode($table, $asDataTable, $optIns)) {
             return null;
         }
 
-        if (\is_array($asDataTable->mercure)) {
-            return $this->createExplicitMercureConfig($asDataTable->mercure, $asDataTable->entityClass);
+        if (\is_array($mercure)) {
+            return $this->createExplicitMercureConfig($mercure, $optIns->entityClass);
         }
 
-        return $this->mercureResolver?->resolveMercureConfig($asDataTable->entityClass);
+        return $this->mercureResolver?->resolveMercureConfig($optIns->entityClass);
     }
 
     /**
@@ -545,24 +571,15 @@ final class RenderingPreparer
         return $this->mercureHubUrlResolver?->resolveProtocolVersion() ?? MercureConfig::PROTOCOL_VERSION_0_X;
     }
 
-    private function configureEditModal(DataTable $table, ?AsDataTable $asDataTable): void
+    private function configureEditModal(DataTable $table, ResolvedOptIns $optIns): void
     {
-        if (null === $asDataTable) {
-            return;
+        if (null !== $optIns->editModalAdapter) {
+            $table->editModalAdapter($optIns->editModalAdapter);
         }
 
-        if (null === $table->getEditModalAdapter() && $this->hasOverride($asDataTable->editModalAdapter)) {
-            $table->editModalAdapter($asDataTable->editModalAdapter);
+        if (null !== $optIns->editModalTemplate) {
+            $table->editModalTemplate($optIns->editModalTemplate);
         }
-
-        if (null === $table->getEditModalTemplate() && $this->hasOverride($asDataTable->editModalTemplate)) {
-            $table->editModalTemplate($asDataTable->editModalTemplate);
-        }
-    }
-
-    private function hasOverride(?string $value): bool
-    {
-        return null !== $value && '' !== trim($value);
     }
 
     private function translateColumnTitles(DataTable $table): void

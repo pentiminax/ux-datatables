@@ -304,6 +304,27 @@ final class RenderingPreparerTest extends TestCase
     }
 
     #[Test]
+    public function it_treats_a_blank_fluent_edit_modal_value_as_unset(): void
+    {
+        $table = (new DataTable('Test'))->editModalTemplate(' ')->editModalAdapter('');
+
+        (new RenderingPreparer())->prepare($table, new AsDataTable(entityClass: \stdClass::class, editModalTemplate: 'attribute.html.twig', editModalAdapter: 'bootstrap'));
+
+        $this->assertSame('attribute.html.twig', $table->getEditModalTemplate());
+        $this->assertSame('bootstrap', $table->getEditModalAdapter());
+    }
+
+    #[Test]
+    public function it_leaves_a_blank_edit_modal_value_unset_without_an_attribute_value(): void
+    {
+        $table = (new DataTable('Test'))->editModalAdapter('');
+
+        (new RenderingPreparer())->prepare($table, new AsDataTable(entityClass: \stdClass::class));
+
+        $this->assertNull($table->getEditModalAdapter());
+    }
+
+    #[Test]
     public function it_skips_ajax_when_collection_url_is_null(): void
     {
         $urlResolver = $this->createStub(ApiResourceCollectionUrlResolver::class);

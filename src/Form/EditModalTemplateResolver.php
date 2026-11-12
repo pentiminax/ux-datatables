@@ -24,15 +24,9 @@ class EditModalTemplateResolver
         if (null !== $dataTableClass && $this->dataTables->has($dataTableClass)) {
             $dataTable = $this->dataTables->get($dataTableClass);
 
-            if ($dataTable instanceof AbstractDataTable) {
-                $template = $dataTable->getConfiguredDataTable()->getEditModalTemplate();
-
-                if (\is_string($template) && '' !== trim($template)) {
-                    return $template;
-                }
-            }
-
-            $template = $this->asDataTableResolver->resolve($dataTableClass)?->editModalTemplate;
+            $template = $dataTable instanceof AbstractDataTable
+                ? $dataTable->getResolvedOptIns()->editModalTemplate
+                : $this->asDataTableResolver->resolve($dataTableClass)?->editModalTemplate;
 
             if (null !== $template && '' !== trim($template)) {
                 return $template;

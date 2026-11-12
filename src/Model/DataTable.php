@@ -292,7 +292,7 @@ class DataTable
 
     public function getEditModalTemplate(): ?string
     {
-        return $this->editModalTemplate;
+        return '' === trim($this->editModalTemplate ?? '') ? null : $this->editModalTemplate;
     }
 
     public function editModalAdapter(string $adapter): static
@@ -304,7 +304,7 @@ class DataTable
 
     public function getEditModalAdapter(): ?string
     {
-        return $this->editModalAdapter;
+        return '' === trim($this->editModalAdapter ?? '') ? null : $this->editModalAdapter;
     }
 
     /**

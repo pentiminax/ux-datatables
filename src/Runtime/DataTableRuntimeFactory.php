@@ -106,7 +106,10 @@ final class DataTableRuntimeFactory
         callable $configureQueryBuilder,
         ?\Closure $pageProjector = null,
         ?callable $configureBaseQueryBuilder = null,
+        ?ResolvedOptIns $optIns = null,
     ): DataTableRuntime {
+        $optIns ??= ResolvedOptIns::resolve($table, $asDataTable);
+
         $rowMapper = $this->createRowMapper(
             baseMapper: $baseMapper,
             columns: $columns,
@@ -137,10 +140,7 @@ final class DataTableRuntimeFactory
                 exportRowMapper: $exportRowMapper,
                 pageProjector: $pageProjector,
                 configureBaseQueryBuilder: $configureBaseQueryBuilder,
-                // The attribute counts on its own: the `apiPlatform` option is set by the
-                // RenderingPreparer, which never runs on an Ajax request, so reading the option
-                // alone sent every attribute-declared table down the Doctrine path.
-                apiPlatform: true === $table->getOption('apiPlatform') || true === $asDataTable?->apiPlatform,
+                apiPlatform: $optIns->apiPlatform,
                 columns: array_values($columns),
                 dataTableClass: $table->getDataTableClass(),
                 // A client-side table sums its rows in the browser, and its hydration drops the result.
