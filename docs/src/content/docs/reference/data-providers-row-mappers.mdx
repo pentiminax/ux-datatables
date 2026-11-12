@@ -52,7 +52,19 @@ final class WarehouseStockProvider implements DataProviderInterface, FeatureAwar
 }
 ```
 
-A provider that does not implement the interface is assumed to support every feature.
+A provider that does not implement the interface is assumed to support every query feature, which
+is deprecated since 1.6: 2.0 requires `supports()`.
+
+### Row scope and identifier collection
+
+`DataSourceFeature::RowScope` and `DataSourceFeature::IdentifierCollection` are not assumed for a
+provider that lacks identifier support. A provider that checks which identifiers belong to the
+table's permanent scope, or names every row of a request, implements
+`IdentifierDataProviderInterface`. One that is not feature aware is trusted to cover both features;
+a feature-aware one declares the features it covers through `supports()`. Without `RowScope`, row actions and bulk actions on the table run unscoped, which is deprecated since 1.6 and
+refused in 2.0 unless the table calls `unscopedMutations()`. Without `IdentifierCollection`, a bulk
+"select all matching" is rejected. `IdentifierCollectingDataProviderInterface` and
+`ScopedIdentifierProviderInterface` are deprecated in favor of this pair.
 
 Built-in providers:
 

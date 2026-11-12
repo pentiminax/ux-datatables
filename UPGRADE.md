@@ -50,8 +50,30 @@ on your own authorization:
 #[AsDataTable(entityClass: Product::class)]
 ```
 
+### Row scope, identifier collection and enum cases
+
+`DataSourceFeature` gains the cases `RowScope` and `IdentifierCollection`. The bundle never passes
+them to `supports()` as part of its query-feature checks, and it catches the `\UnhandledMatchError`
+of a `supports()` written as an exhaustive `match` without a default, treating the new cases as
+unsupported. Your own code that iterates `DataSourceFeature::cases()` or matches on it exhaustively
+must handle them: add the two cases or a `default` arm.
+
 ### Deprecations
 
+- Acting on rows (delete, toggle, edit form, detail, bulk explicit selection) of a table whose data
+  provider cannot check the row scope skips the scope check and now logs a deprecation. 2.0 refuses
+  the request. Implement `IdentifierDataProviderInterface` and declare `DataSourceFeature::RowScope`
+  in `supports()`, or call `unscopedMutations()` on the table when the scope is enforced elsewhere,
+  typically an API Platform table. The built-in Doctrine provider is already scoped.
+- `ScopedIdentifierProviderInterface` is deprecated, use `IdentifierDataProviderInterface` and
+  declare `DataSourceFeature::RowScope` in `supports()`.
+- `IdentifierCollectingDataProviderInterface` is deprecated, use `IdentifierDataProviderInterface` and
+  declare `DataSourceFeature::IdentifierCollection` in `supports()`.
+- Exporting through a data provider that does not implement `StreamingDataProviderInterface` is
+  deprecated, and 2.0 requires `iterateRows()`. Implement `StreamingDataProviderInterface`.
+- A data provider that does not implement `FeatureAwareDataProviderInterface` is deprecated: the
+  bundle assumes it supports every query feature, and 2.0 requires `supports()`. Implement
+  `FeatureAwareDataProviderInterface`.
 - Every user-facing `setX()` method of columns, actions, bulk actions, table options and the table
   model gains a bare `x()` method with the same arguments, and `setX()` is deprecated. Rename the
   calls, for example `setTitle('Name')` becomes `title('Name')`. Getters, `@internal` methods and

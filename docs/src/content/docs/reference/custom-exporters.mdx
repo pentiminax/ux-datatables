@@ -87,7 +87,8 @@ Two behaviors are worth keeping when you override `cellValue()`:
 
 `ExportService` resolves the row iterator from the table's data provider with pagination removed. A
 provider implementing `StreamingDataProviderInterface` is asked for `iterateRows()`; anything else
-falls back to `fetchData()->data`, which materializes the whole result set. `DoctrineDataProvider`
+falls back to `fetchData()->data`, which materializes the whole result set and is deprecated since
+1.6: 2.0 requires `iterateRows()`. `DoctrineDataProvider`
 and `ArrayDataProvider` both implement the streaming interface.
 
 Columns come from `filterExportable()`, so `setExportable(false)`, hidden columns, action columns,
