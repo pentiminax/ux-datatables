@@ -84,7 +84,7 @@ data_tables:
 <Table
   headers={['Option', 'Description']}
   rows={[
-    ['package_loading', '`registered` loads only the packages you register (see the install command). Leaving it unset is deprecated: the default becomes `registered` in 2.0'],
+    ['package_loading', '`registered` loads only the packages you register (see the install command). Leaving it unset, or setting `builtin`, is deprecated: 2.0 removes the option and always loads the registered packages'],
     ['language', 'Default language locale (e.g., en-GB, fr-FR)'],
     ['layout', 'UI component positions (topStart, topEnd, bottomStart, bottomEnd)'],
     ['lengthMenu', 'Available page length options'],

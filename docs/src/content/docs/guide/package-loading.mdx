@@ -6,17 +6,28 @@ order: 45
 
 By default, the `datatable` Stimulus controller imports every DataTables package it can use: the
 core in each of four styles, all ten extensions in each style, JSZip, pdfmake, Lucide and
-Bootstrap. A bundler or an import map ships all of them, even when your tables only use paging and
-search.
+Bootstrap. Your bundler or import map has to resolve all of them, even when your tables only use
+paging and search, so you have to install every one of those packages.
 
 **Registered package loading** inverts this. The `datatable_core` controller imports nothing but
 `@hotwired/stimulus`, and your application registers the packages it uses with `packageLoaders`.
-A package you do not register is never requested.
+You install and resolve only the packages you register, and a package you do not register is never
+requested. It does not reduce what the browser downloads for the packages a table actually uses:
+the built-in loaders already fetch each package on demand.
 
 <Aside type="note" title="Opt-in in 1.5, the default in 2.0">
   Registered loading is opt-in in 1.5. When `data_tables.package_loading` is not set, the bundle
-  keeps the 1.x behavior and triggers a deprecation: the default becomes `registered` in 2.0. See
-  the [upgrade guide](https://github.com/pentiminax/ux-datatables/blob/main/UPGRADE.md).
+  keeps the 1.x behavior and triggers a deprecation. Setting `package_loading: builtin` explicitly
+  is deprecated too. In 2.0 the option is removed: `builtin` fails with a clear message, and
+  `registered` is accepted, ignored and deprecated. See the
+  [upgrade guide](https://github.com/pentiminax/ux-datatables/blob/main/UPGRADE.md).
+</Aside>
+
+<Aside type="caution" title="Import from the core entry">
+  In registered mode, import everything from `@pentiminax/ux-datatables/dist/core.js`:
+  `packageLoaders`, `buttonActions`, `modalAdapters` and the adapter types. The main entry,
+  `@pentiminax/ux-datatables`, still re-exports the 1.x controller in 1.x, so importing it brings the
+  built-in loaders, and the packages you did not install, back into your bundle.
 </Aside>
 
 ## Run the install command
@@ -32,7 +43,9 @@ them interactively, or `--all` to select every one.
 <Tabs>
   <TabItem label="AssetMapper">
     The command runs `importmap:require` for you. Run it again with `--prune` to drop the
-    DataTables entries you did not register:
+    DataTables entries you did not register. Symfony Flex puts the entries the bundle declares back
+    into `importmap.php` on the next `composer install` or `composer update`, so run the command
+    with `--prune` again after each Composer run:
 
     ```bash
     php bin/console ux-datatables:install --style=tailwind buttons responsive select
@@ -170,7 +183,7 @@ With AssetMapper, add the `dist/core.js` entry and install the packages:
 
 ```bash
 php bin/console importmap:require @pentiminax/ux-datatables/dist/core.js \
-    --path=./vendor/pentiminax/ux-datatables/assets/dist/core.js
+    --path=@pentiminax/ux-datatables/core.js
 php bin/console importmap:require datatables.net-dt datatables.net-select-dt \
     datatables.net-dt/css/dataTables.dataTables.min.css \
     datatables.net-select-dt/css/select.dataTables.min.css
@@ -191,12 +204,14 @@ the missing extension added to the list, or by adding the `register()` call to
 `assets/datatables.js` by hand. A table that enables an extension through its PHP model (`select()`,
 `responsive()`, `buttons()`) needs that extension registered.
 
-JSZip and pdfmake are optional and never raise this error. Without them, Buttons loads without
-Excel and PDF support, and DataTables silently leaves out the `excel` and `pdf` buttons.
+JSZip, pdfmake and Lucide are optional and never raise this error. Without JSZip or pdfmake,
+Buttons loads without Excel and PDF support, and the console warns which package is missing for the
+`excel` or `pdf` button your layout declares. A JSZip or pdfmake that fails to load disables only
+its button and warns. Without Lucide, tables initialize without their icons and the console warns.
 
 ## Third-party extensions
 
-Registering an extension the bundle does not know is not supported in 1.5. The registry accepts a
-closed list of names: `dataTables`, `buttons`, `jszip`, `pdfmake`, `bootstrap`, `lucide`,
+Registering an extension the bundle does not know is not supported. `packageLoaders.register()`
+throws for a name outside this closed list: `dataTables`, `buttons`, `jszip`, `pdfmake`, `bootstrap`, `lucide`,
 `colReorder`, `columnControl`, `fixedColumns`, `fixedHeader`, `keyTable`, `responsive`, `rowGroup`,
 `scroller`, `searchBuilder` and `select`.

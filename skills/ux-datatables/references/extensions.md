@@ -83,7 +83,7 @@ Button::custom('restoreOrder')->text('Restore order');
 ```
 
 ```javascript
-import { buttonActions } from '@pentiminax/ux-datatables'
+import { buttonActions } from '@pentiminax/ux-datatables/dist/core.js'
 buttonActions.register('restoreOrder', (e, dt) => dt.colReorder.reset())
 ```
 
