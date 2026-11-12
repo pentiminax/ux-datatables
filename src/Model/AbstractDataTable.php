@@ -130,7 +130,7 @@ abstract class AbstractDataTable
 
         $this->optIns = ResolvedOptIns::resolve($this->table, $this->asDataTable);
 
-        if ($this->optIns->apiPlatformOptOutOverridden && null === $this->table->getOption('ajax')) {
+        if ($this->optIns->apiPlatformOptOutOverridden && null === $this->table->getOption('ajax') && null === $this->table->getOption('data')) {
             trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Table "%s" opts into API Platform on #[AsDataTable] and out through apiPlatform(false): the attribute wins today, the fluent value will win in 2.0. Remove one of them.', static::class);
         }
 

@@ -85,6 +85,20 @@ final class AbstractDataTableOptInsTest extends TestCase
     }
 
     #[Test]
+    public function it_keeps_an_explicit_fluent_opt_out_on_an_inline_table_the_attribute_opts_into(): void
+    {
+        $payload = [];
+        $notices = $this->deprecationsOf(function () use (&$payload): void {
+            $payload = $this->render(AttributeInlineFluentOptOutFixture::class, '/api/books');
+        });
+
+        $this->assertFalse($payload['apiPlatform']);
+        $this->assertSame([['id' => 1]], $payload['data']);
+        $this->assertSame([], $this->matching($notices, 'API Platform'));
+        $this->assertSame([], $this->matching($notices, 'apiPlatform()'));
+    }
+
+    #[Test]
     public function it_calls_a_prepare_for_rendering_override_from_get_data_table(): void
     {
         $table = new class(null) extends FluentOptInFixture {
@@ -292,5 +306,14 @@ final class AttributeOptInFluentOptOutFixture extends OptInFixture
     public function configureDataTable(DataTable $table): DataTable
     {
         return $table->apiPlatform(false);
+    }
+}
+
+#[AsDataTable(entityClass: \stdClass::class, apiPlatform: true)]
+final class AttributeInlineFluentOptOutFixture extends OptInFixture
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->data([['id' => 1]])->apiPlatform(false);
     }
 }
