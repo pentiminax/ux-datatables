@@ -79,7 +79,7 @@ Scaffold from an entity: `php bin/console make:datatable`.
 
 - `references/defining-a-datatable.md` — `AbstractDataTable`, `#[AsDataTable]`, the `configure*()` hooks, data providers, `customizeQueryBuilder()`, page projection (`projectPage()`).
 - `references/columns.md` — all 11 column types + shared `AbstractColumn` methods.
-- `references/server-side.md` — server-side wiring, route import, Stimulus events, custom Ajax, computed columns (`setOrderExpression()`).
+- `references/server-side.md` — server-side wiring, route import, Stimulus events, custom Ajax, computed columns (`orderExpression()`).
 - `references/extensions.md` — Buttons, Select, SearchBuilder, Responsive, RowGroup, Scroller, KeyTable, ColReorder, FixedColumns, FixedHeader.
 - `references/column-control.md` — ColumnControl placement, per-column overrides, search lists, enums, Ajax option providers, and custom content.
 - `references/exporters.md` — replacing the CSV/XLSX writer for server-side export (`ExporterInterface`, `AbstractExporter`).
