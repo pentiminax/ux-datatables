@@ -175,19 +175,17 @@ In your controller:
 
 ```php
 use App\DataTables\UserDataTable;
-use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Runtime\DataTableResponder;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class UserController extends AbstractController
 {
     #[Route('/users', name: 'app_users')]
-    public function index(UserDataTable $table, Request $request): Response
+    public function index(UserDataTable $table, DataTableResponder $responder, Request $request): Response
     {
-        $table->handleRequest($request);
-
-        if ($table->isRequestHandled()) {
-            return $table->getResponse();
+        if ($response = $responder->respond($table, $request)) {
+            return $response;
         }
 
         return $this->render('user/index.html.twig', [

@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Command\InstallCommand;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -26,6 +27,8 @@ use Symfony\Component\Filesystem\Filesystem;
 #[CoversClass(InstallCommand::class)]
 final class InstallCommandTest extends TestCase
 {
+    use CollectsDeprecations;
+
     private const CONTROLLERS = <<<'JSON'
         {
             "controllers": {
@@ -279,7 +282,7 @@ final class InstallCommandTest extends TestCase
         $this->assertContains('lucide@1.52.0', $packages);
         $this->assertContains('datatables.net-dt/css/dataTables.dataTables.min.css@3.1.3', $packages);
         $this->assertContains('datatables.net-dt@3.1.3', $packages, 'A mapped package below the declared range is pinned again with its stylesheet.');
-        $this->assertStringContainsString('--prune', $tester->getDisplay());
+        $this->assertStringNotContainsString('--prune', $tester->getDisplay());
     }
 
     #[Test]
@@ -312,7 +315,10 @@ final class InstallCommandTest extends TestCase
     #[Test]
     public function it_prints_the_npm_command_with_encore(): void
     {
-        $tester = $this->install(['extensions' => ['select'], '--style' => 'bs5', '--prune' => true]);
+        $tester = null;
+        $this->deprecationsOf(function () use (&$tester): void {
+            $tester = $this->install(['extensions' => ['select'], '--style' => 'bs5', '--prune' => true]);
+        });
 
         $this->assertSame([], $this->calls);
         $this->assertStringContainsString('npm install datatables.net-bs5@3.1.3 datatables.net-select-bs5@4.1.1 lucide@1.52.0 bootstrap@5.3.8', $tester->getDisplay());
@@ -396,7 +402,11 @@ final class InstallCommandTest extends TestCase
             ];
             PHP);
 
-        $this->install(['extensions' => ['select'], '--prune' => true]);
+        $deprecations = $this->deprecationsOf(fn () => $this->install(['extensions' => ['select'], '--prune' => true]));
+
+        $this->assertCount(1, $deprecations);
+        $this->assertStringContainsString('--prune', $deprecations[0]);
+        $this->assertStringContainsString('Removed in 2.0.', $deprecations[0]);
 
         $remove = array_merge(...array_column(array_filter($this->calls, static fn (array $call): bool => 'importmap:remove' === $call[0]), 1));
         sort($remove);
@@ -410,6 +420,18 @@ final class InstallCommandTest extends TestCase
             'pdfmake',
             'pdfmake/build/vfs_fonts.js',
         ], $remove);
+    }
+
+    #[Test]
+    public function it_notes_that_prune_is_deprecated_and_stays_silent_without_it(): void
+    {
+        $tester = null;
+        $this->deprecationsOf(function () use (&$tester): void {
+            $tester = $this->install(['extensions' => ['select'], '--prune' => true]);
+        });
+
+        $this->assertStringContainsString('The --prune option is deprecated', $tester->getDisplay());
+        $this->assertSame([], $this->deprecationsOf(fn () => $this->install(['extensions' => ['select']])));
     }
 
     #[Test]

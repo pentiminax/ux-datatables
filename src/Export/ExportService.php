@@ -35,9 +35,9 @@ final class ExportService
     {
         RequestInputBag::exposeBodyParametersOnQuery($request);
 
-        $table->handleRequest($request);
+        $table->handleDataTableRequest($request);
 
-        if (!$table->isRequestHandled()) {
+        if (!$table->isDataTableRequestHandled()) {
             throw new BadRequestHttpException('Invalid DataTables request.');
         }
 
@@ -139,12 +139,12 @@ final class ExportService
      */
     private function iterateRows(AbstractDataTable $table): iterable
     {
-        $request = $table->getRequest();
+        $request = $table->getDataTableRequest();
         if (null === $request) {
             throw new BadRequestHttpException('Invalid DataTables request.');
         }
 
-        $provider = $table->getDataProvider();
+        $provider = $table->getResolvedDataProvider();
         if (null === $provider) {
             throw new \LogicException(\sprintf('Table "%s" has no data provider, so it cannot be exported.', $table::class));
         }

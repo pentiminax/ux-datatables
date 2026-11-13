@@ -109,6 +109,7 @@ is not exposed in the browser URL or payload:
 
 ```php
 use App\DataTables\UsersDataTable;
+use Pentiminax\UX\DataTables\Runtime\DataTableResponder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -129,6 +130,7 @@ When you configure the table to use the same route as its Ajax endpoint, handle 
 
 ```php
 use App\DataTables\UsersDataTable;
+use Pentiminax\UX\DataTables\Runtime\DataTableResponder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -137,13 +139,11 @@ use Symfony\Component\Routing\Attribute\Route;
 class UsersController extends AbstractController
 {
     #[Route('/users', name: 'app_users')]
-    public function index(UsersDataTable $table, Request $request): Response
+    public function index(UsersDataTable $table, DataTableResponder $responder, Request $request): Response
     {
         // Needed only when this controller is also the configured Ajax endpoint.
-        $table->handleRequest($request);
-
-        if ($table->isRequestHandled()) {
-            return $table->getResponse();
+        if ($response = $responder->respond($table, $request)) {
+            return $response;
         }
 
         return $this->render('users/index.html.twig', [
@@ -316,10 +316,10 @@ the table declaratively and let the request-scoped boundaries do the rest:
   headers={['Method', 'Description']}
   rows={[
     ['`createDataProvider()`', 'Protected hook for manual DataProvider instances'],
-    ['`getDataProvider()`', 'Public façade returning the resolved provider'],
-    ['`fetchData(DataTableRequest $request)`', 'Fetch data using the provider'],
-    ['`getRequest()`', 'Get the parsed DataTables request'],
-    ['`getHttpRequest()`', 'Get the current Symfony HTTP request after `handleRequest()`'],
+    ['`getDataProvider()`', 'Deprecated since 1.7, no replacement: 2.0 moves it to the bundle runtime'],
+    ['`fetchData(DataTableRequest $request)`', 'Deprecated since 1.7, no replacement: 2.0 moves it to the bundle runtime'],
+    ['`getRequest()`', 'Deprecated since 1.7, no replacement: 2.0 moves it to the bundle runtime'],
+    ['`getHttpRequest()`', 'Get the current Symfony HTTP request while a DataTables request is handled'],
     ['`mapRow(mixed $row)`', 'Map a single row to array'],
     [
       '`rows(array $data)`',
@@ -350,12 +350,13 @@ the table declaratively and let the request-scoped boundaries do the rest:
 <Table
   headers={['Method', 'Description']}
   rows={[
-    ['`handleRequest(Request $request)`', 'Handle Ajax requests'],
-    ['`isRequestHandled()`', 'Check if request was handled'],
     [
-      '`getResponse()`',
-      'Get JsonResponse for Ajax; returns an empty dataset when no provider is available',
+      '`DataTableResponder::respond(AbstractDataTable $table, Request $request)`',
+      'Get the JsonResponse for a DataTables request, or `null` when the request carries no DataTables payload',
     ],
+    ['`handleRequest(Request $request)`', 'Deprecated since 1.7: use `DataTableResponder::respond()`'],
+    ['`isRequestHandled()`', 'Deprecated since 1.7: use `DataTableResponder::respond()`'],
+    ['`getResponse()`', 'Deprecated since 1.7: use `DataTableResponder::respond()`'],
     ['`getDataTable()`', 'Deprecated since 1.6: use `getConfiguredDataTable()` to read or `render_datatable()` to render'],
     [
       '`getConfiguredDataTable()`',
@@ -438,7 +439,7 @@ Use `rows()` when your rows are domain objects or preloaded arrays and you still
 after mapping each row through the pipeline. `DataTable::data()` sets that option directly, with
 rows that are already arrays.
 
-If an Ajax request is handled and the resolved provider is `null`, `getResponse()` returns an
+If an Ajax request is handled and the resolved provider is `null`, the response is an
 empty DataTables payload using the current `draw` value:
 
 ```json

@@ -331,7 +331,7 @@ iterable publishes an empty list. Static options and an Ajax provider cannot be 
 descriptor because DataTables gives static options priority.
 
 Dynamic providers run for the bundle's Ajax endpoint and manual endpoints that call
-`AbstractDataTable::getResponse()`. External Ajax endpoints must add their own `columnControl`
+`DataTableResponder::respond()`. External Ajax endpoints must add their own `columnControl`
 response object.
 
 ### Display Options

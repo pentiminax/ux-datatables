@@ -141,7 +141,7 @@ final class EmployeeDataTable extends AbstractDataTable
 
 The provider must apply the same tenant and authorization scope as the table query. Dynamic
 providers run only when the bundle or a manual controller returns
-`AbstractDataTable::getResponse()`. API Platform and external Ajax endpoints must add their own
+`DataTableResponder::respond()`. API Platform and external Ajax endpoints must add their own
 `columnControl` response object. A server-side table never derives a complete list from its current
 page.
 

@@ -30,7 +30,7 @@ final class AbstractDataTableHttpRequestTest extends TestCase
 
         $this->assertNull($table->exposedHttpRequest());
 
-        $table->handleRequest($request);
+        $table->handleDataTableRequest($request);
 
         $this->assertSame($request, $table->exposedHttpRequest());
     }
@@ -39,7 +39,7 @@ final class AbstractDataTableHttpRequestTest extends TestCase
     public function it_reads_the_current_http_request_while_configuring_the_query_builder(): void
     {
         $table = new HttpRequestAwareTable();
-        $table->handleRequest(new Request(query: ['draw' => 3, 'genre' => 'sci-fi']));
+        $table->handleDataTableRequest(new Request(query: ['draw' => 3, 'genre' => 'sci-fi']));
 
         $qb = $this->createMock(QueryBuilder::class);
         $qb->expects($this->once())

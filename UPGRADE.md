@@ -14,6 +14,53 @@ The guide starts at **1.1.0**, the first upgrade after the stable 1.0 release. T
 
 Deprecated APIs keep working for the whole 1.x line and are removed in 2.0.
 
+## Upgrading to 1.7.0
+
+1.7 is the last 1.x minor. Everything in it is backward compatible: it deprecates what 2.0 removes,
+so that 2.0 is a cleanup. An application that runs 1.7.0 with no deprecation notice upgrades to 2.0
+with `composer update` and one install command. To rename everything with an AI coding agent, give it
+[UPGRADE-AI.md](UPGRADE-AI.md).
+
+### 2.0 platform requirements
+
+2.0 requires PHP 8.3, Symfony 7.4 or 8.x, API Platform 4 or later (when you use it) and
+`symfony/mercure` 0.8 or later (when you use it). No deprecation notice can announce a platform
+floor, so check your platform before upgrading to 2.0.
+
+### Deprecations
+
+- `AbstractDataTable::handleRequest()`, `isRequestHandled()` and `getResponse()` are deprecated, use
+  the new `DataTableResponder::respond()`. It returns the DataTables JSON response, or `null` when the
+  request carries no DataTables payload, and it still records the query in the Web Profiler.
+  Inject `Pentiminax\UX\DataTables\Runtime\DataTableResponder` in your controller:
+
+  ```php
+  // before
+  $table->handleRequest($request);
+
+  if ($table->isRequestHandled()) {
+      return $table->getResponse();
+  }
+
+  // after
+  if ($response = $responder->respond($table, $request)) {
+      return $response;
+  }
+  ```
+
+- `AbstractDataTable::getRequest()`, `fetchData()` and `getDataProvider()` are deprecated and have no
+  replacement: 2.0 moves them to the bundle runtime. Stop calling them from controllers and
+  services. Inside hooks, `customizeQueryBuilder()` already receives the `DataTableRequest` as its
+  `$request` argument. Elsewhere, call the data provider you built yourself.
+- A subclass that overrides `handleRequest()`, `isRequestHandled()`, `getResponse()`, `getRequest()`
+  or `fetchData()` keeps being called by the bundle in 1.x and now logs a deprecation, once per
+  class and method, even when its override does not call `parent::`. 2.0 no longer calls the
+  overrides: use `DataTableResponder::respond()` instead of the three response methods, and move
+  the logic of the other two to `customizeQueryBuilder()`.
+- The `--prune` option of `ux-datatables:install` is deprecated and has no replacement: 2.0 removes
+  it because Symfony Flex no longer declares import map entries to prune. The option keeps its
+  behavior and prints a note.
+
 ## Upgrading to 1.6.0
 
 Everything in this release is backward compatible, except the behavior changes below. An application that runs 1.6.0 with no

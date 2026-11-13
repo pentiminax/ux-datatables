@@ -610,7 +610,7 @@ final class DataTablesExtensionTest extends TestCase
     {
         /** @var AbstractDataTable $table */
         $table = $this->container->get('test.datatables.server_side_template');
-        $table->handleRequest(Request::create('/datatable/books', 'GET', [
+        $table->handleDataTableRequest(Request::create('/datatable/books', 'GET', [
             'draw'    => 1,
             'start'   => 0,
             'length'  => 10,
@@ -621,7 +621,7 @@ final class DataTablesExtensionTest extends TestCase
             ],
         ]));
 
-        $payload = json_decode($table->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $payload = json_decode($table->createDataTableResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
 
         $this->assertSame('<span class="badge">7-active</span>', trim($payload['data'][0]['status_display']));
     }

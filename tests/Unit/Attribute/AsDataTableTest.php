@@ -62,10 +62,10 @@ final class AsDataTableTest extends TestCase
             )
         ));
 
-        $provider = $table->getDataProvider();
+        $provider = $table->getResolvedDataProvider();
 
         $this->assertInstanceOf(DoctrineDataProvider::class, $provider);
-        $this->assertSame($provider, $table->getDataProvider());
+        $this->assertSame($provider, $table->getResolvedDataProvider());
     }
 
     #[Test]
@@ -73,7 +73,7 @@ final class AsDataTableTest extends TestCase
     {
         $table = new TestDataTableWithManualOverride();
 
-        $provider = $table->getDataProvider();
+        $provider = $table->getResolvedDataProvider();
 
         $this->assertInstanceOf(ArrayDataProvider::class, $provider);
     }
@@ -83,7 +83,7 @@ final class AsDataTableTest extends TestCase
     {
         $table = new TestDataTableWithoutAttribute();
 
-        $this->assertNull($table->getDataProvider());
+        $this->assertNull($table->getResolvedDataProvider());
     }
 
     /**

@@ -47,11 +47,11 @@ final class AbstractDataTableApiPlatformUnavailableTest extends TestCase
         ?ApiResourceCollectionUrlResolver $urlResolver,
     ): void {
         $table = new $tableClass($urlResolver);
-        $table->handleRequest($this->dataTablesRequest());
+        $table->handleDataTableRequest($this->dataTablesRequest());
 
         $this->expectException(NotFoundHttpException::class);
 
-        $table->getResponse();
+        $table->createDataTableResponse();
     }
 
     #[Test]
@@ -61,11 +61,11 @@ final class AbstractDataTableApiPlatformUnavailableTest extends TestCase
         ?ApiResourceCollectionUrlResolver $urlResolver,
     ): void {
         $table = new $tableClass($urlResolver);
-        $table->handleRequest($this->dataTablesRequest());
+        $table->handleDataTableRequest($this->dataTablesRequest());
 
         $this->expectException(NotFoundHttpException::class);
 
-        $table->getDataProvider();
+        $table->getResolvedDataProvider();
     }
 
     private function dataTablesRequest(): Request

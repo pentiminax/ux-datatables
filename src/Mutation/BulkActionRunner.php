@@ -188,10 +188,10 @@ final class BulkActionRunner
         }
 
         RequestQueryHydrator::hydrate($request, $selection->query);
-        $table->table->handleRequest($request);
+        $table->table->handleDataTableRequest($request);
 
-        $dataTableRequest = $table->table->getRequest();
-        $provider         = $table->table->getDataProvider();
+        $dataTableRequest = $table->table->getDataTableRequest();
+        $provider         = $table->table->getResolvedDataProvider();
 
         $collector = DataSourceCapability::identifierCollector($provider);
 

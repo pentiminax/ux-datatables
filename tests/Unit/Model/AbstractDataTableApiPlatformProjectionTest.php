@@ -43,9 +43,9 @@ final class AbstractDataTableApiPlatformProjectionTest extends TestCase
     {
         $table = $this->table();
 
-        $this->assertInstanceOf(ApiPlatformCollectionProvider::class, $table->getDataProvider());
+        $this->assertInstanceOf(ApiPlatformCollectionProvider::class, $table->getResolvedDataProvider());
 
-        $result = $table->fetchData($this->request());
+        $result = $table->fetchDataTableResult($this->request());
 
         $this->assertSame(2, $result->recordsTotal);
         $this->assertSame([

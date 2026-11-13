@@ -35,10 +35,10 @@ final class RowScopeGuard
      */
     public static function keepInScope(ResolvedDataTable $table, Request $request, string $field, array $ids): array
     {
-        $table->table->handleRequest($request);
+        $table->table->handleDataTableRequest($request);
 
-        $dataTableRequest = $table->table->getRequest();
-        $provider         = $table->table->getDataProvider();
+        $dataTableRequest = $table->table->getDataTableRequest();
+        $provider         = $table->table->getResolvedDataProvider();
 
         $checker = DataSourceCapability::rowScopeChecker($provider);
 

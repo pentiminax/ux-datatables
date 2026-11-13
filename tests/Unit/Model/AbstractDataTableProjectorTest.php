@@ -50,9 +50,9 @@ final class AbstractDataTableProjectorTest extends TestCase
             ),
         ));
 
-        $table->handleRequest(new Request(query: ['draw' => 1, 'start' => 0, 'length' => 10]));
+        $table->handleDataTableRequest(new Request(query: ['draw' => 1, 'start' => 0, 'length' => 10]));
 
-        $data = json_decode((string) $table->getResponse()->getContent(), true)['data'];
+        $data = json_decode((string) $table->createDataTableResponse()->getContent(), true)['data'];
 
         $this->assertSame([
             ['id' => 1, 'name' => 'Alpha', 'badge' => 'BADGE:Alpha'],

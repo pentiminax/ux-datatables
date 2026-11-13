@@ -44,6 +44,7 @@ use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
 use Pentiminax\UX\DataTables\Routing\RouteLoader;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Runtime\DataTableResponder;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
@@ -229,8 +230,15 @@ return static function (ContainerConfigurator $container): void {
         ->tag('controller.service_arguments')
         ->public();
 
+    $services->set('datatables.runtime.responder', DataTableResponder::class)
+        ->private();
+
+    $services->alias(DataTableResponder::class, 'datatables.runtime.responder')
+        ->public();
+
     $services->set('datatables.controller.ajax_data', AjaxDataController::class)
         ->arg(0, service('datatables.ajax.registry'))
+        ->arg(1, service('datatables.runtime.responder'))
         ->tag('controller.service_arguments')
         ->public();
 
