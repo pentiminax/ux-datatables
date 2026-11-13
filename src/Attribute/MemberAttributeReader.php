@@ -10,9 +10,15 @@ namespace Pentiminax\UX\DataTables\Attribute;
  * Reflection only reports a private property on the class that declares it, so a Doctrine mapped
  * superclass holding private members would otherwise lose everything it annotates. The chain is
  * walked explicitly, and a child redeclaring a name wins over its parent.
+ *
+ * Results are memoized per class for the process lifetime, and the cache is never cleared: attributes
+ * cannot change at runtime, and their instances and targets are readonly.
  */
 final class MemberAttributeReader
 {
+    /** @var array<string, list<AttributeTarget<object>>> */
+    private static array $cache = [];
+
     /**
      * @template T of object
      *
@@ -22,6 +28,17 @@ final class MemberAttributeReader
      * @return list<AttributeTarget<T>>
      */
     public function readProperties(string $class, string $attributeClass): array
+    {
+        return self::$cache['readProperties|'.$class.'|'.$attributeClass] ??= $this->readPropertiesUncached($class, $attributeClass);
+    }
+
+    /**
+     * @param class-string $class
+     * @param class-string $attributeClass
+     *
+     * @return list<AttributeTarget<object>>
+     */
+    private function readPropertiesUncached(string $class, string $attributeClass): array
     {
         $targets = [];
 
@@ -85,6 +102,17 @@ final class MemberAttributeReader
      */
     public function readClass(string $class, string $attributeClass): array
     {
+        return self::$cache['readClass|'.$class.'|'.$attributeClass] ??= $this->readClassUncached($class, $attributeClass);
+    }
+
+    /**
+     * @param class-string $class
+     * @param class-string $attributeClass
+     *
+     * @return list<AttributeTarget<object>>
+     */
+    private function readClassUncached(string $class, string $attributeClass): array
+    {
         $targets = [];
 
         foreach ((new \ReflectionClass($class))->getAttributes($attributeClass, \ReflectionAttribute::IS_INSTANCEOF) as $attribute) {
@@ -110,6 +138,17 @@ final class MemberAttributeReader
      * @return list<AttributeTarget<T>>
      */
     public function readMethods(string $class, string $attributeClass): array
+    {
+        return self::$cache['readMethods|'.$class.'|'.$attributeClass] ??= $this->readMethodsUncached($class, $attributeClass);
+    }
+
+    /**
+     * @param class-string $class
+     * @param class-string $attributeClass
+     *
+     * @return list<AttributeTarget<object>>
+     */
+    private function readMethodsUncached(string $class, string $attributeClass): array
     {
         $targets = [];
 
