@@ -40,7 +40,7 @@ final class InstallCommand extends Command
             ->addOption('style', null, InputOption::VALUE_REQUIRED, 'Look: tailwind, dt or bs5', InstallStyle::Tailwind->value)
             ->addOption('all', null, InputOption::VALUE_NONE, 'Install every extension')
             ->addOption('no-detect', null, InputOption::VALUE_NONE, 'Do not scan your DataTable classes for the extensions they use')
-            ->addOption('prune', null, InputOption::VALUE_NONE, 'AssetMapper only: remove the DataTables JavaScript entries the application does not register')
+            ->addOption('prune', null, InputOption::VALUE_NONE, 'Deprecated, removed in 2.0. AssetMapper only: remove the DataTables JavaScript entries the application does not register')
         ;
     }
 
@@ -48,6 +48,11 @@ final class InstallCommand extends Command
     {
         $io    = new SymfonyStyle($input, $output);
         $style = InstallStyle::tryFrom((string) $input->getOption('style'));
+
+        if ($input->getOption('prune')) {
+            trigger_deprecation('pentiminax/ux-datatables', '1.7', 'The "--prune" option of "ux-datatables:install" is deprecated and has no replacement: 2.0 removes it because Flex no longer declares import map entries to prune. Removed in 2.0.');
+            $io->note('The --prune option is deprecated and will be removed in 2.0.');
+        }
 
         if (null === $style) {
             $io->error('Unknown style "'.$input->getOption('style').'". Valid styles: '.implode(', ', array_column(InstallStyle::cases(), 'value')).'.');
@@ -143,10 +148,6 @@ final class InstallCommand extends Command
 
         $io->success('DataTables is set up with registered package loading ('.$style->value.' style).');
         $io->writeln('Next steps: clear the cache and reload a page that renders a table.');
-
-        if ($assetMapper && !$input->getOption('prune')) {
-            $io->writeln('Run again with --prune to remove the DataTables entries from importmap.php that your application does not register.');
-        }
 
         return Command::SUCCESS;
     }

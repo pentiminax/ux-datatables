@@ -199,13 +199,17 @@ a cell.
 Then in your controller:
 
 ```php
-#[Route('/users', name: 'app_users')]
-public function index(UsersDataTable $table, Request $request): Response
-{
-    $table->handleRequest($request);
+use App\DataTables\UsersDataTable;
+use Pentiminax\UX\DataTables\Runtime\DataTableResponder;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
 
-    if ($table->isRequestHandled()) {
-        return $table->getResponse();
+#[Route('/users', name: 'app_users')]
+public function index(UsersDataTable $table, DataTableResponder $responder, Request $request): Response
+{
+    if ($response = $responder->respond($table, $request)) {
+        return $response;
     }
 
     return $this->render('user/index.html.twig', [

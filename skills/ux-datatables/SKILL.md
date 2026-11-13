@@ -60,11 +60,10 @@ final class UserDataTable extends AbstractDataTable
 
 Controller + Twig:
 ```php
-public function index(UserDataTable $table, Request $request): Response
+public function index(UserDataTable $table, DataTableResponder $responder, Request $request): Response
 {
-    $table->handleRequest($request);
-    if ($table->isRequestHandled()) {
-        return $table->getResponse();
+    if ($response = $responder->respond($table, $request)) {
+        return $response;
     }
     return $this->render('user/index.html.twig', ['table' => $table]);
 }

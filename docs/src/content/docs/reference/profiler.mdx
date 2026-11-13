@@ -20,7 +20,7 @@ composer require --dev symfony/profiler-pack
 
 <Aside type="note">
   The import is deliberately conditional. `DataTableProfiler` records eagerly — the Twig function
-  and `AbstractDataTable::getResponse()` call it directly on every request, not only when Symfony's
+  and `DataTableResponder::respond()` call it directly on every request, not only when Symfony's
   profiler pulls a `collect()`. Registering the services unconditionally would mean paying that cost
   in production.
 </Aside>
@@ -49,8 +49,8 @@ the serialized payload. A `ClientHydrated` table with more rows than
 
 ### Ajax queries
 
-`collectAjaxQuery()` is called by `AbstractDataTable::getResponse()`, whichever route reached it —
-the bundle's own Ajax controller or a custom endpoint calling `handleRequest()` / `getResponse()`
+`collectAjaxQuery()` is called by `DataTableResponder::respond()`, whichever route reached it —
+the bundle's own Ajax controller or a custom endpoint calling `DataTableResponder::respond()`
 directly. Each record holds:
 
 | Field                              | Description                                             |

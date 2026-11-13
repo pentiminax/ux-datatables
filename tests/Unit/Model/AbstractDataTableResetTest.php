@@ -79,14 +79,14 @@ final class AbstractDataTableResetTest extends TestCase
         $table = new ConfigurableDataTable([TextColumn::new('id')]);
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
 
-        $table->handleRequest(new Request(['draw' => '1']));
+        $table->handleDataTableRequest(new Request(['draw' => '1']));
 
-        $this->assertNotNull($table->getRequest());
+        $this->assertNotNull($table->getDataTableRequest());
 
         $table->resetDataTableState();
 
-        $this->assertNull($table->getRequest());
-        $this->assertFalse($table->isRequestHandled());
+        $this->assertNull($table->getDataTableRequest());
+        $this->assertFalse($table->isDataTableRequestHandled());
     }
 
     /**

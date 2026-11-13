@@ -24,7 +24,7 @@ public function configureDataTable(DataTable $table): DataTable
 
 The rendered table will call the built-in `ux_datatables_ajax_data` route. The request includes an
 opaque table token, not the PHP class name, and the bundle resolves the matching tagged
-`AbstractDataTable` service before calling `handleRequest()` internally.
+`AbstractDataTable` service before answering the request internally.
 
 The Symfony Flex recipe imports the bundle routes for you. Without Flex, import them once in your
 app:
@@ -87,9 +87,14 @@ still useful when your table posts back to the same route or when you configured
 In that case, do not rely on `$request->isXmlHttpRequest()` to detect a DataTables request. The
 supported flow is:
 
-1. Call `handleRequest($request)`
-2. Check `isRequestHandled()`
-3. Return `getResponse()` only when the request actually contains a DataTables payload
+1. Call `DataTableResponder::respond($table, $request)`
+2. Return the response it gives you
+3. Render the page when it returns `null`, meaning the request carries no DataTables payload
+
+<Aside type="caution" title="handleRequest(), isRequestHandled() and getResponse() are deprecated">
+  Since 1.7, `AbstractDataTable::handleRequest()`, `isRequestHandled()` and `getResponse()` are
+  deprecated in favor of `DataTableResponder::respond()`. They are removed in 2.0.
+</Aside>
 
 What matters here is the DataTables payload, not whether the browser transport happens to be
 implemented as XHR or `fetch`.
@@ -119,8 +124,7 @@ $requestDto = DataTableRequest::fromRequest($request);
 ```
 
 Use this DTO when you need direct access to paging, ordering, or search values. If you are using
-`AbstractDataTable` in a controller, the usual entry point is still `handleRequest()` followed by
-`isRequestHandled()`.
+`AbstractDataTable` in a controller, the usual entry point is `DataTableResponder::respond()`.
 
 ## Typical Controller With Automatic Ajax
 
@@ -142,18 +146,17 @@ public function index(ProductsDataTable $table): Response
 
 ```php
 use App\DataTables\ProductsDataTable;
+use Pentiminax\UX\DataTables\Runtime\DataTableResponder;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/products', name: 'app_products')]
-public function index(ProductsDataTable $table, Request $request): Response
+public function index(ProductsDataTable $table, DataTableResponder $responder, Request $request): Response
 {
     // Needed only when the table Ajax URL points to this route.
-    $table->handleRequest($request);
-
-    if ($table->isRequestHandled()) {
-        return $table->getResponse();
+    if ($response = $responder->respond($table, $request)) {
+        return $response;
     }
 
     return $this->render('product/index.html.twig', [
@@ -337,13 +340,13 @@ reference.
 
 ## Best Practices
 
-- Use `isRequestHandled()` instead of `$request->isXmlHttpRequest()`.
+- Use `DataTableResponder::respond()` instead of `$request->isXmlHttpRequest()`.
 - Let `AbstractDataTable` auto-wire Ajax when the default bundle route is enough.
 - Always whitelist sortable/searchable fields in your query layer.
 - Keep backend response time predictable (indexes, query limits).
 - Prefer `AbstractDataTable` for reusable query behavior.
 - Keep your server-side endpoint aligned with the URL configured in `ajax()`.
-- Ensure your table resolves a provider in server-side mode, either through `createDataProvider()` or `#[AsDataTable(...)]`; otherwise `getResponse()` falls back to an empty payload.
+- Ensure your table resolves a provider in server-side mode, either through `createDataProvider()` or `#[AsDataTable(...)]`; otherwise the response falls back to an empty payload.
 
 ## Cross Links
 

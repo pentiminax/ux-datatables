@@ -51,7 +51,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * docs/src/content/docs/reference/abstract-datatable.mdx ("Configuration Methods Must Be Pure").
  *
  * Request-dependent behavior belongs at the request-scoped boundaries instead: setPermission() on
- * columns and actions, customizeQueryBuilder() and getRequest() for the query, and rows() --
+ * columns and actions, customizeQueryBuilder() for the query (getCurrentRequest() in other hooks), and rows() --
  * the sanctioned way to inject rows a controller has already resolved -- for inline data, which
  * runs them through the same row-processing pipeline a provider would use.
  */
@@ -86,6 +86,9 @@ abstract class AbstractDataTable
 
     /** @var array<class-string, true> */
     private static array $implicitClientSideReported = [];
+
+    /** @var array<string, true> */
+    private static array $overrideReported = [];
 
     /**
      * @internal
@@ -197,7 +200,20 @@ abstract class AbstractDataTable
         $this->initialized = true;
     }
 
+    /**
+     * @deprecated since 1.7, use getCurrentRequest() inside the table, or the $request argument of customizeQueryBuilder(). Removed in 2.0.
+     */
     public function getRequest(): ?DataTableRequest
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.7', 'The "%s()" method is deprecated, use getCurrentRequest() inside the table, or the $request argument of customizeQueryBuilder(). Removed in 2.0.', __METHOD__);
+
+        return $this->runtime()->getRequest();
+    }
+
+    /**
+     * The DataTableRequest being handled, for hooks such as mapRow() or projectPage().
+     */
+    final protected function getCurrentRequest(): ?DataTableRequest
     {
         return $this->runtime()->getRequest();
     }
@@ -207,19 +223,93 @@ abstract class AbstractDataTable
         return $this->runtime()->getHttpRequest();
     }
 
+    /**
+     * @deprecated since 1.7, use DataTableResponder::respond() instead. Removed in 2.0.
+     */
     public function handleRequest(Request $request): static
     {
+        trigger_deprecation('pentiminax/ux-datatables', '1.7', 'The "%s()" method is deprecated, use "DataTableResponder::respond()" instead. Removed in 2.0.', __METHOD__);
+
         $this->runtime()->handleRequest($request);
 
         return $this;
     }
 
+    /**
+     * @deprecated since 1.7, use DataTableResponder::respond() instead. Removed in 2.0.
+     */
     public function isRequestHandled(): bool
     {
+        trigger_deprecation('pentiminax/ux-datatables', '1.7', 'The "%s()" method is deprecated, use "DataTableResponder::respond()" instead. Removed in 2.0.', __METHOD__);
+
         return $this->runtime()->isRequestHandled();
     }
 
+    /**
+     * @deprecated since 1.7, use DataTableResponder::respond() instead. Removed in 2.0.
+     */
     public function getResponse(): JsonResponse
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.7', 'The "%s()" method is deprecated, use "DataTableResponder::respond()" instead. Removed in 2.0.', __METHOD__);
+
+        return $this->buildResponse();
+    }
+
+    /**
+     * @internal
+     */
+    public function handleDataTableRequest(Request $request): void
+    {
+        if ($this->overrides('handleRequest')) {
+            $this->handleRequest($request);
+
+            return;
+        }
+
+        $this->runtime()->handleRequest($request);
+    }
+
+    /**
+     * @internal
+     */
+    public function isDataTableRequestHandled(): bool
+    {
+        return $this->overrides('isRequestHandled') ? $this->isRequestHandled() : $this->runtime()->isRequestHandled();
+    }
+
+    /**
+     * @internal
+     */
+    public function createDataTableResponse(): JsonResponse
+    {
+        return $this->overrides('getResponse') ? $this->getResponse() : $this->buildResponse();
+    }
+
+    /**
+     * @internal
+     */
+    public function getDataTableRequest(): ?DataTableRequest
+    {
+        return $this->overrides('getRequest') ? $this->getRequest() : $this->runtime()->getRequest();
+    }
+
+    /**
+     * @internal
+     */
+    public function fetchDataTableResult(DataTableRequest $request): DataTableResult
+    {
+        return $this->overrides('fetchData') ? $this->fetchData($request) : $this->runtime()->fetchData($request);
+    }
+
+    /**
+     * @internal
+     */
+    public function getResolvedDataProvider(): ?DataProviderInterface
+    {
+        return $this->runtime()->getDataProvider();
+    }
+
+    private function buildResponse(): JsonResponse
     {
         $start    = hrtime(true);
         $response = $this->runtime()->getResponse();
@@ -227,6 +317,31 @@ abstract class AbstractDataTable
         $this->collectAjaxQueryForProfiler($response, $start);
 
         return $response;
+    }
+
+    private function overrides(string $method): bool
+    {
+        $declaringClass = (new \ReflectionMethod($this, $method))->getDeclaringClass()->getName();
+
+        if (self::class === $declaringClass) {
+            return false;
+        }
+
+        $key = static::class.'::'.$method;
+
+        if (!isset(self::$overrideReported[$key])) {
+            self::$overrideReported[$key] = true;
+
+            $pointer = \in_array($method, ['handleRequest', 'isRequestHandled', 'getResponse'], true)
+                ? 'use "DataTableResponder::respond()" instead'
+                : ('getRequest' === $method
+                    ? 'read the request with "getCurrentRequest()" inside the table, or from the $request argument of "customizeQueryBuilder()"'
+                    : 'move its logic to "customizeQueryBuilder()", which receives the DataTableRequest as its $request argument');
+
+            trigger_deprecation('pentiminax/ux-datatables', '1.7', 'Overriding "%s::%s()" is deprecated: 2.0 no longer calls it, %s. Removed in 2.0.', static::class, $method, $pointer);
+        }
+
+        return true;
     }
 
     /**
@@ -365,8 +480,13 @@ abstract class AbstractDataTable
         return $table;
     }
 
+    /**
+     * @deprecated since 1.7, it has no replacement: 2.0 moves it to the bundle runtime. Removed in 2.0.
+     */
     final public function getDataProvider(): ?DataProviderInterface
     {
+        trigger_deprecation('pentiminax/ux-datatables', '1.7', 'The "%s()" method is deprecated and has no replacement: 2.0 moves it to the bundle runtime. Removed in 2.0.', __METHOD__);
+
         return $this->runtime()->getDataProvider();
     }
 
@@ -418,8 +538,13 @@ abstract class AbstractDataTable
         return null === $asDataTable ? [] : $reader->readFilters($asDataTable->dataClass);
     }
 
+    /**
+     * @deprecated since 1.7, it has no replacement: 2.0 moves it to the bundle runtime. Removed in 2.0.
+     */
     public function fetchData(DataTableRequest $request): DataTableResult
     {
+        trigger_deprecation('pentiminax/ux-datatables', '1.7', 'The "%s()" method is deprecated and has no replacement: 2.0 moves it to the bundle runtime. Removed in 2.0.', __METHOD__);
+
         return $this->runtime()->fetchData($request);
     }
 
@@ -441,7 +566,7 @@ abstract class AbstractDataTable
 
         $this->deprecateImplicitClientSide();
 
-        $this->fetchData($this->createClientSideDataRequest());
+        $this->fetchDataTableResult($this->createClientSideDataRequest());
 
         $this->warnWhenHydrationIsLarge();
     }
@@ -724,8 +849,8 @@ abstract class AbstractDataTable
 
     /**
      * Records this Ajax response with the Web Profiler, regardless of which route or
-     * controller called getResponse() -- the bundle's own AjaxDataController, or a custom
-     * ajax() endpoint that calls handleRequest()/getResponse() directly. A no-op when no
+     * controller built it -- the bundle's own AjaxDataController, or a custom
+     * ajax() endpoint that goes through DataTableResponder. A no-op when no
      * profiler is wired (e.g. a table built outside the bundle's DI container).
      */
     private function collectAjaxQueryForProfiler(JsonResponse $response, float $start): void
@@ -745,8 +870,8 @@ abstract class AbstractDataTable
         // even on that empty-response path -- for an attributed table with no manual
         // provider and no EntityManager, resolution throws, so getResponse() would behave
         // differently depending on whether a profiler happens to be wired.
-        $request  = $this->getRequest();
-        $provider = null !== $request ? $this->getDataProvider() : null;
+        $request  = $this->getDataTableRequest();
+        $provider = null !== $request ? $this->getResolvedDataProvider() : null;
 
         $profiler->collectAjaxQuery(
             class: static::class,

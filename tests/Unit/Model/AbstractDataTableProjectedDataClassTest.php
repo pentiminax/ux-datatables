@@ -49,7 +49,7 @@ final class AbstractDataTableProjectedDataClassTest extends TestCase
     #[Test]
     public function it_maps_the_projected_rows_and_orders_them_on_the_entity(): void
     {
-        $result = $this->table()->fetchData($this->request(orderDir: 'desc'));
+        $result = $this->table()->fetchDataTableResult($this->request(orderDir: 'desc'));
 
         $this->assertSame(2, $result->recordsTotal);
         $this->assertSame([
@@ -61,7 +61,7 @@ final class AbstractDataTableProjectedDataClassTest extends TestCase
     #[Test]
     public function it_searches_the_entity_and_returns_the_projected_value(): void
     {
-        $result = $this->table()->fetchData($this->request(search: 'Alpha'));
+        $result = $this->table()->fetchDataTableResult($this->request(search: 'Alpha'));
 
         $this->assertSame(1, $result->recordsFiltered);
         $this->assertSame([['id' => 1, 'name' => 'CUSTOMER:Alpha']], iterator_to_array($result->data));

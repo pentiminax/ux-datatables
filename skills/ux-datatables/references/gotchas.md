@@ -13,7 +13,7 @@ return static function (RoutingConfigurator $routes): void {
 The Doctrine provider is auto-wired only when `#[AsDataTable(Entity::class)]` carries the entity. No attribute + `serverSide()` and no `createDataProvider()` override → empty table. A DTO `dataClass` without a mapped `entityClass` raises instead.
 
 ## Don't detect Ajax with `isXmlHttpRequest()`
-Use the supported flow: `handleRequest()` → `isRequestHandled()` → `getResponse()`. The check is about the DataTables payload, not the browser transport.
+Use `Pentiminax\UX\DataTables\Runtime\DataTableResponder::respond($table, $request)`: it returns the response, or `null` when the request carries no DataTables payload. `handleRequest()` / `isRequestHandled()` / `getResponse()` are deprecated since 1.7. The check is about the DataTables payload, not the browser transport.
 
 ## `MoneyColumn` stores cents
 If your DB stores amounts in cents, call `->storedAsCents()`, else values are off by 100×. Set `->currency('EUR')` and `->decimals(2)` as needed. Use `->showCurrencySign(false)` to format amounts as plain numbers (no €/$ symbol) while keeping decimal precision. Defaults to showing the currency sign.

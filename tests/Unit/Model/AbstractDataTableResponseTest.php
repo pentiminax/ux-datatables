@@ -38,10 +38,10 @@ final class AbstractDataTableResponseTest extends TestCase
         $table = new ResponseTestTable($provider);
 
         if (null !== $query) {
-            $table->handleRequest(new Request(query: $query));
+            $table->handleDataTableRequest(new Request(query: $query));
         }
 
-        $this->assertSame($expected, json_decode((string) $table->getResponse()->getContent(), true));
+        $this->assertSame($expected, json_decode((string) $table->createDataTableResponse()->getContent(), true));
     }
 
     /**
@@ -108,8 +108,8 @@ final class AbstractDataTableResponseTest extends TestCase
         $table    = new ResponseTestTable(new FixedResultDataProvider());
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(profiler: $profiler));
 
-        $table->handleRequest(new Request(query: ['draw' => 3]));
-        $table->getResponse();
+        $table->handleDataTableRequest(new Request(query: ['draw' => 3]));
+        $table->createDataTableResponse();
 
         $queries = $profiler->getAjaxQueries();
 
@@ -124,9 +124,9 @@ final class AbstractDataTableResponseTest extends TestCase
     public function it_builds_the_response_without_a_profiler_wired(): void
     {
         $table = new ResponseTestTable(new FixedResultDataProvider());
-        $table->handleRequest(new Request(query: ['draw' => 3]));
+        $table->handleDataTableRequest(new Request(query: ['draw' => 3]));
 
-        $response = $table->getResponse();
+        $response = $table->createDataTableResponse();
 
         $this->assertSame(200, $response->getStatusCode());
     }
@@ -135,9 +135,9 @@ final class AbstractDataTableResponseTest extends TestCase
     public function it_adds_search_list_options_through_the_complete_ajax_runtime(): void
     {
         $table = new SearchListResponseTestTable(new FixedResultDataProvider());
-        $table->handleRequest(new Request(query: ['draw' => 3]));
+        $table->handleDataTableRequest(new Request(query: ['draw' => 3]));
 
-        $payload = json_decode((string) $table->getResponse()->getContent(), true);
+        $payload = json_decode((string) $table->createDataTableResponse()->getContent(), true);
 
         $this->assertSame([
             'status' => [['label' => 'Draft', 'value' => 'draft']],
@@ -160,7 +160,7 @@ final class AbstractDataTableResponseTest extends TestCase
         $table    = new MissingEntityManagerHydrationTestTable();
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(profiler: $profiler));
 
-        $response = $table->getResponse();
+        $response = $table->createDataTableResponse();
 
         $this->assertSame(
             ['draw' => 1, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => []],

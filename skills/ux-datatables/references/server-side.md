@@ -43,13 +43,13 @@ public function index(ProductsDataTable $table): Response
 
 **B. Same-route handling** — when posting back to the same route or using a custom Ajax URL:
 ```php
-$table->handleRequest($request);
-if ($table->isRequestHandled()) {
-    return $table->getResponse();
+// inject Pentiminax\UX\DataTables\Runtime\DataTableResponder $responder
+if ($response = $responder->respond($table, $request)) {
+    return $response;
 }
 return $this->render(...);
 ```
-Do **not** gate on `$request->isXmlHttpRequest()`. The supported detection flow is exactly: `handleRequest()` → `isRequestHandled()` → `getResponse()`.
+Do **not** gate on `$request->isXmlHttpRequest()`. The supported detection is `DataTableResponder::respond()` returning `null` or a response (`handleRequest()` / `isRequestHandled()` / `getResponse()` are deprecated since 1.7).
 
 ## Custom Ajax URL
 

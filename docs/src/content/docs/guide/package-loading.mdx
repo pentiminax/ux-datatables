@@ -42,8 +42,8 @@ them interactively, or `--all` to select every one.
 
 <Tabs>
   <TabItem label="AssetMapper">
-    The command runs `importmap:require` for you. Run it again with `--prune` to drop the
-    DataTables entries you did not register. Symfony Flex puts the entries the bundle declares back
+    The command runs `importmap:require` for you. Run it again with the deprecated
+    `--prune` option to drop the DataTables entries you did not register. Symfony Flex puts the entries the bundle declares back
     into `importmap.php` on the next `composer install` or `composer update`, so run the command
     with `--prune` again after each Composer run:
 
@@ -63,7 +63,7 @@ them interactively, or `--all` to select every one.
     npm run watch
     ```
 
-    `--prune` has no effect with Encore: unregistered packages are simply not bundled.
+    `--prune` (deprecated since 1.7) has no effect with Encore: unregistered packages are simply not bundled.
   </TabItem>
 </Tabs>
 
@@ -101,7 +101,8 @@ Bootstrap 3 and 4 are not offered. See [Styling](/guide/styling/).
 
 ### Pruning the import map
 
-`--prune` removes the `datatables.net*`, `jszip` and `pdfmake` JavaScript entries from
+`--prune` is deprecated since 1.7 and removed in 2.0, because Symfony Flex will no longer declare
+import map entries to prune. It removes the `datatables.net*`, `jszip` and `pdfmake` JavaScript entries from
 `importmap.php` that you did not register. It never touches `bootstrap` or `lucide`, because your
 application may import them itself, and it leaves CSS entries alone: with
 `missing_import_mode: strict`, removing a stylesheet that the 1.x loaders still mention makes

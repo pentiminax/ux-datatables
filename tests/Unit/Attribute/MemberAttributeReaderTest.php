@@ -149,6 +149,39 @@ final class MemberAttributeReaderTest extends TestCase
         $this->assertCount(1, $targets);
         $this->assertInstanceOf(ExtendedMarker::class, $targets[0]->attribute);
     }
+
+    #[Test]
+    public function it_returns_the_same_targets_on_a_second_read(): void
+    {
+        $first = $this->reader->readProperties(ChildFixture::class, Marker::class);
+
+        $this->assertSame($first[0]->attribute, $this->reader->readProperties(ChildFixture::class, Marker::class)[0]->attribute);
+        $this->assertSame($first[0]->attribute, (new MemberAttributeReader())->readProperties(ChildFixture::class, Marker::class)[0]->attribute);
+    }
+
+    #[Test]
+    public function it_caches_each_read_kind_and_attribute_class_apart(): void
+    {
+        $marker   = $this->reader->readProperties(ChildFixture::class, Marker::class);
+        $extended = $this->reader->readProperties(SubclassedAttributeFixture::class, ExtendedMarker::class);
+
+        $this->assertNotSame($marker, $extended);
+        $this->assertSame([], $this->reader->readProperties(ChildFixture::class, ExtendedMarker::class));
+        $this->assertSame($this->reader->readClass(ClassLevelFixture::class, Marker::class)[0]->attribute, $this->reader->readClass(ClassLevelFixture::class, Marker::class)[0]->attribute);
+    }
+
+    #[Test]
+    public function it_keeps_throwing_for_an_invalid_method_on_every_read(): void
+    {
+        for ($i = 0; $i < 2; ++$i) {
+            try {
+                $this->reader->readMethods(NonPublicMethodFixture::class, Marker::class);
+                $this->fail('An invalid method must throw.');
+            } catch (\InvalidArgumentException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+    }
 }
 
 #[\Attribute(\Attribute::TARGET_PROPERTY | \Attribute::TARGET_METHOD | \Attribute::TARGET_CLASS | \Attribute::IS_REPEATABLE)]

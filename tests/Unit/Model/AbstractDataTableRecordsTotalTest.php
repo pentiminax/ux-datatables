@@ -59,9 +59,9 @@ final class AbstractDataTableRecordsTotalTest extends TestCase
             ),
         ));
 
-        $table->handleRequest(new Request(query: ['draw' => 1, 'start' => 0, 'length' => 10]));
+        $table->handleDataTableRequest(new Request(query: ['draw' => 1, 'start' => 0, 'length' => 10]));
 
-        $payload = json_decode((string) $table->getResponse()->getContent(), true);
+        $payload = json_decode((string) $table->createDataTableResponse()->getContent(), true);
 
         $this->assertSame(2, $payload['recordsTotal']);
         $this->assertSame(2, $payload['recordsFiltered']);

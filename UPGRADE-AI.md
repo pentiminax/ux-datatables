@@ -189,3 +189,47 @@ test suite and the application must log no `pentiminax/ux-datatables` deprecatio
    `instanceof Proxy` check, or a `postLoad` listener on it firing later).
 
 </upgrade-prompt>
+
+<upgrade-prompt version="1.7">
+
+Context: ux-datatables 1.7 is backward compatible. It deprecates what 2.0 removes: the runtime
+accessors of `AbstractDataTable` and the `--prune` option of `ux-datatables:install`. 2.0 also
+requires PHP 8.3, Symfony 7.4 or 8.x, API Platform 4 or later and `symfony/mercure` 0.8 or later
+(announcement only, no deprecation). After this change, running the test suite and the application
+must log no `pentiminax/ux-datatables` deprecation.
+
+## Required changes
+
+1. Replace every custom endpoint that chains `handleRequest()`, `isRequestHandled()` and
+   `getResponse()` on an `AbstractDataTable` with `DataTableResponder::respond()`. Inject
+   `Pentiminax\UX\DataTables\Runtime\DataTableResponder` in the controller. It returns the JSON
+   response, or `null` when the request carries no DataTables payload.
+
+   ```php
+   $table->handleRequest($request);                  // before
+   if ($table->isRequestHandled()) {
+       return $table->getResponse();
+   }
+
+   if ($response = $responder->respond($table, $request)) { // after
+       return $response;
+   }
+   ```
+
+2. Replace `getRequest()` calls inside a table with `getCurrentRequest()`, or with the `$request`
+   argument of `customizeQueryBuilder()`. Remove calls to `fetchData()` and `getDataProvider()` made
+   from application code: they have no replacement, 2.0 moves them to the bundle runtime. Call the
+   data provider the application built itself.
+3. Remove every subclass override of `handleRequest()`, `isRequestHandled()`, `getResponse()`,
+   `getRequest()` or `fetchData()`: 1.x still calls it and logs a deprecation, 2.0 does not. Use
+   `DataTableResponder::respond()` for the first three, and move the logic of the other two to
+   `customizeQueryBuilder()` (or read the request with `getCurrentRequest()`), which receives the `DataTableRequest` as its `$request` argument.
+4. Remove `--prune` from every `ux-datatables:install` invocation (scripts, Composer hooks, CI):
+   2.0 removes the option.
+
+## Optional changes
+
+1. Check the platform before upgrading to 2.0: PHP 8.3, Symfony 7.4 or 8.x, API Platform 4 or later
+   when used, `symfony/mercure` 0.8 or later when used.
+
+</upgrade-prompt>

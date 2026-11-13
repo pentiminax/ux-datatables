@@ -52,9 +52,9 @@ final class AjaxDataControllerTest extends TestCase
         $expectedResponse = new JsonResponse(['draw' => 1, 'data' => []]);
 
         $dataTable = $this->createMock(AbstractDataTable::class);
-        $dataTable->expects($this->once())->method('handleRequest');
-        $dataTable->expects($this->once())->method('isRequestHandled')->willReturn(true);
-        $dataTable->expects($this->once())->method('getResponse')->willReturn($expectedResponse);
+        $dataTable->expects($this->once())->method('handleDataTableRequest');
+        $dataTable->expects($this->once())->method('isDataTableRequestHandled')->willReturn(true);
+        $dataTable->expects($this->once())->method('createDataTableResponse')->willReturn($expectedResponse);
 
         $registry = $this->createRegistry($dataTable);
         $token    = $registry->getToken('App\\UserDataTable');
@@ -69,9 +69,9 @@ final class AjaxDataControllerTest extends TestCase
     public function it_throws_400_when_request_is_not_a_datatables_payload(): void
     {
         $dataTable = $this->createMock(AbstractDataTable::class);
-        $dataTable->expects($this->once())->method('handleRequest');
-        $dataTable->expects($this->once())->method('isRequestHandled')->willReturn(false);
-        $dataTable->expects($this->never())->method('getResponse');
+        $dataTable->expects($this->once())->method('handleDataTableRequest');
+        $dataTable->expects($this->once())->method('isDataTableRequestHandled')->willReturn(false);
+        $dataTable->expects($this->never())->method('createDataTableResponse');
 
         $registry = $this->createRegistry($dataTable);
         $token    = $registry->getToken('App\\UserDataTable');
@@ -87,7 +87,7 @@ final class AjaxDataControllerTest extends TestCase
     public function it_refuses_an_action_token_replayed_on_the_read_route(): void
     {
         $dataTable = $this->createMock(AbstractDataTable::class);
-        $dataTable->expects($this->never())->method('handleRequest');
+        $dataTable->expects($this->never())->method('handleDataTableRequest');
 
         $registry = $this->createRegistry($dataTable);
 

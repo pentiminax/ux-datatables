@@ -223,11 +223,11 @@ final class AbstractDataTableOptInsTest extends TestCase
         $table = new $tableClass(null);
 
         $this->deprecationsOf(static fn () => $table->getDataTable());
-        $table->handleRequest(new Request(query: ['draw' => 1, 'start' => 0, 'length' => 10]));
+        $table->handleDataTableRequest(new Request(query: ['draw' => 1, 'start' => 0, 'length' => 10]));
 
         $this->expectException(NotFoundHttpException::class);
 
-        $table->getResponse();
+        $table->createDataTableResponse();
     }
 
     /**
