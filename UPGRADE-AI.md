@@ -216,13 +216,14 @@ must log no `pentiminax/ux-datatables` deprecation.
    }
    ```
 
-2. Remove calls to `AbstractDataTable::getRequest()`, `fetchData()` and `getDataProvider()` made
-   from application code: they have no replacement, 2.0 moves them to the bundle runtime. Read the
-   request from the `$request` argument of `customizeQueryBuilder()`, or call the data provider the application built itself.
+2. Replace `getRequest()` calls inside a table with `getCurrentRequest()`, or with the `$request`
+   argument of `customizeQueryBuilder()`. Remove calls to `fetchData()` and `getDataProvider()` made
+   from application code: they have no replacement, 2.0 moves them to the bundle runtime. Call the
+   data provider the application built itself.
 3. Remove every subclass override of `handleRequest()`, `isRequestHandled()`, `getResponse()`,
    `getRequest()` or `fetchData()`: 1.x still calls it and logs a deprecation, 2.0 does not. Use
    `DataTableResponder::respond()` for the first three, and move the logic of the other two to
-   `customizeQueryBuilder()`, which receives the `DataTableRequest` as its `$request` argument.
+   `customizeQueryBuilder()` (or read the request with `getCurrentRequest()`), which receives the `DataTableRequest` as its `$request` argument.
 4. Remove `--prune` from every `ux-datatables:install` invocation (scripts, Composer hooks, CI):
    2.0 removes the option.
 

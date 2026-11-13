@@ -306,7 +306,7 @@ the table declaratively and let the request-scoped boundaries do the rest:
 
 - `permission()` on columns and actions for authorization -- it is evaluated per
   request, per row, at the output boundary.
-- `customizeQueryBuilder()` and `getRequest()` for anything that depends on the
+- `customizeQueryBuilder()` and `getCurrentRequest()` for anything that depends on the
   incoming request.
 - `rows()` for data resolved by the controller.
 
@@ -318,7 +318,8 @@ the table declaratively and let the request-scoped boundaries do the rest:
     ['`createDataProvider()`', 'Protected hook for manual DataProvider instances'],
     ['`getDataProvider()`', 'Deprecated since 1.7, no replacement: 2.0 moves it to the bundle runtime'],
     ['`fetchData(DataTableRequest $request)`', 'Deprecated since 1.7, no replacement: 2.0 moves it to the bundle runtime'],
-    ['`getRequest()`', 'Deprecated since 1.7, no replacement: 2.0 moves it to the bundle runtime'],
+    ['`getCurrentRequest()`', 'Protected, final: the DataTableRequest being handled, for hooks such as `mapRow()`'],
+    ['`getRequest()`', 'Deprecated since 1.7, use `getCurrentRequest()` inside the table'],
     ['`getHttpRequest()`', 'Get the current Symfony HTTP request while a DataTables request is handled'],
     ['`mapRow(mixed $row)`', 'Map a single row to array'],
     [

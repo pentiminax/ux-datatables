@@ -48,15 +48,18 @@ floor, so check your platform before upgrading to 2.0.
   }
   ```
 
-- `AbstractDataTable::getRequest()`, `fetchData()` and `getDataProvider()` are deprecated and have no
-  replacement: 2.0 moves them to the bundle runtime. Stop calling them from controllers and
-  services. Inside hooks, `customizeQueryBuilder()` already receives the `DataTableRequest` as its
-  `$request` argument. Elsewhere, call the data provider you built yourself.
+- `AbstractDataTable::getRequest()` is deprecated: inside the table, call `getCurrentRequest()` (for
+  `mapRow()`, `projectPage()` and other hooks); `customizeQueryBuilder()` already receives the
+  `DataTableRequest` as its `$request` argument. Stop calling it from controllers and services.
+- `AbstractDataTable::fetchData()` and `getDataProvider()` are deprecated and have no replacement:
+  2.0 moves them to the bundle runtime. Stop calling them from controllers and services; call the
+  data provider you built yourself.
 - A subclass that overrides `handleRequest()`, `isRequestHandled()`, `getResponse()`, `getRequest()`
   or `fetchData()` keeps being called by the bundle in 1.x and now logs a deprecation, once per
   class and method, even when its override does not call `parent::`. 2.0 no longer calls the
   overrides: use `DataTableResponder::respond()` instead of the three response methods, and move
-  the logic of the other two to `customizeQueryBuilder()`.
+  the logic of the other two to `customizeQueryBuilder()` (or `getCurrentRequest()` for request
+  reads).
 - The `--prune` option of `ux-datatables:install` is deprecated and has no replacement: 2.0 removes
   it because Symfony Flex no longer declares import map entries to prune. The option keeps its
   behavior and prints a note.

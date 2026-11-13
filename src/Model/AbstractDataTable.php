@@ -51,7 +51,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * docs/src/content/docs/reference/abstract-datatable.mdx ("Configuration Methods Must Be Pure").
  *
  * Request-dependent behavior belongs at the request-scoped boundaries instead: setPermission() on
- * columns and actions, customizeQueryBuilder() for the query, and rows() --
+ * columns and actions, customizeQueryBuilder() for the query (getCurrentRequest() in other hooks), and rows() --
  * the sanctioned way to inject rows a controller has already resolved -- for inline data, which
  * runs them through the same row-processing pipeline a provider would use.
  */
@@ -201,12 +201,20 @@ abstract class AbstractDataTable
     }
 
     /**
-     * @deprecated since 1.7, it has no replacement: 2.0 moves it to the bundle runtime. Removed in 2.0.
+     * @deprecated since 1.7, use getCurrentRequest() inside the table, or the $request argument of customizeQueryBuilder(). Removed in 2.0.
      */
     public function getRequest(): ?DataTableRequest
     {
-        trigger_deprecation('pentiminax/ux-datatables', '1.7', 'The "%s()" method is deprecated and has no replacement: 2.0 moves it to the bundle runtime.', __METHOD__);
+        trigger_deprecation('pentiminax/ux-datatables', '1.7', 'The "%s()" method is deprecated, use getCurrentRequest() inside the table, or the $request argument of customizeQueryBuilder(). Removed in 2.0.', __METHOD__);
 
+        return $this->runtime()->getRequest();
+    }
+
+    /**
+     * The DataTableRequest being handled, for hooks such as mapRow() or projectPage().
+     */
+    final protected function getCurrentRequest(): ?DataTableRequest
+    {
         return $this->runtime()->getRequest();
     }
 
@@ -326,7 +334,9 @@ abstract class AbstractDataTable
 
             $pointer = \in_array($method, ['handleRequest', 'isRequestHandled', 'getResponse'], true)
                 ? 'use "DataTableResponder::respond()" instead'
-                : 'move its logic to "customizeQueryBuilder()", which receives the DataTableRequest as its $request argument';
+                : ('getRequest' === $method
+                    ? 'read the request with "getCurrentRequest()" inside the table, or from the $request argument of "customizeQueryBuilder()"'
+                    : 'move its logic to "customizeQueryBuilder()", which receives the DataTableRequest as its $request argument');
 
             trigger_deprecation('pentiminax/ux-datatables', '1.7', 'Overriding "%s::%s()" is deprecated: 2.0 no longer calls it, %s. Removed in 2.0.', static::class, $method, $pointer);
         }
@@ -475,7 +485,7 @@ abstract class AbstractDataTable
      */
     final public function getDataProvider(): ?DataProviderInterface
     {
-        trigger_deprecation('pentiminax/ux-datatables', '1.7', 'The "%s()" method is deprecated and has no replacement: 2.0 moves it to the bundle runtime.', __METHOD__);
+        trigger_deprecation('pentiminax/ux-datatables', '1.7', 'The "%s()" method is deprecated and has no replacement: 2.0 moves it to the bundle runtime. Removed in 2.0.', __METHOD__);
 
         return $this->runtime()->getDataProvider();
     }
@@ -533,7 +543,7 @@ abstract class AbstractDataTable
      */
     public function fetchData(DataTableRequest $request): DataTableResult
     {
-        trigger_deprecation('pentiminax/ux-datatables', '1.7', 'The "%s()" method is deprecated and has no replacement: 2.0 moves it to the bundle runtime.', __METHOD__);
+        trigger_deprecation('pentiminax/ux-datatables', '1.7', 'The "%s()" method is deprecated and has no replacement: 2.0 moves it to the bundle runtime. Removed in 2.0.', __METHOD__);
 
         return $this->runtime()->fetchData($request);
     }

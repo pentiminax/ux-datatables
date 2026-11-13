@@ -80,8 +80,23 @@ final class RuntimeAccessorDeprecationTest extends TestCase
             $request = $table->getRequest();
         });
 
-        $this->assertDeprecatedWithoutReplacement($deprecations, 'getRequest');
+        $this->assertCount(1, $deprecations);
+        $this->assertStringContainsString('getRequest()', $deprecations[0]);
+        $this->assertStringContainsString('use getCurrentRequest() inside the table', $deprecations[0]);
         $this->assertSame(2, $request->draw);
+    }
+
+    #[Test]
+    public function it_gives_hooks_the_current_request_without_deprecation(): void
+    {
+        $table = new CurrentRequestTable();
+
+        $deprecations = $this->deprecationsOf(static function () use ($table): void {
+            (new DataTableResponder())->respond($table, new Request(query: ['draw' => 7]));
+        });
+
+        $this->assertSame(7, $table->seenDraw);
+        $this->assertSame([], $this->withoutAuthorizationFallback($deprecations));
     }
 
     #[Test]
@@ -191,7 +206,7 @@ final class RuntimeAccessorDeprecationTest extends TestCase
 
         $this->assertCount(1, $deprecations);
         $this->assertStringContainsString($method.'()', $deprecations[0]);
-        $this->assertStringContainsString('has no replacement: 2.0 moves it to the bundle runtime.', $deprecations[0]);
+        $this->assertStringContainsString('has no replacement: 2.0 moves it to the bundle runtime. Removed in 2.0.', $deprecations[0]);
     }
 
     private function table(): ConfigurableDataTable
@@ -261,6 +276,45 @@ final class OverridingAccessorsTable extends AbstractDataTable
     protected function createDataProvider(): ?DataProviderInterface
     {
         return new RuntimeAccessorProvider();
+    }
+}
+
+final class CurrentRequestTable extends AbstractDataTable
+{
+    public ?int $seenDraw = null;
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id');
+    }
+
+    protected function createDataProvider(): ?DataProviderInterface
+    {
+        return new CallbackProvider(fn () => $this->mapRow(['id' => 1]));
+    }
+
+    protected function mapRow(mixed $row): array
+    {
+        $this->seenDraw = $this->getCurrentRequest()?->draw;
+
+        return $row;
+    }
+}
+
+final class CallbackProvider implements DataProviderInterface, FeatureAwareDataProviderInterface
+{
+    public function __construct(private readonly \Closure $callback)
+    {
+    }
+
+    public function supports(DataSourceFeature $feature): bool
+    {
+        return true;
+    }
+
+    public function fetchData(DataTableRequest $request): DataTableResult
+    {
+        return new DataTableResult(recordsTotal: 1, recordsFiltered: 1, data: [($this->callback)()]);
     }
 }
 
