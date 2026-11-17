@@ -36,6 +36,7 @@ use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithMercureTo
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithoutAttribute;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithSerializationGroups;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithServerSide;
+use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -47,6 +48,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(AsDataTable::class)]
 final class AsDataTableTest extends TestCase
 {
+    use PreparesPayload;
+
     #[Test]
     public function it_auto_configures_and_caches_the_data_provider(): void
     {
@@ -107,9 +110,9 @@ final class AsDataTableTest extends TestCase
         $this->assertSame([
             'type' => 'GET',
             'url'  => '/api/books',
-        ], $tablePrepared->getOption('ajax'));
+        ], self::optionOf($tablePrepared, 'ajax'));
 
-        $this->assertTrue($tablePrepared->getOption('apiPlatform'));
+        $this->assertTrue(self::optionOf($tablePrepared, 'apiPlatform'));
     }
 
     public static function provideApiPlatformTables(): iterable
@@ -132,9 +135,9 @@ final class AsDataTableTest extends TestCase
         $this->assertSame([
             'type' => 'GET',
             'url'  => '/custom-endpoint',
-        ], $tablePrepared->getOption('ajax'));
+        ], self::optionOf($tablePrepared, 'ajax'));
 
-        $this->assertFalse($tablePrepared->getOption('apiPlatform') ?? false);
+        $this->assertFalse(self::optionOf($tablePrepared, 'apiPlatform') ?? false);
     }
 
     #[Test]
@@ -147,7 +150,7 @@ final class AsDataTableTest extends TestCase
 
         $tablePrepared = $table->prepareRendering();
 
-        $this->assertNull($tablePrepared->getOption('ajax'));
+        $this->assertNull(self::optionOf($tablePrepared, 'ajax'));
     }
 
     #[Test]
@@ -160,7 +163,7 @@ final class AsDataTableTest extends TestCase
 
         $tablePrepared = $table->prepareRendering();
 
-        $this->assertNull($tablePrepared->getOption('ajax'));
+        $this->assertNull(self::optionOf($tablePrepared, 'ajax'));
     }
 
     #[Test]
@@ -197,7 +200,7 @@ final class AsDataTableTest extends TestCase
         $this->assertSame([
             'type' => 'GET',
             'url'  => $ajaxUrl,
-        ], $tablePrepared->getOption('ajax'));
+        ], self::optionOf($tablePrepared, 'ajax'));
 
         $this->assertSame([
             'hubUrl' => 'http://localhost/.well-known/mercure',

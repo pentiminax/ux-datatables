@@ -14,6 +14,9 @@ use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchListOptionsNormalizer;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+/**
+ * @internal
+ */
 final readonly class SearchListOptionsResolver
 {
     public function __construct(

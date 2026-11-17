@@ -12,6 +12,9 @@ use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
 use Pentiminax\UX\DataTables\Filter\EntityFilter;
 use Pentiminax\UX\DataTables\Model\Filters;
 
+/**
+ * @internal
+ */
 final readonly class FilterEntityOptionsResolver
 {
     private const DEFAULT_LABEL_PATHS = ['display', 'name', 'label', 'title'];

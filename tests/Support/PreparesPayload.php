@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
 use Pentiminax\UX\DataTables\Runtime\PreparedDataTable;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Runtime\ResolvedOptIns;
 
 trait PreparesPayload
 {
@@ -17,7 +18,19 @@ trait PreparesPayload
      */
     private static function payloadOf(DataTable $table, RenderingPreparer $preparer = new RenderingPreparer()): array
     {
-        return $preparer->prepare($table, $preparer->resolveOptIns($table, null))->getView();
+        return self::prepareWith($preparer, $table, $preparer->resolveOptIns($table, null))->getView();
+    }
+
+    private static function prepareWith(RenderingPreparer $preparer, DataTable $table, ResolvedOptIns $optIns): PreparedDataTable
+    {
+        $preparer->prepareBeforeDataHydration($table, $optIns);
+
+        return $preparer->prepareAfterDataHydration($table, $optIns);
+    }
+
+    private static function optionOf(PreparedDataTable $prepared, string $name): mixed
+    {
+        return $prepared->getView()[$name] ?? null;
     }
 
     /**

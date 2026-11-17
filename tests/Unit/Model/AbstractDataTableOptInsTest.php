@@ -15,6 +15,7 @@ use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
+use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -28,6 +29,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 #[CoversClass(AbstractDataTable::class)]
 final class AbstractDataTableOptInsTest extends TestCase
 {
+    use PreparesPayload;
     use CollectsDeprecations;
 
     /**
@@ -105,7 +107,7 @@ final class AbstractDataTableOptInsTest extends TestCase
         $prepared = $table->prepareRendering();
 
         $this->assertSame(DataSourceMode::ApiPlatform, $prepared->dataSourceMode);
-        $this->assertNotNull($prepared->getOption('ajax'));
+        $this->assertNotNull(self::optionOf($prepared, 'ajax'));
         $this->assertNull($table->getConfiguredDataTable()->getOption('ajax'));
         $this->assertSame(DataSourceMode::ApiPlatform, $table->getResolvedOptIns()->dataSourceMode);
     }

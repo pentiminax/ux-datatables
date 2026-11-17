@@ -16,6 +16,7 @@ use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
+use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -32,6 +33,8 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 #[CoversClass(AbstractDataTable::class)]
 final class AbstractDataTableResetTest extends TestCase
 {
+    use PreparesPayload;
+
     #[Test]
     public function it_re_evaluates_the_configuration_after_a_reset(): void
     {
@@ -45,19 +48,19 @@ final class AbstractDataTableResetTest extends TestCase
         );
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
 
-        $this->assertSame([['id' => 1]], $table->prepareRendering()->getOption('data'));
+        $this->assertSame([['id' => 1]], self::optionOf($table->prepareRendering(), 'data'));
 
         $rows = [['id' => 2]];
 
         $this->assertSame(
             [['id' => 1]],
-            $table->prepareRendering()->getOption('data'),
+            self::optionOf($table->prepareRendering(), 'data'),
             'Without a reset the first request\'s rows stay frozen on the shared instance.',
         );
 
         $table->resetDataTableState();
 
-        $this->assertSame([['id' => 2]], $table->prepareRendering()->getOption('data'));
+        $this->assertSame([['id' => 2]], self::optionOf($table->prepareRendering(), 'data'));
     }
 
     #[Test]
@@ -226,7 +229,7 @@ final class AbstractDataTableResetTest extends TestCase
      */
     private function rowActions(ConfigurableDataTable $table): ?array
     {
-        $data = $table->prepareRendering()->getOption('data');
+        $data = self::optionOf($table->prepareRendering(), 'data');
 
         return $data[0][ActionRowDataResolver::ROW_ACTIONS_KEY] ?? null;
     }

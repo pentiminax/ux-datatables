@@ -262,10 +262,13 @@ change, the application and its test suite must run with no call to a removed me
    `rows()` from a controller need no change.
 6. If the application constructs `DataTablesExtension` itself, pass only the Stimulus helper, the
    profiler, the authorization checker and the controller name.
-
-## Optional changes
-
-1. Search the payload for a key set both as an option and as an extension: 2.0 throws a
+7. Search the payload for a key set both as an option and as an extension: 2.0 throws a
    `LogicException` at render for it. Keep one of the two.
+8. Stop calling `RenderingPreparer`, `FilterEntityOptionsResolver` and `SearchListOptionsResolver`
+   directly: they are `@internal` and their signatures changed. `RenderingPreparer::prepare()` is
+   removed. `prepareBeforeDataHydration()`, `prepareAfterDataHydration()` and
+   `resolveMercureConfig()` lose the `?AsDataTable` parameter, and `prepareAfterDataHydration()`
+   returns a `PreparedDataTable`. `FilterEntityOptionsResolver::prepare()` takes the `Filters`.
+   `SearchListOptionsResolver::prepare()` is removed.
 
 </upgrade-prompt>

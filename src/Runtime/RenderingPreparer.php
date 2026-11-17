@@ -32,6 +32,9 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+/**
+ * @internal
+ */
 final class RenderingPreparer
 {
     public const AJAX_DATA_ROUTE   = 'ux_datatables_ajax_data';
@@ -103,16 +106,6 @@ final class RenderingPreparer
         private readonly ?CsrfTokenManagerInterface $csrfTokenManager = null,
         private readonly ?AuthorizationChecker $permissionChecker = null,
     ) {
-    }
-
-    /**
-     * Prepare a table whose rows need no hydration.
-     */
-    public function prepare(DataTable $table, ResolvedOptIns $optIns): PreparedDataTable
-    {
-        $this->prepareBeforeDataHydration($table, $optIns);
-
-        return $this->prepareAfterDataHydration($table, $optIns);
     }
 
     /**
@@ -228,15 +221,19 @@ final class RenderingPreparer
             exportUrl: $table->getBundleOption('exportUrl') ?? $this->exportUrl($table),
             mercure: $this->resolveMercureConfig($table, $optIns),
             highlight: $table->getHighlightConfig()?->jsonSerialize(),
-            bulkActions: $bulkActions,
-            bulkActionsUrl: null   === $bulkActions ? null : $this->urlGenerator?->generate(self::AJAX_BULK_ROUTE),
-            bulkActionLabels: null === $bulkActions ? [] : $this->translateLabels(self::BULK_LABEL_KEYS) ?? [],
-            bulkRowIdField: $bulkRowIdField,
-            selectionForBulkActions: $table->isSelectionForBulkActions(),
+            bulkActions: null === $bulkActions ? null : [
+                'actions'               => $bulkActions['actions'],
+                'selectCurrentPageOnly' => $bulkActions['selectCurrentPageOnly'],
+                // Client-side API Platform rows skip RowIdStage; the Stimulus adapter reads this
+                // to stamp DT_RowId from the same field setIdField() / Doctrine remapping chose.
+                'idField'  => $bulkRowIdField ?? $bulkActions['idField'],
+                'url'      => $this->urlGenerator?->generate(self::AJAX_BULK_ROUTE),
+                'labels'   => $this->translateLabels(self::BULK_LABEL_KEYS) ?? [],
+                'position' => $bulkActions['position'],
+            ],
             declaresBulkActions: $table->hasBulkActions(),
             rowActionUrls: $hasRowActions ? $this->rowActionUrls() : null,
-            emptyState: $emptyState,
-            emptyStateLabels: null === $emptyState ? [] : $this->translateLabels(self::EMPTY_STATE_LABEL_KEYS) ?? [],
+            emptyState: null === $emptyState ? null : $emptyState + ['labels' => $this->translateLabels(self::EMPTY_STATE_LABEL_KEYS) ?? []],
             recordUrl: null !== $table->getRecordUrlResolver(),
             actionLabels: $hasRowActions ? $this->translateLabels(self::ACTION_LABEL_KEYS) : null,
             summaryLabels: $this->summaryLabels($columns),

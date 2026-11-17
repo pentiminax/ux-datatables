@@ -32,6 +32,7 @@ use Pentiminax\UX\DataTables\Model\Extensions\Button;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Model\FilterLabels;
 use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Model\Summary\Sum;
@@ -40,6 +41,7 @@ use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsAjaxRegistry;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
+use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -76,6 +78,7 @@ enum RenderingPreparerSearchListStatus: string implements TranslatableInterface
 #[CoversClass(RenderingPreparer::class)]
 final class RenderingPreparerTest extends TestCase
 {
+    use PreparesPayload;
     use CollectsDeprecations;
     use BuildsAjaxRegistry;
 
@@ -91,8 +94,19 @@ final class RenderingPreparerTest extends TestCase
 
         $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class));
 
-        $this->assertNull($tablePayload->getOption('ajax'));
+        $this->assertNull(self::optionOf($tablePayload, 'ajax'));
         $this->assertNull($tablePayload->mercure);
+    }
+
+    #[Test]
+    public function it_rejects_an_option_and_an_extension_sharing_a_payload_key(): void
+    {
+        $table = (new DataTable('t', ['select' => true]))->addExtension(new SelectExtension());
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('The payload key "select" of table "t" is set twice. Rename the option or the extension that sets it.');
+
+        self::payloadOf($table);
     }
 
     #[Test]
@@ -113,7 +127,7 @@ final class RenderingPreparerTest extends TestCase
 
         $tablePayload = self::prepare(new RenderingPreparer(), $table, null);
 
-        $this->assertSame(10, $tablePayload->getOption('pollInterval'));
+        $this->assertSame(10, self::optionOf($tablePayload, 'pollInterval'));
     }
 
     #[Test]
@@ -158,8 +172,8 @@ final class RenderingPreparerTest extends TestCase
 
         $tablePayload = self::prepare($preparer, $table, $attribute);
 
-        $this->assertSame($expectedAjax, $tablePayload->getOption('ajax'));
-        $this->assertNull($tablePayload->getOption('apiPlatform'));
+        $this->assertSame($expectedAjax, self::optionOf($tablePayload, 'ajax'));
+        $this->assertNull(self::optionOf($tablePayload, 'apiPlatform'));
     }
 
     public static function provideCasesWithoutApiPlatformAjax(): iterable
@@ -198,8 +212,8 @@ final class RenderingPreparerTest extends TestCase
 
         $tablePayload = self::prepare($preparer, $table, $attribute);
 
-        $this->assertSame(['type' => 'GET', 'url' => '/api/products'], $tablePayload->getOption('ajax'));
-        $this->assertTrue($tablePayload->getOption('apiPlatform'));
+        $this->assertSame(['type' => 'GET', 'url' => '/api/products'], self::optionOf($tablePayload, 'ajax'));
+        $this->assertTrue(self::optionOf($tablePayload, 'apiPlatform'));
     }
 
     #[Test]
@@ -267,22 +281,22 @@ final class RenderingPreparerTest extends TestCase
 
         $this->assertSame([], $this->withoutAuthorizationFallback($deprecations));
         $this->assertCount($expectsServerSide ? 1 : 0, array_keys($generated, 'ux_datatables_ajax_data', true));
-        $this->assertTrue($tablePayload->getOption('apiPlatform'));
+        $this->assertTrue(self::optionOf($tablePayload, 'apiPlatform'));
 
         if (!$expectsServerSide) {
-            $this->assertNull($tablePayload->getOption('apiPlatformServerSide'));
-            $this->assertSame(['type' => 'GET', 'url' => '/api/users'], $tablePayload->getOption('ajax'));
+            $this->assertNull(self::optionOf($tablePayload, 'apiPlatformServerSide'));
+            $this->assertSame(['type' => 'GET', 'url' => '/api/users'], self::optionOf($tablePayload, 'ajax'));
 
             return;
         }
 
-        $this->assertTrue($tablePayload->getOption('apiPlatformServerSide'));
-        $this->assertTrue($tablePayload->getOption('serverSide'));
+        $this->assertTrue(self::optionOf($tablePayload, 'apiPlatformServerSide'));
+        $this->assertTrue(self::optionOf($tablePayload, 'serverSide'));
         $this->assertSame([
             'type' => 'GET',
             'url'  => '/datatables/ajax/data',
             'data' => ['table' => $registry->getToken(self::TABLE_CLASS)],
-        ], $tablePayload->getOption('ajax'));
+        ], self::optionOf($tablePayload, 'ajax'));
     }
 
     public static function provideColumnsForServerSideReading(): iterable
@@ -320,7 +334,7 @@ final class RenderingPreparerTest extends TestCase
 
         $preparer     = new RenderingPreparer();
         $optIns       = $preparer->resolveOptIns($table, new AsDataTable(entityClass: \stdClass::class, editModalTemplate: 'attribute.html.twig', editModalAdapter: 'bootstrap'));
-        $tablePayload = $preparer->prepare($table, $optIns);
+        $tablePayload = self::prepareWith($preparer, $table, $optIns);
 
         $this->assertSame('attribute.html.twig', $optIns->editModalTemplate);
         $this->assertSame('bootstrap', $tablePayload->editModalAdapter);
@@ -607,7 +621,7 @@ final class RenderingPreparerTest extends TestCase
 
         $tablePayload = self::prepare($preparer, $table, null);
 
-        $ajax = $tablePayload->getOption('ajax');
+        $ajax = self::optionOf($tablePayload, 'ajax');
         $this->assertIsArray($ajax);
         $this->assertSame('/datatables/ajax/data', $ajax['url']);
         $this->assertSame('GET', $ajax['type']);
@@ -637,7 +651,7 @@ final class RenderingPreparerTest extends TestCase
 
         $tablePayload = self::prepare($preparer, $table, null);
 
-        $this->assertSame('/datatables/ajax/export?table='.$token, $tablePayload->getOption('exportUrl'));
+        $this->assertSame('/datatables/ajax/export?table='.$token, self::optionOf($tablePayload, 'exportUrl'));
     }
 
     /**
@@ -865,7 +879,7 @@ final class RenderingPreparerTest extends TestCase
 
         $tablePayload = self::prepare($preparer, $table, null);
 
-        $this->assertNull($tablePayload->getOption('exportUrl'));
+        $this->assertNull(self::optionOf($tablePayload, 'exportUrl'));
     }
 
     /**
@@ -890,7 +904,7 @@ final class RenderingPreparerTest extends TestCase
 
         $tablePayload = self::prepare($preparer, $table, null);
 
-        $this->assertSame($expectedAjax, $tablePayload->getOption('ajax'));
+        $this->assertSame($expectedAjax, self::optionOf($tablePayload, 'ajax'));
     }
 
     public static function provideCasesWithoutAutoConfiguredAjax(): iterable
@@ -954,7 +968,7 @@ final class RenderingPreparerTest extends TestCase
 
         $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
 
-        $this->assertSame('/api/users', $tablePayload->getOption('ajax')['url']);
+        $this->assertSame('/api/users', self::optionOf($tablePayload, 'ajax')['url']);
     }
 
     #[Test]
@@ -1014,7 +1028,7 @@ final class RenderingPreparerTest extends TestCase
             'type' => 'GET',
             'url'  => '/datatables/ajax/data',
             'data' => array_merge(['table' => $registry->getToken(self::TABLE_CLASS)], $expectedForwardedData),
-        ], $tablePayload->getOption('ajax'));
+        ], self::optionOf($tablePayload, 'ajax'));
         $this->assertSame([] === $expectedForwardedData ? null : $expectedForwardedData, $tablePayload->getView()['forwardedQuery'] ?? null);
     }
 
@@ -1047,7 +1061,7 @@ final class RenderingPreparerTest extends TestCase
 
         $tablePayload = self::prepare($preparer, $table, null);
 
-        $ajax = $tablePayload->getOption('ajax');
+        $ajax = self::optionOf($tablePayload, 'ajax');
         $this->assertSame('/custom-endpoint', $ajax['url']);
         $this->assertSame(['q' => 'foo'], $ajax['data']);
     }
@@ -1450,6 +1464,6 @@ final class RenderingPreparerTest extends TestCase
 
     private static function prepare(RenderingPreparer $preparer, DataTable $table, ?AsDataTable $asDataTable): PreparedDataTable
     {
-        return $preparer->prepare($table, $preparer->resolveOptIns($table, $asDataTable));
+        return self::prepareWith($preparer, $table, $preparer->resolveOptIns($table, $asDataTable));
     }
 }

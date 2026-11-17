@@ -16,6 +16,7 @@ use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
+use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -26,6 +27,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(AbstractDataTable::class)]
 final class AbstractDataTableBulkActionsTest extends TestCase
 {
+    use PreparesPayload;
+
     #[Test]
     public function it_enables_a_multi_selection_with_checkboxes_when_bulk_actions_exist(): void
     {
@@ -175,7 +178,7 @@ final class AbstractDataTableBulkActionsTest extends TestCase
         $table = $this->table();
         $table->rows([['id' => 7, 'title' => 'Heat']]);
 
-        $rows = $table->prepareRendering()->getOption('data');
+        $rows = self::optionOf($table->prepareRendering(), 'data');
 
         $this->assertSame('7', $rows[0][HighlightConfig::ROW_ID_KEY]);
     }

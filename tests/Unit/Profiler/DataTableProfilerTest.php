@@ -69,7 +69,7 @@ final class DataTableProfilerTest extends TestCase
     {
         $table    = new DataTable('products');
         $preparer = new RenderingPreparer();
-        $prepared = $preparer->prepare($table, $preparer->resolveOptIns($table, new AsDataTable(\stdClass::class, editModalTemplate: 'admin/edit_modal.html.twig')));
+        $prepared = self::prepareWith($preparer, $table, $preparer->resolveOptIns($table, new AsDataTable(\stdClass::class, editModalTemplate: 'admin/edit_modal.html.twig')));
 
         $profiler = new DataTableProfiler();
         $profiler->collectRenderedTable('App\\ProductDataTable', $prepared, $table);

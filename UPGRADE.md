@@ -31,8 +31,8 @@ table, the hydrated rows, the resolved Mercure configuration or the translated l
   // Before (1.x)
   $ajax = $table->getDataTable()->getOption('ajax');
 
-  // After (2.0): the configuration, as you wrote it
-  $pageLength = $table->getConfiguredDataTable()->getOption('pageLength');
+  // After (2.0): the rendered value, read from the page in a test extending DataTableTestCase
+  $ajax = $this->dataTableView($crawler, MyTable::class)->option('ajax');
   ```
 
   To check what a table renders, render it and read the payload with the test helper
@@ -49,14 +49,26 @@ table, the hydrated rows, the resolved Mercure configuration or the translated l
   `publishForDataTable($table, $data)` instead of `publishForDataTable($table->getDataTable(), $data)`.
 - `DataTable::apiPlatformServerSide()` is removed. The bundle still sends the flag when a table
   needs it: remove the call.
-- Options, extensions and bundle keys share one payload. A key set twice, for example an option and
-  an extension with the same name, now throws a `LogicException` at render instead of silently
-  overwriting the first value. Rename or remove the duplicate.
-- If you build `DataTablesExtension` by hand, its arguments are now the Stimulus helper, the
-  profiler, the authorization checker and the controller name: drop the column resolver, request
-  stack, CSRF token manager and Ajax registry arguments. The bundle's service needs no change.
-  `DataTableProfiler::collectRenderedTable()` now receives the prepared payload and the configured
-  table.
+- `RenderingPreparer`, `FilterEntityOptionsResolver` and `SearchListOptionsResolver` are now
+  `@internal` and their signatures changed. Do not call them from application code.
+  `RenderingPreparer::prepare()` is removed. `prepareBeforeDataHydration()`,
+  `prepareAfterDataHydration()` and `resolveMercureConfig()` lose the `?AsDataTable` parameter, and
+  `prepareAfterDataHydration()` returns a `PreparedDataTable`. `FilterEntityOptionsResolver::prepare()`
+  takes the `Filters`. `SearchListOptionsResolver::prepare()` is removed.
+
+### A payload key set twice throws
+
+Options, extensions and bundle keys share one payload. A key set twice, for example an option and
+an extension with the same name, now throws a `LogicException` at render instead of silently
+overwriting the first value. Rename or remove the duplicate.
+
+### `DataTablesExtension` takes fewer constructor arguments
+
+If you build `DataTablesExtension` by hand, its arguments are now the Stimulus helper, the
+profiler, the authorization checker and the controller name: drop the column resolver, request
+stack, CSRF token manager and Ajax registry arguments. The bundle's service needs no change.
+`DataTableProfiler::collectRenderedTable()` now receives the prepared payload and the configured
+table.
 
 ### A fluent API Platform opt-out wins over the attribute
 
