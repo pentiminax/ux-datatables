@@ -17,7 +17,9 @@ use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
 use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Profiler\DataTableCollector;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
+use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
 use Pentiminax\UX\DataTables\Tests\Kernel\ProfilerPanelAppKernel;
+use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -29,6 +31,8 @@ use Twig\Environment;
  */
 final class DataTablePanelRenderTest extends TestCase
 {
+    use PreparesPayload;
+
     #[Test]
     public function the_panel_renders_every_collected_section(): void
     {
@@ -38,10 +42,9 @@ final class DataTablePanelRenderTest extends TestCase
 
         /** @var DataTableProfiler $profiler */
         $profiler = $container->get('test.datatables.profiler');
-        $profiler->collectRenderedTable('App\\ProductDataTable', $this->createTable(), [
-            'entityClass'     => 'App\\Entity\\Product',
-            'originalColumns' => [TextColumn::new('name'), TextColumn::new('secret')],
-            'allowedColumns'  => [TextColumn::new('name')],
+        $table    = $this->createTable();
+        $profiler->collectRenderedTable('App\\ProductDataTable', self::preparedFor($table, columns: [TextColumn::new('name')], configuredColumns: [TextColumn::new('name'), TextColumn::new('secret')]), $table, [
+            'entityClass' => 'App\\Entity\\Product',
         ]);
         $profiler->collectAjaxQuery(
             class: 'App\\ProductDataTable',
@@ -91,8 +94,10 @@ final class DataTablePanelRenderTest extends TestCase
         $container = $kernel->getContainer()->get('test.service_container');
 
         $profiler = new DataTableProfiler(hydrationRowThreshold: 1);
-        $profiler->collectRenderedTable('App\\ProductDataTable', (new DataTable('big'))->data([['id' => 1], ['id' => 2]]), ['dataSourceMode' => 'ClientHydrated', 'payloadBytes' => 777]);
-        $profiler->collectRenderedTable('App\\SmallDataTable', (new DataTable('small'))->data([['id' => 1]]), ['dataSourceMode' => 'ClientHydrated', 'payloadBytes' => 55]);
+        $big      = (new DataTable('big'))->data([['id' => 1], ['id' => 2]]);
+        $small    = (new DataTable('small'))->data([['id' => 1]]);
+        $profiler->collectRenderedTable('App\\ProductDataTable', self::preparedFor($big, DataSourceMode::ClientHydrated), $big, ['payloadBytes' => 777]);
+        $profiler->collectRenderedTable('App\\SmallDataTable', self::preparedFor($small, DataSourceMode::ClientHydrated), $small, ['payloadBytes' => 55]);
 
         $collector = new DataTableCollector($profiler);
         $collector->collect(Request::create('/'), new Response());

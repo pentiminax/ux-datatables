@@ -205,21 +205,7 @@ final class DataTableRuntime
             $this->featureGuard->assertRequestSupported($request, $provider, $this->table, $this->columns);
         }
 
-        $result = $provider->fetchData($request);
-        if ($this->table->isServerSide()) {
-            return $result;
-        }
-
-        $data = iterator_to_array($result->data);
-
-        $this->table->data($data);
-        $this->table->markTemplateColumnsRendered();
-
-        return new DataTableResult(
-            recordsTotal: $result->recordsTotal,
-            recordsFiltered: $result->recordsFiltered,
-            data: $data,
-        );
+        return $provider->fetchData($request);
     }
 
     private function createEmptyResponse(int $draw): JsonResponse

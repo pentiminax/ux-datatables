@@ -233,3 +233,39 @@ must log no `pentiminax/ux-datatables` deprecation.
    when used, `symfony/mercure` 0.8 or later when used.
 
 </upgrade-prompt>
+
+<upgrade-prompt version="2.0">
+
+Context: ux-datatables 2.0 removes what 1.x deprecated. This section covers rendering: rendering no
+longer writes to the table, and the option bag holds DataTables.net options only. After this
+change, the application and its test suite must run with no call to a removed method.
+
+## Required changes
+
+1. Replace `$table->getDataTable()` and `$table->prepareForRendering()` on an `AbstractDataTable`:
+   read configuration with `$table->getConfiguredDataTable()`, render with `render_datatable()` in
+   Twig. Remove subclass overrides of `getDataTable()` or `prepareForRendering()`: 2.0 never calls
+   them. Move their logic to `configureDataTable()`.
+2. Replace `$publisher->publishForDataTable($table->getDataTable(), $data)` with
+   `$publisher->publishForDataTable($table, $data)`, passing the `AbstractDataTable`.
+3. Delete every `->apiPlatformServerSide()` call on a `DataTable`.
+4. Find code reading a bundle key through `DataTable::getOption()` or `getOptions()` (`apiPlatform`,
+   `apiPlatformServerSide`, `pollInterval`, `urlState`, `styleFramework`, `exportUrl`,
+   `showHeaderResetButton`, `mercure`, `highlight`, `bulkActions`, `rowActionUrls`, `filters`,
+   `filterLabels`, `emptyState`, `actionLabels`, `summaryLabels`, `forwardedQuery`, `recordUrl`).
+   2.0 returns `null` or omits the key. Read the configuration from its own getter
+   (`getMercureConfig()`, `getHighlightConfig()`, `getBulkActions()`, `getFilters()`,
+   `getEmptyState()`), or, in tests, render the table and read the payload with `DataTableView`.
+5. Move every change to `ajax()`, `data()`, `serverSide()`, `apiPlatform()`, `mercure()`,
+   `editModalTemplate()` or `editModalAdapter()` made through `getConfiguredDataTable()` after the
+   table was configured into `configureDataTable()`: 2.0 resolves those opt-ins once. Calls to
+   `rows()` from a controller need no change.
+6. If the application constructs `DataTablesExtension` itself, pass only the Stimulus helper, the
+   profiler, the authorization checker and the controller name.
+
+## Optional changes
+
+1. Search the payload for a key set both as an option and as an extension: 2.0 throws a
+   `LogicException` at render for it. Keep one of the two.
+
+</upgrade-prompt>

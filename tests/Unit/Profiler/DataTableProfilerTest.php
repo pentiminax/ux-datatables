@@ -16,6 +16,8 @@ use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
+use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
+use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -27,11 +29,14 @@ use Symfony\Component\HttpFoundation\Request;
 #[CoversClass(DataTableProfiler::class)]
 final class DataTableProfilerTest extends TestCase
 {
+    use PreparesPayload;
+
     #[Test]
     public function it_collects_rendered_tables(): void
     {
         $profiler = new DataTableProfiler();
-        $profiler->collectRenderedTable('App\\ProductDataTable', new DataTable('products'));
+        $table    = new DataTable('products');
+        $profiler->collectRenderedTable('App\\ProductDataTable', self::preparedFor($table), $table);
 
         $this->assertSame([[
             'id'                       => 'products',
@@ -43,7 +48,7 @@ final class DataTableProfilerTest extends TestCase
             'ajax'                     => null,
             'hasData'                  => false,
             'rowCount'                 => 0,
-            'dataSourceMode'           => null,
+            'dataSourceMode'           => 'Inline',
             'payloadBytes'             => 0,
             'hydrationOverThreshold'   => false,
             'hydrationRowThreshold'    => 0,
@@ -63,8 +68,8 @@ final class DataTableProfilerTest extends TestCase
         $table = (new DataTable('products'))->data([['id' => 1], ['id' => 2], ['id' => 3]]);
 
         $profiler = new DataTableProfiler(hydrationRowThreshold: 2);
-        $profiler->collectRenderedTable('App\\ProductDataTable', $table, ['dataSourceMode' => 'ClientHydrated', 'payloadBytes' => 4096]);
-        $profiler->collectRenderedTable('App\\InlineDataTable', $table, ['dataSourceMode' => 'Inline', 'payloadBytes' => 10]);
+        $profiler->collectRenderedTable('App\\ProductDataTable', self::preparedFor($table, DataSourceMode::ClientHydrated), $table, ['payloadBytes' => 4096]);
+        $profiler->collectRenderedTable('App\\InlineDataTable', self::preparedFor($table), $table, ['payloadBytes' => 10]);
 
         [$hydrated, $inline] = $profiler->getRenderedTables();
 
@@ -79,7 +84,8 @@ final class DataTableProfilerTest extends TestCase
     public function a_zero_threshold_never_flags_a_hydration(): void
     {
         $profiler = new DataTableProfiler(hydrationRowThreshold: 0);
-        $profiler->collectRenderedTable('App\\ProductDataTable', (new DataTable('p'))->data([['id' => 1]]), ['dataSourceMode' => 'ClientHydrated']);
+        $table    = (new DataTable('p'))->data([['id' => 1]]);
+        $profiler->collectRenderedTable('App\\ProductDataTable', self::preparedFor($table, DataSourceMode::ClientHydrated), $table);
 
         $this->assertFalse($profiler->getRenderedTables()[0]['hydrationOverThreshold']);
     }
@@ -93,7 +99,7 @@ final class DataTableProfilerTest extends TestCase
             ->addExtension((new SelectExtension())->withCheckbox());
 
         $profiler = new DataTableProfiler();
-        $profiler->collectRenderedTable('App\\ProductDataTable', $table);
+        $profiler->collectRenderedTable('App\\ProductDataTable', self::preparedFor($table), $table);
 
         $extensions = $profiler->getRenderedTables()[0]['extensions'];
 
@@ -120,10 +126,8 @@ final class DataTableProfilerTest extends TestCase
         $table->data([['name' => 'Foo', 'secret' => 'hidden']]);
 
         $profiler = new DataTableProfiler();
-        $profiler->collectRenderedTable('App\\ProductDataTable', $table, [
-            'entityClass'     => 'App\\Entity\\Product',
-            'originalColumns' => [$name, $secret],
-            'allowedColumns'  => [$name],
+        $profiler->collectRenderedTable('App\\ProductDataTable', self::preparedFor($table, columns: [$name]), $table, [
+            'entityClass' => 'App\\Entity\\Product',
         ]);
 
         $record = $profiler->getRenderedTables()[0];
@@ -320,7 +324,8 @@ final class DataTableProfilerTest extends TestCase
     public function reset_clears_all_collected_state(): void
     {
         $profiler = new DataTableProfiler();
-        $profiler->collectRenderedTable('App\\ProductDataTable', new DataTable('products'));
+        $products = new DataTable('products');
+        $profiler->collectRenderedTable('App\\ProductDataTable', self::preparedFor($products), $products);
         $profiler->collectAjaxQuery('App\\ProductDataTable', 'token', null, 1, 1, 0.1);
 
         $profiler->reset();

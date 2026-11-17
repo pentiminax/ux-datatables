@@ -152,16 +152,14 @@ final class DataSourceModeTest extends TestCase
     }
 
     #[Test]
-    public function it_marks_an_entity_table_without_an_explicit_choice_as_server_side(): void
+    public function it_marks_an_entity_table_without_an_explicit_choice_as_server_side_without_writing_to_it(): void
     {
         $implicit = new DataTable('books');
         $explicit = (new DataTable('books'))->serverSide(false);
 
-        ResolvedOptIns::resolve($implicit, new AsDataTable(entityClass: \stdClass::class));
-        ResolvedOptIns::resolve($explicit, new AsDataTable(entityClass: \stdClass::class));
-
-        $this->assertTrue($implicit->isServerSide());
-        $this->assertFalse($explicit->isServerSide());
+        $this->assertTrue(ResolvedOptIns::resolve($implicit, new AsDataTable(entityClass: \stdClass::class))->serverSide);
+        $this->assertFalse(ResolvedOptIns::resolve($explicit, new AsDataTable(entityClass: \stdClass::class))->serverSide);
+        $this->assertNull($implicit->getOption('serverSide'));
     }
 
     /**

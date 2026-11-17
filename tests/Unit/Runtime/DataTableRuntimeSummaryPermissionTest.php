@@ -62,9 +62,10 @@ final class DataTableRuntimeSummaryPermissionTest extends TestCase
         $translator->method('trans')->willReturn('label');
         $table = (new DataTable('Test'))->add(NumberColumn::new('amount')->permission('ROLE_HR')->summarize(new Sum()));
 
-        (new RenderingPreparer(translator: $translator, columnResolver: new ColumnResolver(permissionChecker: $this->checker(false))))->prepare($table, null);
+        $preparer = new RenderingPreparer(translator: $translator, columnResolver: new ColumnResolver(permissionChecker: $this->checker(false)));
+        $prepared = $preparer->prepare($table, $preparer->resolveOptIns($table, null));
 
-        $this->assertArrayNotHasKey('summaryLabels', $table->getOptions());
+        $this->assertArrayNotHasKey('summaryLabels', $prepared->getView());
     }
 
     #[Test]

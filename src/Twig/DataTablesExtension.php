@@ -4,19 +4,10 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Twig;
 
-use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
-use Pentiminax\UX\DataTables\Column\ColumnResolver;
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
-use Pentiminax\UX\DataTables\Model\BulkActions;
-use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
-use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
-use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
-use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
-use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\UX\StimulusBundle\Helper\StimulusHelper;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
@@ -40,10 +31,6 @@ class DataTablesExtension extends AbstractExtension
 
     public function __construct(
         private readonly StimulusHelper $stimulus,
-        private readonly ColumnResolver $columnResolver,
-        private readonly ?RequestStack $requestStack = null,
-        private readonly ?CsrfTokenManagerInterface $csrfTokenManager = null,
-        private readonly ?AjaxDataTableRegistry $ajaxRegistry = null,
         private readonly ?DataTableProfiler $profiler = null,
         ?AuthorizationChecker $permissionChecker = null,
         private readonly string $controllerName = self::CONTROLLER_NAME,
@@ -58,78 +45,25 @@ class DataTablesExtension extends AbstractExtension
         ];
     }
 
-    private function prepare(AbstractDataTable $table): DataTable
-    {
-        if ($this->isOverridden($table, 'getDataTable')) {
-            return $table->getDataTable();
-        }
-
-        if ($this->isOverridden($table, 'prepareForRendering')) {
-            $table->prepareForRendering();
-
-            return $table->getConfiguredDataTable();
-        }
-
-        return $table->prepareDataTableForRendering();
-    }
-
-    private function isOverridden(AbstractDataTable $table, string $method): bool
-    {
-        return AbstractDataTable::class !== (new \ReflectionMethod($table, $method))->getDeclaringClass()->getName();
-    }
-
     public function renderDataTable(AbstractDataTable $table, array $attributes = []): string
     {
-        $dataTableClass = $table::class;
         $table->getConfiguredDataTable();
 
         if (false === $this->permissionChecker->canAccessTable($table)) {
             throw new AccessDeniedException('Access to this DataTable is denied.');
         }
 
-        $dataTable = $this->prepare($table);
+        $prepared = $table->prepareRendering();
+        $view     = $prepared->getView();
 
-        $originalColumns = array_values($dataTable->getColumns());
-        $columns         = $this->columnResolver->filterStaticPermissions($originalColumns, $dataTableClass);
-
-        $attributes = array_merge($dataTable->getAttributes(), $attributes);
-        $id         = \is_string($attributes['id'] ?? null) && '' !== $attributes['id'] ? $attributes['id'] : $dataTable->getId();
+        $attributes = array_merge($prepared->attributes, $attributes);
+        $id         = \is_string($attributes['id'] ?? null) && '' !== $attributes['id'] ? $attributes['id'] : $prepared->id;
         unset($attributes['id']);
 
         $controllers = [];
 
         if (\is_string($attributes['data-controller'] ?? null) && '' !== $attributes['data-controller']) {
             $controllers[$attributes['data-controller']] = [];
-        }
-
-        $options            = $dataTable->getOptions();
-        $options['columns'] = array_values(array_map(
-            static fn (ColumnInterface $column): array => $column->jsonSerialize(),
-            $columns,
-        ));
-
-        $extensions = $dataTable->getExtensions();
-
-        // Checkboxes the table only shows for its bulk actions would select rows for nothing.
-        if (!$this->filterBulkActions($options, $dataTable->getBulkActions(), $dataTableClass) && $dataTable->isSelectionForBulkActions()) {
-            unset($extensions['select']);
-        }
-
-        $view = array_merge($options, $extensions, [
-            'dataTable' => $this->ajaxRegistry?->getActionToken($dataTableClass),
-            'editModal' => [
-                'adapter' => $dataTable->getEditModalAdapter(),
-            ],
-            'mutationsEnabled' => false,
-        ]);
-
-        if (null !== $locale = $this->requestStack?->getCurrentRequest()?->getLocale()) {
-            $view['locale'] = $locale;
-        }
-
-        if (null !== $csrfToken = $this->getMutationToken()) {
-            $view['csrfToken']        = $csrfToken;
-            $view['mutationsEnabled'] = true;
         }
 
         $controllers[$this->controllerName] = [
@@ -155,57 +89,12 @@ class DataTablesExtension extends AbstractExtension
 
         $html = \sprintf('<table id="%s" %s></table>', htmlspecialchars($id, \ENT_QUOTES | \ENT_HTML5, 'UTF-8'), $stimulusAttributes);
 
-        $this->profiler?->collectRenderedTable($dataTableClass, $dataTable, [
-            'id'              => $id,
-            'entityClass'     => $table->getEntityClass(),
-            'originalColumns' => $originalColumns,
-            'allowedColumns'  => $columns,
-            'dataSourceMode'  => $table->getRenderedDataSourceMode()?->name,
-            'payloadBytes'    => \strlen($html),
+        $this->profiler?->collectRenderedTable($table::class, $prepared, $table->getConfiguredDataTable(), [
+            'id'           => $id,
+            'entityClass'  => $table->getEntityClass(),
+            'payloadBytes' => \strlen($html),
         ]);
 
         return $html;
-    }
-
-    /**
-     * Drop bulk actions the user may not run, without touching the container-shared collection.
-     *
-     * @param array<string, mixed> $options
-     *
-     * @return bool whether the user may run at least one bulk action
-     */
-    private function filterBulkActions(array &$options, ?BulkActions $bulkActions, string $dataTableClass): bool
-    {
-        if (null === $bulkActions || !isset($options['bulkActions'])) {
-            return false;
-        }
-
-        $allowed = (clone $bulkActions)->filterStaticPermissions(
-            $this->permissionChecker,
-            $dataTableClass,
-        );
-
-        if ($allowed->isEmpty()) {
-            unset($options['bulkActions']);
-
-            return false;
-        }
-
-        $options['bulkActions']['actions'] = $allowed->jsonSerialize();
-
-        return true;
-    }
-
-    private function getMutationToken(): ?string
-    {
-        if (null === $this->csrfTokenManager) {
-            return null;
-        }
-
-        try {
-            return $this->csrfTokenManager->getToken(MutationTokenValidator::TOKEN_ID)->getValue();
-        } catch (SessionNotFoundException) {
-            return null;
-        }
     }
 }

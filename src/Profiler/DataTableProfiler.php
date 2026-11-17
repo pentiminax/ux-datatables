@@ -12,6 +12,8 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Order;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
+use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
+use Pentiminax\UX\DataTables\Runtime\PreparedDataTable;
 
 /**
  * Shared, request-scoped debug context for the Web Profiler.
@@ -37,27 +39,27 @@ final class DataTableProfiler
     }
 
     /**
-     * @param array{entityClass?: string|null, originalColumns?: list<ColumnInterface>, allowedColumns?: list<ColumnInterface>, dataSourceMode?: string|null, payloadBytes?: int} $context
-     *                                                                                                                                                                                     Rendering context only available to the caller, such as the columns removed
-     *                                                                                                                                                                                     by static permission filtering
+     * @param PreparedDataTable                                                 $prepared what the render sent to the browser
+     * @param DataTable                                                         $table    the table as configured, for its extensions and filters
+     * @param array{id?: string, entityClass?: string|null, payloadBytes?: int} $context
      */
-    public function collectRenderedTable(string $class, DataTable $table, array $context = []): void
+    public function collectRenderedTable(string $class, PreparedDataTable $prepared, DataTable $table, array $context = []): void
     {
-        $options   = $table->getOptions();
-        $rowCount  = \is_array($options['data'] ?? null) ? \count($options['data']) : 0;
-        $mode      = $context['dataSourceMode'] ?? null;
-        $hydrated  = 'ClientHydrated' === $mode;
+        $data      = $prepared->options['data'] ?? null;
+        $rowCount  = \is_array($data) ? \count($data) : 0;
+        $mode      = $prepared->dataSourceMode->name;
+        $hydrated  = DataSourceMode::ClientHydrated === $prepared->dataSourceMode;
         $overLimit = $hydrated && $this->hydrationRowThreshold > 0 && $rowCount > $this->hydrationRowThreshold;
 
         $this->renderedTables[] = [
-            'id'                       => $context['id'] ?? $table->getId(),
+            'id'                       => $context['id'] ?? $prepared->id,
             'class'                    => $class,
             'entityClass'              => $context['entityClass'] ?? null,
-            'serverSide'               => $table->isServerSide(),
-            'columnCount'              => \count($table->getColumns()),
+            'serverSide'               => true === ($prepared->options['serverSide'] ?? false),
+            'columnCount'              => \count($prepared->configuredColumns),
             'extensions'               => $this->describeExtensions($table),
-            'ajax'                     => $table->getOption('ajax'),
-            'hasData'                  => !empty($options['data']),
+            'ajax'                     => $prepared->options['ajax'] ?? null,
+            'hasData'                  => !empty($data),
             'rowCount'                 => $rowCount,
             'dataSourceMode'           => $mode,
             'payloadBytes'             => $context['payloadBytes'] ?? 0,
@@ -65,13 +67,13 @@ final class DataTableProfiler
             'hydrationRowThreshold'    => $this->hydrationRowThreshold,
             'dataController'           => $table->getDataController(),
             'forwardedQueryParameters' => $table->getForwardedQueryParameters(),
-            'columns'                  => $this->describeColumns($table->getColumns()),
-            'deniedColumns'            => $this->describeDeniedColumns($context),
-            'filters'                  => $table->getFilters()?->jsonSerialize() ?? [],
-            'mercure'                  => $this->describeMercure($table),
+            'columns'                  => $this->describeColumns($prepared->configuredColumns),
+            'deniedColumns'            => $this->describeDeniedColumns($prepared),
+            'filters'                  => $prepared->filters ?? [],
+            'mercure'                  => $this->describeMercure($prepared),
             'editModal'                => [
                 'template' => $table->getEditModalTemplate(),
-                'adapter'  => $table->getEditModalAdapter(),
+                'adapter'  => $prepared->editModalAdapter,
             ],
         ];
     }
@@ -143,7 +145,7 @@ final class DataTableProfiler
     }
 
     /**
-     * @param array<string, ColumnInterface> $columns
+     * @param list<ColumnInterface> $columns
      *
      * @return list<array<string, mixed>>
      */
@@ -156,31 +158,22 @@ final class DataTableProfiler
     }
 
     /**
-     * @param array{originalColumns?: list<ColumnInterface>, allowedColumns?: list<ColumnInterface>} $context
-     *
      * @return list<string>
      */
-    private function describeDeniedColumns(array $context): array
+    private function describeDeniedColumns(PreparedDataTable $prepared): array
     {
-        $original = $context['originalColumns'] ?? null;
-        $allowed  = $context['allowedColumns']  ?? null;
-
-        if (!\is_array($original) || !\is_array($allowed)) {
-            return [];
-        }
-
         $names = static fn (array $columns): array => array_map(
             static fn (ColumnInterface $column): string => $column->getName(),
             $columns,
         );
 
-        return array_values(array_diff($names($original), $names($allowed)));
+        return array_values(array_diff($names($prepared->configuredColumns), $names($prepared->columns)));
     }
 
     /** @return array<string, mixed>|null */
-    private function describeMercure(DataTable $table): ?array
+    private function describeMercure(PreparedDataTable $prepared): ?array
     {
-        $config = $table->getMercureConfig();
+        $config = $prepared->mercure;
 
         if (null === $config) {
             return null;

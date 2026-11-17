@@ -30,6 +30,7 @@ use Pentiminax\UX\DataTables\Model\Extensions\SearchBuilderExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Model\Options\SearchOption;
+use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -42,6 +43,8 @@ use Symfony\Component\ExpressionLanguage\Expression;
 #[CoversClass(DataTable::class)]
 final class DataTableTest extends TestCase
 {
+    use PreparesPayload;
+
     #[Test]
     public function it_configures_datatable_options(): void
     {
@@ -82,7 +85,8 @@ final class DataTableTest extends TestCase
         ];
 
         $this->assertEquals($expectedExtensions, $table->getExtensions());
-        $this->assertTrue($table->getOption('apiPlatform'));
+        $this->assertTrue($table->getBundleOption('apiPlatform'));
+        $this->assertNull($table->getOption('apiPlatform'));
     }
 
     #[Test]
@@ -479,29 +483,28 @@ final class DataTableTest extends TestCase
     }
 
     #[Test]
-    public function it_includes_mercure_in_get_options(): void
+    public function it_keeps_mercure_out_of_the_option_bag(): void
     {
         $table = (new DataTable('ProductDataTable'))
             ->mercure(debounceMs: 300);
 
-        $table->setMercureConfig($table->getMercureConfig()->withHubUrl('/.well-known/mercure'));
-
-        $options = $table->getOptions();
-
-        $this->assertArrayHasKey('mercure', $options);
+        $this->assertArrayNotHasKey('mercure', $table->getOptions());
         $this->assertSame([
             'hubUrl'     => '/.well-known/mercure',
             'topics'     => ['/datatables/product-data-tables/{id}'],
             'debounceMs' => 300,
-        ], $options['mercure']);
+        ], $table->getMercureConfig()->withHubUrl('/.well-known/mercure')->jsonSerialize());
     }
 
     #[Test]
-    public function it_includes_highlight_and_row_id_in_get_options(): void
+    public function it_includes_highlight_and_row_id_in_the_payload(): void
     {
-        $options = (new DataTable('ProductDataTable'))
-            ->highlightUpdates(durationMs: 800, ignoreColumns: ['updatedAt'])
-            ->getOptions();
+        $table = (new DataTable('ProductDataTable'))
+            ->highlightUpdates(durationMs: 800, ignoreColumns: ['updatedAt']);
+
+        $this->assertArrayNotHasKey('highlight', $table->getOptions());
+
+        $options = self::payloadOf($table);
 
         $this->assertSame([
             'durationMs'    => 800,
@@ -511,9 +514,9 @@ final class DataTableTest extends TestCase
     }
 
     #[Test]
-    public function it_does_not_include_highlight_in_get_options_when_not_configured(): void
+    public function it_does_not_include_highlight_in_the_payload_when_not_configured(): void
     {
-        $options = (new DataTable('ProductDataTable'))->getOptions();
+        $options = self::payloadOf(new DataTable('ProductDataTable'));
 
         $this->assertArrayNotHasKey('highlight', $options);
         $this->assertArrayNotHasKey('rowId', $options);
@@ -522,10 +525,7 @@ final class DataTableTest extends TestCase
     #[Test]
     public function it_does_not_include_mercure_in_get_options_when_not_configured(): void
     {
-        $table   = new DataTable('ProductDataTable');
-        $options = $table->getOptions();
-
-        $this->assertArrayNotHasKey('mercure', $options);
+        $this->assertArrayNotHasKey('mercure', self::payloadOf(new DataTable('ProductDataTable')));
     }
 
     #[Test]
@@ -632,7 +632,7 @@ final class DataTableTest extends TestCase
     {
         $table = (new DataTable('users'))->urlState($keys, $prefix);
 
-        $this->assertSame($expected, $table->getOption('urlState'));
+        $this->assertSame($expected, $table->getBundleOption('urlState'));
     }
 
     /**
@@ -718,8 +718,8 @@ final class DataTableTest extends TestCase
     {
         $table = (new DataTable('users'))->styleFramework(StyleFramework::Bootstrap5);
 
-        $this->assertSame('bs5', $table->getOption('styleFramework'));
-        $this->assertSame('bs5', $table->getOptions()['styleFramework']);
+        $this->assertSame('bs5', $table->getBundleOption('styleFramework'));
+        $this->assertSame('bs5', self::payloadOf($table)['styleFramework']);
     }
 
     #[Test]
@@ -727,7 +727,7 @@ final class DataTableTest extends TestCase
     {
         $table = (new DataTable('users', ['styleFramework' => 'dt']))->styleFramework(StyleFramework::Bootstrap5);
 
-        $this->assertSame('bs5', $table->getOptions()['styleFramework']);
+        $this->assertSame('bs5', self::payloadOf($table)['styleFramework']);
     }
 
     #[Test]
@@ -735,8 +735,8 @@ final class DataTableTest extends TestCase
     {
         $table = new DataTable('users');
 
-        $this->assertNull($table->getOption('styleFramework'));
-        $this->assertArrayNotHasKey('styleFramework', $table->getOptions());
+        $this->assertNull($table->getBundleOption('styleFramework'));
+        $this->assertArrayNotHasKey('styleFramework', self::payloadOf($table));
     }
 
     /**
@@ -921,7 +921,7 @@ final class DataTableTest extends TestCase
     {
         $table = new DataTable('tableId', ['showHeaderResetButton' => true]);
 
-        $this->assertArrayNotHasKey('showHeaderResetButton', $table->getOptions());
+        $this->assertArrayNotHasKey('showHeaderResetButton', self::payloadOf($table));
     }
 
     #[Test]
@@ -935,12 +935,12 @@ final class DataTableTest extends TestCase
             ->showHeaderResetButton(true)
             ->setFilters($filters);
 
-        $serialized = $table->getOptions();
+        $serialized = self::payloadOf($table);
         $this->assertArrayNotHasKey('showHeaderResetButton', $serialized);
 
         $filters->showHeaderResetButton(true);
         $table->showHeaderResetButton(false);
-        $serialized2 = $table->getOptions();
+        $serialized2 = self::payloadOf($table);
         $this->assertTrue($serialized2['showHeaderResetButton'] ?? false);
     }
 
@@ -967,18 +967,6 @@ final class DataTableTest extends TestCase
         $this->assertFalse($table->isSelectionForBulkActions());
     }
 
-    #[Test]
-    public function it_emits_the_prepared_action_labels_only_once_they_are_set(): void
-    {
-        $table = new DataTable('test');
-
-        $this->assertArrayNotHasKey('actionLabels', $table->getOptions());
-
-        $table->setPreparedActionLabels(['failed' => 'Failed']);
-
-        $this->assertSame(['failed' => 'Failed'], $table->getOptions()['actionLabels']);
-    }
-
     /**
      * @return iterable<string, array{string|int, int}>
      */
@@ -999,13 +987,14 @@ final class DataTableTest extends TestCase
     {
         $table = (new DataTable('test'))->poll($interval);
 
-        $this->assertSame($seconds, $table->getOptions()['pollInterval']);
+        $this->assertSame($seconds, $table->getBundleOption('pollInterval'));
+        $this->assertArrayNotHasKey('pollInterval', $table->getOptions());
     }
 
     #[Test]
     public function it_omits_the_poll_interval_by_default(): void
     {
-        $this->assertArrayNotHasKey('pollInterval', (new DataTable('test'))->getOptions());
+        $this->assertNull((new DataTable('test'))->getBundleOption('pollInterval'));
     }
 
     /**
@@ -1052,7 +1041,7 @@ final class DataTableTest extends TestCase
 
         $this->assertCount(1, $deprecations);
         $this->assertStringContainsString('Bootstrap5', $deprecations[0]);
-        $this->assertSame($framework->value, $table->getOptions()['styleFramework']);
+        $this->assertSame($framework->value, $table->getBundleOption('styleFramework'));
     }
 
     /**

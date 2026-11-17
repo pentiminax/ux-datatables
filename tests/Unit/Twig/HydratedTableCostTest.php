@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Twig;
 
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
-use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
@@ -127,7 +126,7 @@ final class HydratedTableCostTest extends TestCase
             hydrationRowThreshold: $threshold,
         ));
 
-        return (new DataTablesExtension(new StimulusHelper(null), new ColumnResolver(), profiler: $profiler))->renderDataTable($table);
+        return (new DataTablesExtension(new StimulusHelper(null), profiler: $profiler))->renderDataTable($table);
     }
 }
 

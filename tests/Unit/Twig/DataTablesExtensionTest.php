@@ -62,7 +62,6 @@ final class DataTablesExtensionTest extends TestCase
     {
         $extension = new DataTablesExtension(
             new StimulusHelper($this->container->get('twig')),
-            new ColumnResolver(),
             controllerName: DataTablesExtension::CORE_CONTROLLER_NAME,
         );
 
@@ -233,7 +232,6 @@ final class DataTablesExtensionTest extends TestCase
 
         $extension = new DataTablesExtension(
             new StimulusHelper(null),
-            new ColumnResolver(permissionChecker: $checker),
             permissionChecker: $checker,
         );
 
@@ -256,79 +254,6 @@ final class DataTablesExtensionTest extends TestCase
         $this->assertNotSame('', $actual['csrfToken']);
     }
 
-    #[Test]
-    public function it_prepares_the_table_through_the_internal_path(): void
-    {
-        $table = new class extends AbstractDataTable {
-            public bool $prepareCalled = false;
-
-            public function configureColumns(): iterable
-            {
-                yield TextColumn::new('firstColumn');
-            }
-
-            public function prepareDataTableForRendering(): DataTable
-            {
-                $this->prepareCalled = true;
-
-                return parent::prepareDataTableForRendering();
-            }
-        };
-
-        $this->container->get('test.datatables.twig_extension')->renderDataTable($table);
-        $this->assertTrue($table->prepareCalled);
-    }
-
-    #[Test]
-    public function it_calls_a_get_data_table_override_and_raises_its_deprecation(): void
-    {
-        $table = new class extends AbstractDataTable {
-            public function configureColumns(): iterable
-            {
-                yield TextColumn::new('firstColumn');
-            }
-
-            public function getDataTable(): DataTable
-            {
-                return parent::getDataTable()->pageLength(99);
-            }
-        };
-
-        $html    = '';
-        $notices = $this->deprecationsOf(function () use ($table, &$html): void {
-            $html = $this->container->get('test.datatables.twig_extension')->renderDataTable($table);
-        });
-
-        $this->assertStringContainsString('"pageLength":99', html_entity_decode($html));
-        $this->assertNotEmpty(array_filter($notices, static fn (string $n): bool => str_contains($n, 'getDataTable()')));
-    }
-
-    #[Test]
-    public function it_calls_a_prepare_for_rendering_override_and_raises_its_deprecation(): void
-    {
-        $table = new class extends AbstractDataTable {
-            public bool $overrideCalled = false;
-
-            public function configureColumns(): iterable
-            {
-                yield TextColumn::new('firstColumn');
-            }
-
-            public function prepareForRendering(): void
-            {
-                $this->overrideCalled = true;
-                parent::prepareForRendering();
-            }
-        };
-
-        $notices = $this->deprecationsOf(function () use ($table): void {
-            $this->container->get('test.datatables.twig_extension')->renderDataTable($table);
-        });
-
-        $this->assertTrue($table->overrideCalled);
-        $this->assertNotEmpty(array_filter($notices, static fn (string $n): bool => str_contains($n, 'prepareForRendering()')));
-    }
-
     /**
      * @param array<string, mixed>|null $expectedRow the expected first inline row, or null when no inline data is expected
      */
@@ -342,13 +267,11 @@ final class DataTablesExtensionTest extends TestCase
 
         if (null === $expectedRow) {
             $this->assertArrayNotHasKey('data', $actual);
-            $this->assertFalse($table->prepareDataTableForRendering()->areTemplateColumnsRendered());
 
             return;
         }
 
         $this->assertSame($expectedRow, $this->trimRow($actual['data'][0]));
-        $this->assertTrue($table->prepareDataTableForRendering()->areTemplateColumnsRendered());
     }
 
     /**
@@ -382,7 +305,6 @@ final class DataTablesExtensionTest extends TestCase
         $actual = $this->renderPayload($table);
 
         $this->assertSame($expectedRow, $this->trimRow($actual['data'][0]));
-        $this->assertTrue($table->prepareDataTableForRendering()->areTemplateColumnsRendered());
     }
 
     /**
@@ -405,12 +327,17 @@ final class DataTablesExtensionTest extends TestCase
         ]];
     }
 
+    /**
+     * @param array<string, mixed> $expectedRow
+     */
     #[Test]
-    public function it_keeps_set_data_rows_prepared_before_rendering(): void
+    #[DataProvider('inlineObjectRowCases')]
+    public function it_renders_the_same_payload_twice(string $mode, array $expectedRow): void
     {
-        $table = $this->createInlineObjectTable('setData');
+        $table = $this->createInlineObjectTable($mode);
 
-        $this->assertTrue($table->prepareDataTableForRendering()->areTemplateColumnsRendered());
+        $this->assertSame($this->renderPayload($table), $this->renderPayload($table));
+        $this->assertSame($expectedRow, $this->trimRow($this->renderPayload($table)['data'][0]));
     }
 
     #[Test]

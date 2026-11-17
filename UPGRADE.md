@@ -16,6 +16,48 @@ Deprecated APIs keep working for the whole 1.x line and are removed in 2.0.
 
 ## Upgrading to 2.0.0
 
+### Rendering no longer writes to the table
+
+`render_datatable()` builds the payload it sends to the browser without writing to your table.
+`getConfiguredDataTable()` returns the table exactly as `configureDataTable()` left it, before and
+after a render: it no longer carries the bundle's Ajax URL, the `serverSide` flag of an entity
+table, the hydrated rows, the resolved Mercure configuration or the translated labels.
+
+- `AbstractDataTable::getDataTable()` and `prepareForRendering()` are removed. Read the table with
+  `getConfiguredDataTable()` and render it with `render_datatable()`. A subclass override of either
+  method is no longer called.
+
+  ```php
+  // Before (1.x)
+  $ajax = $table->getDataTable()->getOption('ajax');
+
+  // After (2.0): the configuration, as you wrote it
+  $pageLength = $table->getConfiguredDataTable()->getOption('pageLength');
+  ```
+
+  To check what a table renders, render it and read the payload with the test helper
+  (`DataTableTestCase::dataTableView()` on the crawled page).
+- `DataTable::getOption()` and `getOptions()` return DataTables.net options only, as announced in
+  1.7. Bundle keys (`apiPlatform`, `pollInterval`, `urlState`, `styleFramework`, `exportUrl`,
+  `showHeaderResetButton`, `mercure`, `bulkActions`, `filters`, ...) are no longer part of the option
+  bag: read your own configuration from the method that set it (`getMercureConfig()`,
+  `getBulkActions()`, `getFilters()`), and the rendered value from the payload.
+- The data source, API Platform, Mercure and edit modal opt-ins are resolved once, when the table is
+  configured. Change them in `configureDataTable()` or `#[AsDataTable]`: a change made later through
+  `getConfiguredDataTable()` is not picked up. `rows()` still switches the table to its rows.
+- `MercureUpdatePublisher::publishForDataTable()` takes the `AbstractDataTable` only:
+  `publishForDataTable($table, $data)` instead of `publishForDataTable($table->getDataTable(), $data)`.
+- `DataTable::apiPlatformServerSide()` is removed. The bundle still sends the flag when a table
+  needs it: remove the call.
+- Options, extensions and bundle keys share one payload. A key set twice, for example an option and
+  an extension with the same name, now throws a `LogicException` at render instead of silently
+  overwriting the first value. Rename or remove the duplicate.
+- If you build `DataTablesExtension` by hand, its arguments are now the Stimulus helper, the
+  profiler, the authorization checker and the controller name: drop the column resolver, request
+  stack, CSRF token manager and Ajax registry arguments. The bundle's service needs no change.
+  `DataTableProfiler::collectRenderedTable()` now receives the prepared payload and the configured
+  table.
+
 ### A fluent API Platform opt-out wins over the attribute
 
 `apiPlatform(false)` in `configureDataTable()` now overrides `#[AsDataTable(apiPlatform: true)]`. The

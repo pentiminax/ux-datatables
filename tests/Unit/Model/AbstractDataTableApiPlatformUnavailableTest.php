@@ -34,7 +34,7 @@ final class AbstractDataTableApiPlatformUnavailableTest extends TestCase
         $table = new $tableClass($urlResolver);
 
         try {
-            $table->prepareDataTableForRendering();
+            $table->prepareRendering();
             $this->fail('Rendering an API Platform table without a collection must throw.');
         } catch (\LogicException $exception) {
             $this->assertStringContainsString('exposes no collection operation', $exception->getMessage());
@@ -52,7 +52,7 @@ final class AbstractDataTableApiPlatformUnavailableTest extends TestCase
         $table = new $tableClass($urlResolver);
 
         try {
-            $table->prepareDataTableForRendering();
+            $table->prepareRendering();
         } catch (\LogicException) {
         }
 

@@ -52,8 +52,7 @@ final class AbstractDataTableMapRowTest extends TestCase
 
         $table->rows($data);
 
-        $this->assertSame($expected, $table->prepareDataTableForRendering()->getOption('data'));
-        $this->assertTrue($table->prepareDataTableForRendering()->areTemplateColumnsRendered());
+        $this->assertSame($expected, $table->prepareRendering()->getOption('data'));
     }
 
     /**
