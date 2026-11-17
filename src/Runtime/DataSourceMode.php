@@ -27,7 +27,7 @@ enum DataSourceMode
     /** The bundle's Ajax endpoint, paging on the server. */
     case ServerSide;
 
-    /** Rows the table reads once at render time and embeds in the payload. */
+    /** Rows the table reads once at render time and embeds in the payload, opted into with `serverSide(false)` on an entity table. */
     case ClientHydrated;
 
     /**
@@ -61,6 +61,7 @@ enum DataSourceMode
                 : self::ApiPlatformUnavailable;
         }
 
-        return $table->isServerSide() ? self::ServerSide : self::ClientHydrated;
+        // An entity table pages on the server unless it calls serverSide(false).
+        return ($table->getOption('serverSide') ?? null !== $entityClass) ? self::ServerSide : self::ClientHydrated;
     }
 }
