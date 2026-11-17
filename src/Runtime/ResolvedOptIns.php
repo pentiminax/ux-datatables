@@ -45,6 +45,13 @@ final readonly class ResolvedOptIns
         $entityClass = $asDataTable?->entityClass;
         $apiPlatform = $table->getOption('apiPlatform') ?? (true === $asDataTable?->apiPlatform ? true : null);
 
+        $dataSourceMode = DataSourceMode::resolve($table, $entityClass, true === $apiPlatform, $collectionUrlResolver);
+
+        // The payload, the runtime and the profiler read the table's own flag.
+        if (DataSourceMode::ServerSide === $dataSourceMode) {
+            $table->serverSide();
+        }
+
         return new self(
             entityClass: $entityClass,
             apiPlatform: $apiPlatform,
@@ -52,7 +59,7 @@ final readonly class ResolvedOptIns
             editModalTemplate: self::firstText($table->getEditModalTemplate(), $asDataTable?->editModalTemplate),
             editModalAdapter: self::firstText($table->getEditModalAdapter(), $asDataTable?->editModalAdapter),
             serializationGroups: $asDataTable?->serializationGroups ?? [],
-            dataSourceMode: DataSourceMode::resolve($table, $entityClass, true === $apiPlatform, $collectionUrlResolver),
+            dataSourceMode: $dataSourceMode,
         );
     }
 

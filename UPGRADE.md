@@ -49,6 +49,46 @@ Both 1.6 deprecations now throw a `LogicException`:
 - `data()` or `rows()` combined with an API Platform opt-in throws when the table is configured.
   Keep one of them, or add `apiPlatform(false)` over an attribute opt-in.
 
+### Entity tables are server-side by default
+
+An entity table (`#[AsDataTable(entityClass: ...)]`) that never calls `serverSide()`, `ajax()` or
+`data()` no longer reads and embeds every row at render time: the browser fetches one page at a
+time from the bundle's Ajax data route. This is the change the 1.6 "never called serverSide()"
+deprecation announced, and that deprecation is removed. A table that already calls `serverSide()`
+or `serverSide(false)` is unchanged.
+
+To keep a small lookup table in the page, with instant search and sort in the browser, ask for the
+embedded rows explicitly:
+
+```php
+// Before (1.x): rows embedded by default
+#[AsDataTable(entityClass: Country::class)]
+final class CountryTable extends AbstractDataTable
+{
+}
+
+// After (2.0): rows embedded only on request
+#[AsDataTable(entityClass: Country::class)]
+final class CountryTable extends AbstractDataTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->serverSide(false);
+    }
+}
+```
+
+- A switched table is served by the bundle's Ajax data route (`/datatables/ajax/data` unless you
+  import the routes under a prefix). A table token does not authenticate anyone: protect that route
+  with your Symfony Security configuration (`access_control` or a firewall). The route applies the
+  same table access check, static column permissions, table-purpose token and row scope as for any
+  server-side table.
+- With `#[AsDataTable(mercure: true)]`, a switched table now subscribes to the Mercure updates
+  auto-resolved from its entity, which an embedded table never did. Make sure your hub authorizes
+  those topics, or add `serverSide(false)` to keep the old behavior.
+- `data_tables.hydration_row_threshold` still logs a warning when a `serverSide(false)` table embeds
+  more rows than the threshold.
+
 ## Upgrading to 1.7.0
 
 1.7 is the last 1.x minor. Everything in it is backward compatible: it deprecates what 2.0 removes,

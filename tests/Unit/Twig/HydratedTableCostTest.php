@@ -15,7 +15,6 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
-use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -32,35 +31,22 @@ use Symfony\UX\StimulusBundle\Helper\StimulusHelper;
 #[CoversClass(DataTablesExtension::class)]
 final class HydratedTableCostTest extends TestCase
 {
-    use CollectsDeprecations;
-
-    protected function setUp(): void
+    #[Test]
+    public function an_entity_table_without_an_explicit_choice_pages_on_the_server_and_embeds_no_rows(): void
     {
-        (new \ReflectionProperty(AbstractDataTable::class, 'implicitClientSideReported'))->setValue(null, []);
+        $profiler = new DataTableProfiler();
+        $rendered = html_entity_decode($this->render(new ImplicitHydrationTable(), profiler: $profiler));
+
+        $this->assertStringNotContainsString('Ada', $rendered);
+        $this->assertStringContainsString('"serverSide":true', $rendered);
+        $this->assertSame('ServerSide', $profiler->getRenderedTables()[0]['dataSourceMode']);
     }
 
     #[Test]
-    public function an_entity_table_without_an_explicit_choice_is_deprecated_once_per_class(): void
+    public function an_explicit_client_side_table_still_embeds_its_rows(): void
     {
-        $first  = $this->implicitDefault($this->deprecationsOf(fn () => $this->render(new ImplicitHydrationTable())));
-        $second = $this->implicitDefault($this->deprecationsOf(fn () => $this->render(new ImplicitHydrationTable())));
+        $rendered = $this->render(new ExplicitHydrationTable());
 
-        $this->assertCount(1, $first);
-        $this->assertStringContainsString(ImplicitHydrationTable::class, $first[0]);
-        $this->assertStringContainsString('2.0', $first[0]);
-        $this->assertStringContainsString('serverSide(false)', $first[0]);
-        $this->assertSame([], $second);
-    }
-
-    #[Test]
-    public function an_explicit_client_side_table_is_not_deprecated_and_still_embeds_its_rows(): void
-    {
-        $rendered = '';
-        $messages = $this->implicitDefault($this->deprecationsOf(function () use (&$rendered): void {
-            $rendered = $this->render(new ExplicitHydrationTable());
-        }));
-
-        $this->assertSame([], $messages);
         $this->assertStringContainsString('Ada', html_entity_decode($rendered));
     }
 
@@ -118,16 +104,6 @@ final class HydratedTableCostTest extends TestCase
         $this->assertSame(2, $entry['rowCount']);
         $this->assertSame(\strlen($rendered), $entry['payloadBytes']);
         $this->assertTrue($entry['hydrationOverThreshold']);
-    }
-
-    /**
-     * @param list<string> $deprecations
-     *
-     * @return list<string>
-     */
-    private function implicitDefault(array $deprecations): array
-    {
-        return array_values(array_filter($deprecations, static fn (string $message): bool => str_contains($message, 'never called serverSide()')));
     }
 
     private function logger(): AbstractLogger

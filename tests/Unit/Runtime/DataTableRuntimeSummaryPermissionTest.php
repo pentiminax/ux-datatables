@@ -78,7 +78,7 @@ final class DataTableRuntimeSummaryPermissionTest extends TestCase
         $columns = [NumberColumn::new('margin')->summarize(new Sum())];
 
         $runtime = (new DataTableRuntimeFactory(autoDataProviderFactory: new AutoDataProviderFactory($em)))->createRuntime(
-            table: new DataTable('orders'),
+            table: (new DataTable('orders'))->serverSide(false),
             columns: $columns,
             asDataTable: new AsDataTable(entityClass: SummaryOrder::class),
             baseMapper: static fn (SummaryOrder $order): array => ['margin' => 1],

@@ -56,7 +56,16 @@ final class DataSourceModeTest extends TestCase
 
         yield 'nothing declared' => [$plain, null, self::NOT_INSTALLED, DataSourceMode::ClientHydrated];
 
-        yield 'entity without opt-in' => [$plain, $attribute, '/api/books', DataSourceMode::ClientHydrated];
+        yield 'entity without an explicit choice' => [$plain, $attribute, '/api/books', DataSourceMode::ServerSide];
+
+        yield 'entity opting out of server side' => [
+            static fn (DataTable $table): DataTable => $table->serverSide(false),
+            $attribute,
+            '/api/books',
+            DataSourceMode::ClientHydrated,
+        ];
+
+        yield 'no entity, server side' => [$serverSide, null, self::NOT_INSTALLED, DataSourceMode::ServerSide];
 
         yield 'server side' => [$serverSide, $attribute, '/api/books', DataSourceMode::ServerSide];
 
@@ -91,7 +100,7 @@ final class DataSourceModeTest extends TestCase
             static fn (DataTable $table): DataTable => $table->apiPlatform(false),
             $optedIn,
             '/api/books',
-            DataSourceMode::ClientHydrated,
+            DataSourceMode::ServerSide,
         ];
 
         yield 'fluent opt-out over the attribute opt-in, server side' => [
@@ -139,7 +148,20 @@ final class DataSourceModeTest extends TestCase
 
         $mode = DataSourceMode::resolve(new DataTable('books'), \stdClass::class, false, $urlResolver);
 
-        $this->assertSame(DataSourceMode::ClientHydrated, $mode);
+        $this->assertSame(DataSourceMode::ServerSide, $mode);
+    }
+
+    #[Test]
+    public function it_marks_an_entity_table_without_an_explicit_choice_as_server_side(): void
+    {
+        $implicit = new DataTable('books');
+        $explicit = (new DataTable('books'))->serverSide(false);
+
+        ResolvedOptIns::resolve($implicit, new AsDataTable(entityClass: \stdClass::class));
+        ResolvedOptIns::resolve($explicit, new AsDataTable(entityClass: \stdClass::class));
+
+        $this->assertTrue($implicit->isServerSide());
+        $this->assertFalse($explicit->isServerSide());
     }
 
     /**
