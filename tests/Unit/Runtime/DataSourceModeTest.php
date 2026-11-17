@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
+use Pentiminax\UX\DataTables\Runtime\ResolvedOptIns;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -17,6 +18,7 @@ use PHPUnit\Framework\TestCase;
  * @internal
  */
 #[CoversClass(DataSourceMode::class)]
+#[CoversClass(ResolvedOptIns::class)]
 final class DataSourceModeTest extends TestCase
 {
     private const NOT_INSTALLED = 'not installed';
@@ -41,7 +43,7 @@ final class DataSourceModeTest extends TestCase
 
         $table = $configure(new DataTable('books'));
 
-        $this->assertSame($expected, DataSourceMode::resolve($table, $asDataTable, $urlResolver));
+        $this->assertSame($expected, ResolvedOptIns::resolve($table, $asDataTable, $urlResolver)->dataSourceMode);
     }
 
     public static function provideTables(): iterable
@@ -74,7 +76,7 @@ final class DataSourceModeTest extends TestCase
 
         yield 'inline data' => [
             static fn (DataTable $table): DataTable => $table->data([['id' => 1]])->serverSide(),
-            $optedIn,
+            $attribute,
             '/api/books',
             DataSourceMode::Inline,
         ];
@@ -85,11 +87,39 @@ final class DataSourceModeTest extends TestCase
 
         yield 'fluent opt-in' => [$fluentOptIn, $attribute, '/api/books', DataSourceMode::ApiPlatform];
 
-        yield 'fluent opt-out keeps the attribute opt-in in 1.x' => [
+        yield 'fluent opt-out wins over the attribute opt-in' => [
             static fn (DataTable $table): DataTable => $table->apiPlatform(false),
             $optedIn,
             '/api/books',
-            DataSourceMode::ApiPlatform,
+            DataSourceMode::ClientHydrated,
+        ];
+
+        yield 'fluent opt-out over the attribute opt-in, server side' => [
+            static fn (DataTable $table): DataTable => $table->apiPlatform(false)->serverSide(),
+            $optedIn,
+            '/api/books',
+            DataSourceMode::ServerSide,
+        ];
+
+        yield 'fluent opt-out lets inline data through' => [
+            static fn (DataTable $table): DataTable => $table->apiPlatform(false)->data([['id' => 1]]),
+            $optedIn,
+            '/api/books',
+            DataSourceMode::Inline,
+        ];
+
+        yield 'ajax with an attribute opt-in' => [
+            static fn (DataTable $table): DataTable => $table->ajax('/api/books'),
+            $optedIn,
+            self::NOT_INSTALLED,
+            DataSourceMode::Ajax,
+        ];
+
+        yield 'ajax with a fluent opt-in' => [
+            static fn (DataTable $table): DataTable => $table->ajax('/api/books')->apiPlatform(),
+            null,
+            self::NOT_INSTALLED,
+            DataSourceMode::Ajax,
         ];
 
         yield 'fluent opt-in without an entity' => [$fluentOptIn, null, '/api/books', DataSourceMode::ApiPlatformUnavailable];
@@ -107,8 +137,31 @@ final class DataSourceModeTest extends TestCase
         $urlResolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
         $urlResolver->expects($this->never())->method('resolveCollectionUrl');
 
-        $mode = DataSourceMode::resolve(new DataTable('books'), new AsDataTable(entityClass: \stdClass::class), $urlResolver);
+        $mode = DataSourceMode::resolve(new DataTable('books'), \stdClass::class, false, $urlResolver);
 
         $this->assertSame(DataSourceMode::ClientHydrated, $mode);
+    }
+
+    /**
+     * @param \Closure(DataTable): DataTable $configure
+     */
+    #[Test]
+    #[DataProvider('provideInlineApiPlatformTables')]
+    public function it_refuses_inline_data_with_an_api_platform_opt_in(\Closure $configure, ?AsDataTable $asDataTable): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('combines data() with an API Platform opt-in');
+
+        ResolvedOptIns::resolve($configure(new DataTable('books')), $asDataTable);
+    }
+
+    public static function provideInlineApiPlatformTables(): iterable
+    {
+        yield 'fluent opt-in' => [static fn (DataTable $table): DataTable => $table->data([['id' => 1]])->apiPlatform(), null];
+
+        yield 'attribute opt-in' => [
+            static fn (DataTable $table): DataTable => $table->data([['id' => 1]]),
+            new AsDataTable(entityClass: \stdClass::class, apiPlatform: true),
+        ];
     }
 }

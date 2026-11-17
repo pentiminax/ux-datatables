@@ -30,7 +30,7 @@ public function configureDataTable(DataTable $table): DataTable
 - Reads the Hydra collection response (`hydra:member`, `hydra:totalItems`).
 - With the attribute form: resolves the collection URL and auto-detects columns (respecting `serializationGroups`) via `ApiPlatform\ColumnAutoDetector`.
 
-Opt-ins: either side opting in counts, and a fluent edit-modal value overrides the attribute (blank = unset). `apiPlatform: true` plus `apiPlatform(false)` stays opted in with a 1.6 deprecation (2.0: fluent wins). An opt-in with no collection operation, or `data()` + `apiPlatform()`, logs a 1.6 deprecation (2.0 throws); `ajax()` + `apiPlatform()` is supported. `apiPlatform: true` on the attribute + `ajax()` without a fluent call renders plain DataTables JSON and logs a 1.6 deprecation (2.0 sends the flag): add `->apiPlatform(false)` to keep it, or `->apiPlatform()` to opt in now.
+Opt-ins are resolved once after `configureDataTable()`: a fluent value overrides the attribute field by field (null or blank = unset), so `apiPlatform(false)` switches off `apiPlatform: true`. Mercure keeps fluent, then attribute, then auto-resolution. An opt-in with no collection operation throws a `LogicException` at render (data and export routes answer 404), and `data()` + an opt-in throws. `ajax()` + an opt-in (attribute or fluent) sends the API Platform flag: the browser reads the URL through the Hydra adapter; add `->apiPlatform(false)` for plain DataTables JSON.
 
 Define filters/sorting on the API Platform resource side (`#[ApiFilter(...)]`) so the columns you mark `searchable`/`orderable` map to enabled filters. See `docs/src/content/docs/integrations/api-platform.mdx`.
 

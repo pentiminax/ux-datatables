@@ -164,13 +164,12 @@ final class AsDataTableTest extends TestCase
     }
 
     #[Test]
-    public function it_does_nothing_without_resolver(): void
+    public function it_refuses_to_render_an_api_platform_opt_in_without_resolver(): void
     {
-        $table = new TestDataTableWithAttribute();
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('exposes no collection operation');
 
-        $table->prepareDataTableForRendering();
-
-        $this->assertNull($table->prepareDataTableForRendering()->getOption('ajax'));
+        (new TestDataTableWithAttribute())->prepareDataTableForRendering();
     }
 
     /**

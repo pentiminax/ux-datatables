@@ -328,17 +328,17 @@ final class RenderingPreparerTest extends TestCase
     }
 
     #[Test]
-    public function it_skips_ajax_when_collection_url_is_null(): void
+    public function it_refuses_an_api_platform_opt_in_when_collection_url_is_null(): void
     {
         $urlResolver = $this->createStub(ApiResourceCollectionUrlResolver::class);
         $urlResolver->method('resolveCollectionUrl')->willReturn(null);
 
         $preparer = new RenderingPreparer(urlResolver: $urlResolver);
-        $table    = new DataTable('Test');
 
-        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Table "Test" opts into API Platform but "stdClass" exposes no collection operation');
 
-        $this->assertNull($table->getOption('ajax'));
+        $preparer->prepare(new DataTable('Test'), new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
     }
 
     #[Test]
@@ -353,7 +353,7 @@ final class RenderingPreparerTest extends TestCase
             ->willReturn($mercureConfig);
 
         $preparer = new RenderingPreparer(mercureResolver: $mercureResolver);
-        $table    = new DataTable('Test');
+        $table    = (new DataTable('Test'))->serverSide();
 
         $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, mercure: true));
 
@@ -406,7 +406,7 @@ final class RenderingPreparerTest extends TestCase
             ->willReturn($mercureConfig);
 
         $preparer = new RenderingPreparer(mercureResolver: $mercureResolver);
-        $table    = new DataTable('Test');
+        $table    = (new DataTable('Test'))->serverSide();
 
         $resolved = $preparer->resolveMercureConfig($table, new AsDataTable(entityClass: \stdClass::class, mercure: true));
 
@@ -813,7 +813,7 @@ final class RenderingPreparerTest extends TestCase
     }
 
     #[Test]
-    public function it_renders_no_export_url_for_an_api_platform_table_without_a_collection(): void
+    public function it_renders_no_export_url_for_an_api_platform_table_without_a_collection_and_throws(): void
     {
         $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
         $urlGenerator->expects($this->never())->method('generate');
@@ -830,7 +830,11 @@ final class RenderingPreparerTest extends TestCase
             ->setDataTableClass(self::TABLE_CLASS)
             ->addExtension(new ButtonsExtension([Button::csv(serverSide: true)]));
 
-        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
+        try {
+            $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
+            $this->fail('An API Platform opt-in without a collection must throw.');
+        } catch (\LogicException) {
+        }
 
         $this->assertNull($table->getOption('exportUrl'));
     }
@@ -962,10 +966,13 @@ final class RenderingPreparerTest extends TestCase
             ->serverSide()
             ->apiPlatform();
 
-        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class));
+        try {
+            $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class));
+            $this->fail('An API Platform opt-in without a collection must throw.');
+        } catch (\LogicException) {
+        }
 
         $this->assertNull($table->getOption('ajax'));
-        $this->assertFalse($table->getOption('apiPlatform'));
     }
 
     /**

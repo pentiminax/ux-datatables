@@ -98,34 +98,39 @@ final class RenderingPreparer
 
     public function prepare(DataTable $table, ?AsDataTable $asDataTable, ?ResolvedOptIns $optIns = null): void
     {
-        $optIns ??= ResolvedOptIns::resolve($table, $asDataTable);
+        $optIns ??= $this->resolveOptIns($table, $asDataTable);
 
         $this->prepareBeforeDataHydration($table, $asDataTable, $optIns);
         $this->prepareAfterDataHydration($table, $asDataTable, $optIns);
     }
 
+    /**
+     * @throws \LogicException when the table opts into API Platform with no collection to read
+     */
     public function prepareBeforeDataHydration(DataTable $table, ?AsDataTable $asDataTable, ?ResolvedOptIns $optIns = null): void
     {
-        $optIns ??= ResolvedOptIns::resolve($table, $asDataTable);
+        $optIns ??= $this->resolveOptIns($table, $asDataTable);
+        $mode = $optIns->dataSourceMode;
 
-        $mode = $this->resolveDataSourceMode($table, $asDataTable, $optIns);
-        $this->featureGuard->assertConfigurable($table, $mode);
+        if (DataSourceMode::ApiPlatformUnavailable === $mode) {
+            throw new \LogicException(\sprintf('Table "%s" opts into API Platform but "%s" exposes no collection operation, or API Platform is not installed. Expose a collection operation or remove the apiPlatform opt-in.', $table->getDataTableClass() ?? $table->getId(), $optIns->entityClass ?? 'no entity class'));
+        }
+
+        $this->featureGuard->assertConfigurable($table, $optIns);
 
         if (DataSourceMode::ApiPlatform === $mode) {
             $this->configureApiPlatform($table, $optIns);
         }
 
-        if (DataSourceMode::Ajax === $mode && true === $asDataTable?->apiPlatform && null === $table->getOption('apiPlatform')) {
-            trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Table "%s" combines #[AsDataTable(apiPlatform: true)] with ajax() and renders plain DataTables JSON today, and 2.0 sends the API Platform flag for it (Hydra adapter). Add ->apiPlatform(false) to keep plain DataTables JSON, or ->apiPlatform() to opt in now.', $table->getDataTableClass() ?? $table->getId());
+        if (DataSourceMode::Ajax === $mode && $optIns->optsIntoApiPlatform()) {
+            $table->apiPlatform();
         }
 
         if (DataSourceMode::ServerSide === $mode) {
             $this->configureAutoAjax($table);
         }
 
-        if (DataSourceMode::ApiPlatformUnavailable !== $mode) {
-            $this->configureExportUrl($table);
-        }
+        $this->configureExportUrl($table);
 
         $this->configureBulkActions($table);
         $this->configureRowActionUrls($table);
@@ -163,11 +168,10 @@ final class RenderingPreparer
 
     public function prepareAfterDataHydration(DataTable $table, ?AsDataTable $asDataTable, ?ResolvedOptIns $optIns = null): void
     {
-        $optIns ??= ResolvedOptIns::resolve($table, $asDataTable);
+        $optIns ??= $this->resolveOptIns($table, $asDataTable);
 
         $this->assertPollingHasAjaxSource($table);
-        $this->configureMercure($table, $asDataTable, $optIns);
-        $this->withdrawUnreadApiPlatformOptIn($table, $asDataTable, $optIns);
+        $this->configureMercure($table, $optIns);
     }
 
     private function assertPollingHasAjaxSource(DataTable $table): void
@@ -181,10 +185,12 @@ final class RenderingPreparer
 
     /**
      * @internal
+     *
+     * @throws \LogicException when the table combines data() with an API Platform opt-in
      */
-    public function resolveDataSourceMode(DataTable $table, ?AsDataTable $asDataTable, ?ResolvedOptIns $optIns = null): DataSourceMode
+    public function resolveOptIns(DataTable $table, ?AsDataTable $asDataTable): ResolvedOptIns
     {
-        return DataSourceMode::resolve($table, $asDataTable, $this->urlResolver, $optIns);
+        return ResolvedOptIns::resolve($table, $asDataTable, $this->urlResolver);
     }
 
     private function configureApiPlatform(DataTable $table, ResolvedOptIns $optIns): void
@@ -205,32 +211,6 @@ final class RenderingPreparer
         }
 
         $table->ajax($collectionUrl);
-    }
-
-    /**
-     * Withdraws a flag the browser cannot honor, whichever surface declared it: without a collection
-     * URL, or over rows embedded in the page. Last, so the table never reads its rows around the
-     * collection's authorization.
-     */
-    private function withdrawUnreadApiPlatformOptIn(DataTable $table, ?AsDataTable $asDataTable, ResolvedOptIns $optIns): void
-    {
-        if (!$optIns->apiPlatform) {
-            return;
-        }
-
-        $mode = $this->resolveDataSourceMode($table, $asDataTable, $optIns);
-
-        if (DataSourceMode::ApiPlatformUnavailable === $mode) {
-            trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Table "%s" opts into API Platform but "%s" exposes no collection operation, or API Platform is not installed: it reads no rows, and 2.0 throws a LogicException. Expose a collection operation or remove the apiPlatform opt-in.', $table->getDataTableClass() ?? $table->getId(), $optIns->entityClass ?? 'no entity class');
-        }
-
-        if (DataSourceMode::Inline === $mode && !$optIns->apiPlatformOptOutOverridden) {
-            trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Table "%s" combines data() with apiPlatform(), which read rows from two places: a fluent flag is withdrawn from the payload, and 2.0 throws a LogicException. Drop one of them.', $table->getDataTableClass() ?? $table->getId());
-        }
-
-        if (true === $table->getOption('apiPlatform') && \in_array($mode, [DataSourceMode::ApiPlatformUnavailable, DataSourceMode::Inline], true)) {
-            $table->apiPlatform(false);
-        }
     }
 
     /**
@@ -439,9 +419,9 @@ final class RenderingPreparer
         $table->setPreparedForwardedQuery($forwarded);
     }
 
-    private function configureMercure(DataTable $table, ?AsDataTable $asDataTable, ResolvedOptIns $optIns): void
+    private function configureMercure(DataTable $table, ResolvedOptIns $optIns): void
     {
-        $config = $this->resolveMercureConfig($table, $asDataTable, $optIns);
+        $config = $this->resolveMercureConfig($table, null, $optIns);
 
         if (null !== $config) {
             $table->setMercureConfig($config);
@@ -460,7 +440,7 @@ final class RenderingPreparer
      */
     public function resolveMercureConfig(DataTable $table, ?AsDataTable $asDataTable, ?ResolvedOptIns $optIns = null): ?MercureConfig
     {
-        $optIns ??= ResolvedOptIns::resolve($table, $asDataTable);
+        $optIns ??= $this->resolveOptIns($table, $asDataTable);
         $mercure = $optIns->mercure;
 
         if ($mercure instanceof MercureConfig) {
@@ -473,7 +453,8 @@ final class RenderingPreparer
             return null;
         }
 
-        if (DataSourceMode::Inline === $this->resolveDataSourceMode($table, $asDataTable, $optIns)) {
+        // Embedded rows never refresh, so only a manual ->mercure() config subscribes them.
+        if (\in_array($optIns->dataSourceMode, [DataSourceMode::Inline, DataSourceMode::ClientHydrated], true)) {
             return null;
         }
 

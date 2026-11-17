@@ -14,6 +14,41 @@ The guide starts at **1.1.0**, the first upgrade after the stable 1.0 release. T
 
 Deprecated APIs keep working for the whole 1.x line and are removed in 2.0.
 
+## Upgrading to 2.0.0
+
+### A fluent API Platform opt-out wins over the attribute
+
+`apiPlatform(false)` in `configureDataTable()` now overrides `#[AsDataTable(apiPlatform: true)]`. The
+table gets no auto-detected columns, and its rows, exports, bulk and row actions are read through
+Doctrine. Every opt-in follows the same rule: a fluent value overrides the attribute, and a `null` or
+blank value counts as unset. If you combined the two to stay on API Platform, remove
+`apiPlatform(false)`; otherwise remove the attribute flag and declare the columns in
+`configureColumns()`.
+
+### `ajax()` with an API Platform opt-in sends the API Platform flag
+
+`#[AsDataTable(apiPlatform: true)]` combined with `ajax()` now puts the API Platform flag in the
+payload, as `->apiPlatform()` already did, so the browser reads the endpoint through the Hydra
+adapter, and SearchBuilder, ColumnControl searches and summaries throw at render. To keep plain
+DataTables JSON, add `->apiPlatform(false)`:
+
+```php
+public function configureDataTable(DataTable $table): DataTable
+{
+    return $table->ajax('/books.json')->apiPlatform(false);
+}
+```
+
+### Contradictory API Platform opt-ins throw
+
+Both 1.6 deprecations now throw a `LogicException`:
+
+- an API Platform opt-in with no collection to read (no collection operation, or API Platform not
+  installed) throws at render. The data and export routes keep answering 404. Expose a collection
+  operation or drop the opt-in;
+- `data()` or `rows()` combined with an API Platform opt-in throws when the table is configured.
+  Keep one of them, or add `apiPlatform(false)` over an attribute opt-in.
+
 ## Upgrading to 1.7.0
 
 1.7 is the last 1.x minor. Everything in it is backward compatible: it deprecates what 2.0 removes,

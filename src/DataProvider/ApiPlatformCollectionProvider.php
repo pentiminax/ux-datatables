@@ -43,6 +43,14 @@ use Symfony\Component\HttpFoundation\RequestStack;
 class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingDataProviderInterface, FeatureAwareDataProviderInterface
 {
     /**
+     * An API Platform collection carries configured filters as its own query parameters; it has no
+     * parameter for SearchBuilder, ColumnControl or an aggregate over every matching row.
+     *
+     * @internal
+     */
+    public const SUPPORTED_FEATURES = [DataSourceFeature::ConfiguredFilters];
+
+    /**
      * @param list<ColumnInterface> $columns configured columns in display order, before permission filtering
      */
     public function __construct(
@@ -64,13 +72,9 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
     ) {
     }
 
-    /**
-     * An API Platform collection carries configured filters as its own query parameters; it has no
-     * parameter for SearchBuilder, ColumnControl or an aggregate over every matching row.
-     */
     public function supports(DataSourceFeature $feature): bool
     {
-        return DataSourceFeature::ConfiguredFilters === $feature;
+        return \in_array($feature, self::SUPPORTED_FEATURES, true);
     }
 
     public function fetchData(DataTableRequest $request): DataTableResult
