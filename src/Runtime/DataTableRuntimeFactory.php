@@ -149,7 +149,7 @@ final class DataTableRuntimeFactory
                 exportRowMapper: $exportRowMapper,
                 pageProjector: $pageProjector,
                 configureBaseQueryBuilder: $configureBaseQueryBuilder,
-                apiPlatform: $optIns->apiPlatform,
+                apiPlatform: $optIns->optsIntoApiPlatform(),
                 columns: array_values($columns),
                 visibleColumns: $visibleColumns,
                 dataTableClass: $table->getDataTableClass(),

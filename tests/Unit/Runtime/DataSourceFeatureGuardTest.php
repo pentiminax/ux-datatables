@@ -26,6 +26,7 @@ use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Pentiminax\UX\DataTables\Runtime\DataSourceFeatureGuard;
 use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
+use Pentiminax\UX\DataTables\Runtime\ResolvedOptIns;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -51,7 +52,26 @@ final class DataSourceFeatureGuardTest extends TestCase
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage($message);
 
-        (new DataSourceFeatureGuard())->assertConfigurable($table, DataSourceMode::ApiPlatform);
+        (new DataSourceFeatureGuard())->assertConfigurable($table, self::optIns(DataSourceMode::ApiPlatform));
+    }
+
+    #[Test]
+    public function it_applies_the_api_platform_capability_to_an_ajax_url_read_with_the_hydra_adapter(): void
+    {
+        $table = (new DataTable('books'))->addExtension(new SearchBuilderExtension());
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('SearchBuilder criteria are not supported on an API Platform collection');
+
+        (new DataSourceFeatureGuard())->assertConfigurable($table, self::optIns(DataSourceMode::Ajax, apiPlatform: true));
+    }
+
+    #[Test]
+    public function it_leaves_a_plain_ajax_url_alone(): void
+    {
+        $this->expectNotToPerformAssertions();
+
+        (new DataSourceFeatureGuard())->assertConfigurable((new DataTable('books'))->addExtension(new SearchBuilderExtension()), self::optIns(DataSourceMode::Ajax, apiPlatform: false));
     }
 
     /**
@@ -103,7 +123,7 @@ final class DataSourceFeatureGuardTest extends TestCase
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('The "sum" summary of column "amount" cannot be computed in the browser');
 
-        (new DataSourceFeatureGuard())->assertConfigurable($table, $mode);
+        (new DataSourceFeatureGuard())->assertConfigurable($table, self::optIns($mode));
     }
 
     /**
@@ -121,7 +141,7 @@ final class DataSourceFeatureGuardTest extends TestCase
     {
         $this->expectNotToPerformAssertions();
 
-        (new DataSourceFeatureGuard())->assertConfigurable($configure(new DataTable('books')), $mode);
+        (new DataSourceFeatureGuard())->assertConfigurable($configure(new DataTable('books')), self::optIns($mode));
     }
 
     /**
@@ -383,5 +403,10 @@ final class DataSourceFeatureGuardTest extends TestCase
     private static function columns(): array
     {
         return [NumberColumn::new('id'), TextColumn::new('name')];
+    }
+
+    private static function optIns(DataSourceMode $mode, ?bool $apiPlatform = null): ResolvedOptIns
+    {
+        return new ResolvedOptIns(apiPlatform: $apiPlatform, dataSourceMode: $mode);
     }
 }

@@ -42,11 +42,14 @@ public function configureDataTable(DataTable $table): DataTable
 }
 ```
 
-When `apiPlatform(true)` is called in `configureDataTable()` but no explicit `ajax()` URL is set, the bundle will still attempt to resolve the collection URL automatically from API Platform metadata (provided `#[AsDataTable]` is present). Both opt-ins render the same payload and read the same rows, except for one case until 2.0: combined with `ajax()`, only the fluent `apiPlatform()` puts the API Platform flag in the payload. `apiPlatform(true)` also enables column auto-detection and the collection URL lookup, exactly like `apiPlatform: true` on the attribute, as long as `#[AsDataTable]` names the entity. With an explicit `ajax()` URL, `->ajax('/api/books')->apiPlatform()` reads that custom Hydra collection through the browser adapter. `#[AsDataTable(apiPlatform: true)]` combined with `ajax()` and no fluent call renders plain DataTables JSON today and logs a deprecation: 2.0 sends the flag for it. Add `->apiPlatform(false)` to keep plain DataTables JSON, or `->apiPlatform()` to opt in now.
+When `apiPlatform(true)` is called in `configureDataTable()` but no explicit `ajax()` URL is set, the bundle resolves the collection URL from API Platform metadata (provided `#[AsDataTable]` names the entity). Both opt-ins render the same payload and read the same rows on render, on the data route and on the export route: `apiPlatform(true)` enables column auto-detection and the collection URL lookup exactly like `apiPlatform: true` on the attribute. With an explicit `ajax()` URL, either opt-in puts the API Platform flag in the payload, so the browser reads that custom Hydra collection through the adapter, and the features an API Platform collection cannot apply (SearchBuilder, ColumnControl searches, summaries) are refused at render.
 
-When the attribute and the fluent call disagree, a fluent value set in `configureDataTable()` is meant to override the attribute. The edit modal template and adapter already work this way, and a blank value counts as unset. For `apiPlatform` the attribute still wins in 1.x: `apiPlatform: true` on the attribute combined with `apiPlatform(false)` stays opted in and logs a deprecation, because 2.0 lets `apiPlatform(false)` switch the integration off. With an explicit `ajax()` or `data()`, the payload already follows `apiPlatform(false)` (plain DataTables JSON, or the embedded rows), but the server still follows the attribute: it auto-detects the columns when `configureColumns()` declares none, and reads the rows of exports, bulk actions and row actions through the API Platform provider. In 2.0 those follow `apiPlatform(false)` too: auto-detected columns disappear and the reads go through Doctrine. The combination therefore still logs one deprecation; declare the columns in `configureColumns()` and remove the attribute flag.
+The bundle resolves the opt-ins once, right after `configureDataTable()`, under one rule: a fluent value overrides the attribute, field by field, and a `null` or blank value counts as unset. `apiPlatform(false)` therefore switches off `apiPlatform: true` set on the attribute: the table gets no auto-detected columns, and its rows, exports, bulk and row actions go through Doctrine. The edit modal template and adapter follow the same rule. Mercure keeps its own order: the fluent `mercure()` config, then the attribute, then auto-resolution.
 
-An opt-in is withdrawn from the payload, with a deprecation, when the table has no collection to read (no collection operation, or API Platform is not installed) or embeds its rows through `data()` without `apiPlatform(false)`. 2.0 throws a `LogicException` for both.
+Two combinations throw a `LogicException`:
+
+- an opt-in with no collection to read, because the entity exposes no collection operation or API Platform is not installed. Rendering throws, and the data and export routes answer 404 instead of falling back to Doctrine, which would skip the collection operation's authorization;
+- an opt-in combined with `data()`, which reads rows from two places. Keep one, or add `apiPlatform(false)` over an attribute opt-in.
 
 ## Ajax auto-wiring (both opt-ins)
 
@@ -63,9 +66,7 @@ When API Platform is opted in, through the attribute or `apiPlatform(true)`, and
 
 Auto-wiring is skipped if:
 
-- `ajax()` is already set (explicit URL takes priority)
-- `data()` is already set (client-side mode)
-- No collection URL can be resolved from API Platform metadata
+- `ajax()` is already set (explicit URL takes priority; the payload still carries the API Platform flag)
 
 ## Frontend adapter (both opt-ins)
 

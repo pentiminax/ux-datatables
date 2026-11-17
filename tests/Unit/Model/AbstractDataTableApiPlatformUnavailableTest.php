@@ -27,17 +27,40 @@ final class AbstractDataTableApiPlatformUnavailableTest extends TestCase
 {
     #[Test]
     #[DataProvider('provideUnresolvableCollections')]
-    public function it_reads_no_rows_for_an_api_platform_table_without_a_collection(
+    public function it_refuses_to_render_an_api_platform_table_without_a_collection(
         string $tableClass,
         ?ApiResourceCollectionUrlResolver $urlResolver,
     ): void {
         $table = new $tableClass($urlResolver);
 
-        $dataTable = $table->prepareDataTableForRendering();
+        try {
+            $table->prepareDataTableForRendering();
+            $this->fail('Rendering an API Platform table without a collection must throw.');
+        } catch (\LogicException $exception) {
+            $this->assertStringContainsString('exposes no collection operation', $exception->getMessage());
+        }
 
-        $this->assertNull($dataTable->getOption('ajax'));
-        $this->assertNull($dataTable->getOption('data'));
-        $this->assertNotTrue($dataTable->getOption('apiPlatform'));
+        $this->assertNull($table->getConfiguredDataTable()->getOption('data'));
+    }
+
+    #[Test]
+    #[DataProvider('provideUnresolvableCollections')]
+    public function it_answers_not_found_to_an_ajax_request_after_a_refused_render(
+        string $tableClass,
+        ?ApiResourceCollectionUrlResolver $urlResolver,
+    ): void {
+        $table = new $tableClass($urlResolver);
+
+        try {
+            $table->prepareDataTableForRendering();
+        } catch (\LogicException) {
+        }
+
+        $table->handleDataTableRequest($this->dataTablesRequest());
+
+        $this->expectException(NotFoundHttpException::class);
+
+        $table->createDataTableResponse();
     }
 
     #[Test]

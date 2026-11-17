@@ -600,8 +600,6 @@ final class DataTablesExtensionTest extends TestCase
 
         yield 'ajax table' => ['ajax', 0, null];
 
-        yield 'api platform table' => ['apiPlatform', 0, null];
-
         yield 'table with explicit data' => ['data', 0, [['id' => 99, 'title' => 'Manual']]];
     }
 

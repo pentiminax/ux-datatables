@@ -48,31 +48,8 @@ final class AbstractDataTableOptInsTest extends TestCase
     public static function provideDeclarationSurfaces(): iterable
     {
         yield 'bundle collection url' => [AttributeOptInFixture::class, FluentOptInFixture::class];
-    }
 
-    #[Test]
-    public function it_keeps_the_1_5_payload_of_an_ajax_table_and_deprecates_the_attribute_only_opt_in(): void
-    {
-        $payload = [];
-        $notices = $this->deprecationsOf(function () use (&$payload): void {
-            $payload = $this->render(AttributeAjaxOptInFixture::class, '/api/books');
-        });
-
-        $this->assertNotTrue($payload['apiPlatform'] ?? null);
-        $this->assertCount(1, $this->matching($notices, '2.0 sends the API Platform flag'));
-        $this->assertNotEmpty($this->matching($notices, 'apiPlatform(false)'));
-    }
-
-    #[Test]
-    public function it_sends_the_flag_of_an_ajax_table_that_opts_in_fluently_without_a_notice(): void
-    {
-        $payload = [];
-        $notices = $this->deprecationsOf(function () use (&$payload): void {
-            $payload = $this->render(FluentAjaxOptInFixture::class, '/api/books');
-        });
-
-        $this->assertTrue($payload['apiPlatform']);
-        $this->assertSame([], $this->matching($notices, '2.0 sends the API Platform flag'));
+        yield 'ajax url read with the Hydra adapter' => [AttributeAjaxOptInFixture::class, FluentAjaxOptInFixture::class];
     }
 
     /**
@@ -80,12 +57,11 @@ final class AbstractDataTableOptInsTest extends TestCase
      * @param array<string, mixed>       $source
      */
     #[Test]
-    #[DataProvider('provideFluentOptOutsOverPayloadSources')]
-    public function it_keeps_the_fluent_opt_out_in_the_payload_and_deprecates_what_the_server_still_reads(string $tableClass, array $source, string $notice): void
+    #[DataProvider('provideFluentOptOuts')]
+    public function it_lets_a_fluent_opt_out_win_over_the_attribute(string $tableClass, array $source): void
     {
-        $detector = $this->createStub(ColumnAutoDetector::class);
-        $detector->method('supports')->willReturn(true);
-        $detector->method('detectColumns')->willReturn([TextColumn::new('detected')]);
+        $detector = $this->createMock(ColumnAutoDetector::class);
+        $detector->expects($this->never())->method('detectColumns');
 
         $payload = [];
         $notices = $this->deprecationsOf(function () use (&$payload, $tableClass, $detector): void {
@@ -96,25 +72,24 @@ final class AbstractDataTableOptInsTest extends TestCase
         foreach ($source as $option => $value) {
             $this->assertSame($value, $payload[$option]);
         }
-        $this->assertSame([\sprintf($notice, $tableClass)], $this->apiPlatformNotices($notices));
+        $this->assertSame([], $this->apiPlatformNotices($notices));
     }
 
-    public static function provideFluentOptOutsOverPayloadSources(): iterable
+    public static function provideFluentOptOuts(): iterable
     {
-        $autoDetected = 'Since pentiminax/ux-datatables 1.6: Table "%s" opts into API Platform on #[AsDataTable] and out through apiPlatform(false): the payload already follows apiPlatform(false), but the server still auto-detects its columns from the API Platform resource and reads the rows of exports, bulk and row actions through the API Platform provider. In 2.0 apiPlatform(false) wins there too: the table gets no auto-detected columns, and those reads go through Doctrine. Declare the columns in configureColumns() and remove the attribute flag.';
-        $explicit     = 'Since pentiminax/ux-datatables 1.6: Table "%s" opts into API Platform on #[AsDataTable] and out through apiPlatform(false): the payload already follows apiPlatform(false), but the server still reads the rows of exports, bulk and row actions through the API Platform provider. In 2.0 apiPlatform(false) wins there too, and those reads go through Doctrine. Remove the attribute flag.';
+        yield 'server side' => [AttributeOptInFluentOptOutFixture::class, ['serverSide' => true]];
 
-        yield 'data(), auto-detected columns' => [AttributeInlineFluentOptOutAutoDetectedFixture::class, ['data' => [['id' => 1]]], $autoDetected];
+        yield 'data(), auto-detected columns' => [AttributeInlineFluentOptOutAutoDetectedFixture::class, ['data' => [['id' => 1]]]];
 
-        yield 'data(), explicit columns' => [AttributeInlineFluentOptOutFixture::class, ['data' => [['id' => 1]]], $explicit];
+        yield 'data(), explicit columns' => [AttributeInlineFluentOptOutFixture::class, ['data' => [['id' => 1]]]];
 
-        yield 'ajax(), auto-detected columns' => [AttributeAjaxFluentOptOutAutoDetectedFixture::class, [], $autoDetected];
+        yield 'ajax(), auto-detected columns' => [AttributeAjaxFluentOptOutAutoDetectedFixture::class, ['ajax' => ['type' => 'GET', 'url' => '/plain']]];
 
-        yield 'ajax(), explicit columns' => [AttributeAjaxFluentOptOutFixture::class, [], $explicit];
+        yield 'ajax(), explicit columns' => [AttributeAjaxFluentOptOutFixture::class, ['ajax' => ['type' => 'GET', 'url' => '/plain']]];
     }
 
     #[Test]
-    public function it_records_the_source_mode_before_api_platform_adds_ajax_and_clears_it_on_reset(): void
+    public function it_keeps_the_mode_resolved_before_rendering_for_the_ajax_request_on_the_same_table(): void
     {
         $resolver = new class extends ApiResourceCollectionUrlResolver {
             public function __construct()
@@ -131,6 +106,7 @@ final class AbstractDataTableOptInsTest extends TestCase
 
         $this->assertSame(DataSourceMode::ApiPlatform, $table->getRenderedDataSourceMode());
         $this->assertNotNull($table->getConfiguredDataTable()->getOption('ajax'));
+        $this->assertSame(DataSourceMode::ApiPlatform, $table->getResolvedOptIns()->dataSourceMode);
         $table->resetDataTableState();
         $this->assertNull($table->getRenderedDataSourceMode());
     }
@@ -148,15 +124,19 @@ final class AbstractDataTableOptInsTest extends TestCase
             }
         };
 
-        $this->deprecationsOf(static fn () => $table->getDataTable());
+        $this->expectException(\LogicException::class);
 
-        $this->assertSame(1, $table->calls);
+        try {
+            $this->deprecationsOf(static fn () => $table->getDataTable());
+        } finally {
+            $this->assertSame(1, $table->calls);
+        }
     }
 
     #[Test]
     public function it_reads_the_configuration_changed_after_initialization_when_rendering(): void
     {
-        $table = new FluentOptInFixture(null);
+        $table = new AttributeOptInFluentOptOutFixture(null);
         $table->getConfiguredDataTable()->editModalTemplate('custom/modal.html.twig');
 
         $payload = $table->prepareDataTableForRendering();
@@ -167,16 +147,12 @@ final class AbstractDataTableOptInsTest extends TestCase
 
     #[Test]
     #[DataProvider('provideInlineSurfaces')]
-    public function it_withdraws_the_flag_from_an_inline_table_and_deprecates_the_combination(string $tableClass): void
+    public function it_refuses_inline_data_with_an_api_platform_opt_in(string $tableClass): void
     {
-        $payload = [];
-        $notices = $this->deprecationsOf(function () use (&$payload, $tableClass): void {
-            $payload = $this->render($tableClass, '/api/books');
-        });
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('combines data() with an API Platform opt-in');
 
-        $this->assertNotTrue($payload['apiPlatform'] ?? null);
-        $this->assertSame([['id' => 1]], $payload['data']);
-        $this->assertNotEmpty($this->matching($notices, 'data()'));
+        $this->render($tableClass, '/api/books');
     }
 
     public static function provideInlineSurfaces(): iterable
@@ -188,13 +164,12 @@ final class AbstractDataTableOptInsTest extends TestCase
 
     #[Test]
     #[DataProvider('provideOptedInSurfaces')]
-    public function it_deprecates_an_opt_in_without_a_collection(string $tableClass): void
+    public function it_refuses_an_opt_in_without_a_collection(string $tableClass): void
     {
-        $notices = $this->deprecationsOf(function () use ($tableClass): void {
-            $this->render($tableClass, null);
-        });
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('exposes no collection operation');
 
-        $this->assertCount(1, $this->matching($notices, 'no collection'));
+        $this->render($tableClass, null);
     }
 
     public static function provideOptedInSurfaces(): iterable
@@ -205,39 +180,15 @@ final class AbstractDataTableOptInsTest extends TestCase
     }
 
     #[Test]
-    public function it_deprecates_a_fluent_opt_out_the_attribute_overrides(): void
-    {
-        $payload = [];
-        $notices = $this->deprecationsOf(function () use (&$payload): void {
-            $payload = $this->render(AttributeOptInFluentOptOutFixture::class, '/api/books');
-        });
-
-        $this->assertSame([\sprintf('Since pentiminax/ux-datatables 1.6: Table "%s" opts into API Platform on #[AsDataTable] and out through apiPlatform(false): the attribute wins today, the fluent value will win in 2.0. Remove one of them.', AttributeOptInFluentOptOutFixture::class)], $this->apiPlatformNotices($notices));
-        $this->assertTrue($payload['apiPlatform'], 'The 1.x precedence is unchanged in 1.6.');
-    }
-
-    #[Test]
     #[DataProvider('provideOptedInSurfaces')]
-    public function it_answers_not_found_after_rendering_whichever_surface_opted_in(string $tableClass): void
+    public function it_answers_not_found_whichever_surface_opted_in(string $tableClass): void
     {
         $table = new $tableClass(null);
-
-        $this->deprecationsOf(static fn () => $table->getDataTable());
         $table->handleDataTableRequest(new Request(query: ['draw' => 1, 'start' => 0, 'length' => 10]));
 
         $this->expectException(NotFoundHttpException::class);
 
         $table->createDataTableResponse();
-    }
-
-    /**
-     * @param list<string> $notices
-     *
-     * @return list<string>
-     */
-    private function matching(array $notices, string $needle): array
-    {
-        return array_values(array_filter($notices, static fn (string $notice): bool => str_contains($notice, $needle)));
     }
 
     /**
@@ -266,7 +217,7 @@ final class AbstractDataTableOptInsTest extends TestCase
             }
         };
 
-        $options = (new $tableClass($urlResolver, $detector))->getDataTable()->getOptions();
+        $options = (new $tableClass($urlResolver, $detector))->prepareDataTableForRendering()->getOptions();
         unset($options['columns']);
 
         return $options;
@@ -353,7 +304,7 @@ final class AttributeOptInFluentOptOutFixture extends OptInFixture
 {
     public function configureDataTable(DataTable $table): DataTable
     {
-        return $table->apiPlatform(false);
+        return $table->apiPlatform(false)->serverSide();
     }
 }
 

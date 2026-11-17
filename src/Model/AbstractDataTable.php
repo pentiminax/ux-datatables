@@ -80,10 +80,6 @@ abstract class AbstractDataTable
 
     private bool $renderingPrepared = false;
 
-    private bool $columnsAutoDetected = false;
-
-    private ?DataSourceMode $renderedDataSourceMode = null;
-
     /** @var array<class-string, true> */
     private static array $implicitClientSideReported = [];
 
@@ -109,37 +105,12 @@ abstract class AbstractDataTable
     {
         unset($this->table, $this->columns, $this->filters);
 
-        $this->defaultRowMapper       = null;
-        $this->asDataTable            = null;
-        $this->optIns                 = null;
-        $this->runtime                = null;
-        $this->initialized            = false;
-        $this->renderingPrepared      = false;
-        $this->renderedDataSourceMode = null;
-        $this->columnsAutoDetected    = false;
-    }
-
-    /**
-     * The attribute opts into API Platform and apiPlatform(false) opts out. Over data() or ajax() the
-     * payload already follows the fluent value, but the server still follows the attribute for column
-     * auto-detection and for the provider of exports, bulk and row actions, which 2.0 changes. The
-     * table cannot tell whether those reads ever happen, so it always warns.
-     */
-    private function deprecateOverriddenApiPlatformOptOut(): void
-    {
-        if (null === $this->table->getOption('ajax') && null === $this->table->getOption('data')) {
-            trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Table "%s" opts into API Platform on #[AsDataTable] and out through apiPlatform(false): the attribute wins today, the fluent value will win in 2.0. Remove one of them.', static::class);
-
-            return;
-        }
-
-        if ($this->columnsAutoDetected) {
-            trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Table "%s" opts into API Platform on #[AsDataTable] and out through apiPlatform(false): the payload already follows apiPlatform(false), but the server still auto-detects its columns from the API Platform resource and reads the rows of exports, bulk and row actions through the API Platform provider. In 2.0 apiPlatform(false) wins there too: the table gets no auto-detected columns, and those reads go through Doctrine. Declare the columns in configureColumns() and remove the attribute flag.', static::class);
-
-            return;
-        }
-
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Table "%s" opts into API Platform on #[AsDataTable] and out through apiPlatform(false): the payload already follows apiPlatform(false), but the server still reads the rows of exports, bulk and row actions through the API Platform provider. In 2.0 apiPlatform(false) wins there too, and those reads go through Doctrine. Remove the attribute flag.', static::class);
+        $this->defaultRowMapper  = null;
+        $this->asDataTable       = null;
+        $this->optIns            = null;
+        $this->runtime           = null;
+        $this->initialized       = false;
+        $this->renderingPrepared = false;
     }
 
     private function initialize(): void
@@ -158,13 +129,9 @@ abstract class AbstractDataTable
 
         $this->table->setDataTableClass(static::class);
 
-        $this->optIns = ResolvedOptIns::resolve($this->table, $this->asDataTable);
+        $this->optIns = $this->resolveOptIns();
 
         $this->columns = iterator_to_array($this->configureColumns());
-
-        if ($this->optIns->apiPlatformOptOutOverridden) {
-            $this->deprecateOverriddenApiPlatformOptOut();
-        }
 
         $columnResolver = $this->infrastructure()->columnResolver;
 
@@ -367,15 +334,13 @@ abstract class AbstractDataTable
             return $this->table;
         }
 
-        $this->optIns = ResolvedOptIns::resolve($this->table, $this->asDataTable);
-
         $renderingPreparer = $this->infrastructure()->renderingPreparer;
+        $optIns            = $this->getResolvedOptIns();
 
-        $this->renderedDataSourceMode = $this->dataSourceMode();
-        $renderingPreparer->prepareBeforeDataHydration($this->table, $this->asDataTable, $this->optIns);
+        $renderingPreparer->prepareBeforeDataHydration($this->table, $this->asDataTable, $optIns);
         $this->prepareExplicitInlineData();
-        $this->hydrateClientSideData();
-        $renderingPreparer->prepareAfterDataHydration($this->table, $this->asDataTable, $this->optIns);
+        $this->hydrateClientSideData($optIns);
+        $renderingPreparer->prepareAfterDataHydration($this->table, $this->asDataTable, $optIns);
 
         if ($this->table->hasBulkActions()) {
             $this->table->setBulkRowIdField($this->infrastructure()->runtimeFactory->resolveRowIdField(
@@ -410,6 +375,12 @@ abstract class AbstractDataTable
     {
         $this->initialize();
 
+        // The caller may change the configuration until rendering prepares the table, after which
+        // the opt-ins stay what rendering read.
+        if (!$this->renderingPrepared) {
+            $this->optIns = null;
+        }
+
         return $this->table;
     }
 
@@ -419,13 +390,6 @@ abstract class AbstractDataTable
     public function resolveMercureConfigWithoutHydration(): ?MercureConfig
     {
         $this->initialize();
-
-        // Hydration turns a ClientHydrated table into an Inline one, whose attribute and
-        // auto-resolved updates resolveMercureConfig() suppresses. Answer that without the fetch;
-        // a manual ->mercure() config is always serialized, so it is left to the resolver.
-        if (null === $this->table->getMercureConfig() && DataSourceMode::ClientHydrated === $this->dataSourceMode()) {
-            return null;
-        }
 
         return $this->infrastructure()->renderingPreparer->resolveMercureConfig($this->table, $this->asDataTable, $this->getResolvedOptIns());
     }
@@ -451,18 +415,8 @@ abstract class AbstractDataTable
 
         $asDataTable = $this->asDataTable ?? $this->resolveAsDataTable();
         $resolver    = $this->infrastructure()->columnResolver;
-        $optIns      = $this->optIns ?? (isset($this->table) ? ResolvedOptIns::resolve($this->table, $asDataTable) : null);
 
-        $columns = $resolver->resolveColumns($asDataTable, dataTableClass: static::class, optIns: $optIns);
-
-        // Only an overridden opt-out reports where the columns came from, so other tables skip the lookup.
-        if (true === $optIns?->apiPlatformOptOutOverridden) {
-            $this->columnsAutoDetected = [] !== $columns
-                && [] === $resolver->columnsFromClassAttributes(static::class)
-                && [] === $resolver->columnsFromAttributes($asDataTable);
-        }
-
-        return $columns;
+        return $resolver->resolveColumns($asDataTable, dataTableClass: static::class, optIns: $this->optIns);
     }
 
     /**
@@ -472,7 +426,12 @@ abstract class AbstractDataTable
     {
         $this->initialize();
 
-        return ResolvedOptIns::resolve($this->table, $this->asDataTable);
+        return $this->optIns ??= $this->resolveOptIns();
+    }
+
+    private function resolveOptIns(): ResolvedOptIns
+    {
+        return $this->infrastructure()->renderingPreparer->resolveOptIns($this->table, $this->asDataTable);
     }
 
     public function configureDataTable(DataTable $table): DataTable
@@ -549,18 +508,18 @@ abstract class AbstractDataTable
     }
 
     /**
-     * The mode the table resolved as before hydration turned a ClientHydrated table into an Inline one.
+     * The table's data source mode, once it has been prepared for rendering.
      *
      * @internal
      */
     public function getRenderedDataSourceMode(): ?DataSourceMode
     {
-        return $this->renderedDataSourceMode;
+        return $this->renderingPrepared ? $this->getResolvedOptIns()->dataSourceMode : null;
     }
 
-    private function hydrateClientSideData(): void
+    private function hydrateClientSideData(ResolvedOptIns $optIns): void
     {
-        if (DataSourceMode::ClientHydrated !== $this->dataSourceMode()) {
+        if (DataSourceMode::ClientHydrated !== $optIns->dataSourceMode) {
             return;
         }
 
@@ -609,20 +568,15 @@ abstract class AbstractDataTable
     }
 
     /**
-     * Render reads no rows for an API Platform table without a collection, and Ajax answers the same.
+     * Rendering refuses an API Platform table without a collection, and Ajax and export answer 404.
      */
     private function createDataProviderUnlessUnavailable(): ?DataProviderInterface
     {
-        if (DataSourceMode::ApiPlatformUnavailable === $this->dataSourceMode()) {
+        if (DataSourceMode::ApiPlatformUnavailable === $this->getResolvedOptIns()->dataSourceMode) {
             throw new NotFoundHttpException('DataTable not found.');
         }
 
         return $this->createDataProvider();
-    }
-
-    private function dataSourceMode(): DataSourceMode
-    {
-        return $this->infrastructure()->renderingPreparer->resolveDataSourceMode($this->table, $this->asDataTable, $this->optIns);
     }
 
     private function createClientSideDataRequest(): DataTableRequest
@@ -773,6 +727,7 @@ abstract class AbstractDataTable
         $this->initialize();
 
         $this->mapInlineRows($data);
+        $this->optIns = null;
     }
 
     /**
@@ -834,7 +789,7 @@ abstract class AbstractDataTable
             columns: $this->columns,
             asDataTable: $this->asDataTable,
             baseMapper: $this->mapRow(...),
-            optIns: $this->optIns,
+            optIns: $this->getResolvedOptIns(),
             manualDataProviderFactory: $this->createDataProviderUnlessUnavailable(...),
             configureQueryBuilder: $this->configureQueryBuilder(...),
             pageProjector: $this->projectPage(...),

@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
+use Pentiminax\UX\DataTables\DataProvider\ApiPlatformCollectionProvider;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
@@ -28,13 +29,6 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  */
 final class DataSourceFeatureGuard
 {
-    /** Features an API Platform collection cannot carry, whether the browser or the server reads it. */
-    private const API_PLATFORM_UNSUPPORTED = [
-        DataSourceFeature::SearchBuilder,
-        DataSourceFeature::ColumnControl,
-        DataSourceFeature::Summaries,
-    ];
-
     /** Row scope and identifier collection are probed by DataSourceCapability, never through the match arms below. */
     private const QUERY_FEATURES = [
         DataSourceFeature::SearchBuilder,
@@ -54,19 +48,25 @@ final class DataSourceFeatureGuard
      *
      * @throws \LogicException when the table configures a feature its mode cannot apply
      */
-    public function assertConfigurable(DataTable $table, DataSourceMode $mode): void
+    public function assertConfigurable(DataTable $table, ResolvedOptIns $optIns): void
     {
+        $mode = $optIns->dataSourceMode;
+
         if (DataSourceMode::ClientHydrated === $mode || DataSourceMode::Inline === $mode) {
             $this->assertBrowserCanSummarize($table);
 
             return;
         }
 
-        if (DataSourceMode::ApiPlatform !== $mode) {
+        if (DataSourceMode::ApiPlatform !== $mode && !(DataSourceMode::Ajax === $mode && $optIns->optsIntoApiPlatform())) {
             return;
         }
 
-        foreach (self::API_PLATFORM_UNSUPPORTED as $feature) {
+        foreach (self::QUERY_FEATURES as $feature) {
+            if (\in_array($feature, ApiPlatformCollectionProvider::SUPPORTED_FEATURES, true)) {
+                continue;
+            }
+
             if ($this->configures($table, $feature)) {
                 throw new \LogicException(\sprintf('%s are not supported on an API Platform collection, because it cannot apply them to every matching row. Remove them or read the table through Doctrine.', $feature->label()));
             }

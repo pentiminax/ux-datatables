@@ -113,7 +113,7 @@ final class ColumnResolver
             serializationGroups: $asDataTable->serializationGroups,
         );
 
-        if (!$optIns->apiPlatform) {
+        if (!$optIns->optsIntoApiPlatform()) {
             return [];
         }
 
