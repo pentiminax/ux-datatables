@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Twig;
 
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Runtime\DataTableResponder;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessServerSideDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\PayloadFixtureDataTable;
 use Pentiminax\UX\DataTables\Tests\Kernel\TestHarnessAppKernel;
@@ -14,6 +16,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\KernelInterface;
 
 /**
@@ -78,6 +81,24 @@ final class RenderedPayloadFixtureTest extends KernelTestCase
         $this->assertSame($first, $extension->renderDataTable($table));
     }
 
+    #[Test]
+    public function it_renders_a_server_side_table_identically_after_answering_a_draw(): void
+    {
+        static::bootKernel();
+        $container = static::getContainer();
+        $table     = $container->get(HarnessServerSideDataTable::class);
+        $extension = $container->get('datatables.twig_extension');
+
+        $configured = $this->describe($table->getConfiguredDataTable());
+        $first      = $extension->renderDataTable($table);
+
+        $response = $container->get(DataTableResponder::class)->respond($table, new Request(query: ['draw' => 1, 'start' => 0, 'length' => 10]));
+        $this->assertSame(3, json_decode((string) $response?->getContent(), true, 512, \JSON_THROW_ON_ERROR)['recordsTotal']);
+
+        $this->assertSame($first, $extension->renderDataTable($table));
+        $this->assertSame($configured, $this->describe($table->getConfiguredDataTable()));
+    }
+
     /**
      * @return iterable<string, array{\Closure(ContainerInterface): AbstractDataTable}>
      */
@@ -100,6 +121,7 @@ final class RenderedPayloadFixtureTest extends KernelTestCase
     {
         return [
             'options'    => $table->getOptions(),
+            'titles'     => array_map(static fn (ColumnInterface $column): ?string => $column->getTitle(), $table->getColumns()),
             'bundle'     => array_map($table->getBundleOption(...), ['apiPlatform', 'pollInterval', 'urlState', 'styleFramework', 'exportUrl', 'showHeaderResetButton']),
             'extensions' => $table->getExtensions(),
             'mercure'    => $table->getMercureConfig()?->topics,

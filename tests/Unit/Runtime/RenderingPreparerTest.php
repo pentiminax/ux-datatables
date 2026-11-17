@@ -15,8 +15,10 @@ use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
+use Pentiminax\UX\DataTables\Filter\NumberRangeFilter;
 use Pentiminax\UX\DataTables\Filter\TextFilter;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
@@ -131,12 +133,13 @@ final class RenderingPreparerTest extends TestCase
             searchListOptionsResolver: new SearchListOptionsResolver($translator),
         );
 
-        $preparer->prepareBeforeDataHydration($table, $preparer->resolveOptIns($table, null));
+        $tablePayload = self::prepare($preparer, $table, null);
 
         $this->assertSame([
             'extend'  => 'searchList',
             'options' => [['label' => 'Brouillon', 'value' => 'draft']],
-        ], $searchList->jsonSerialize());
+        ], $tablePayload->getView()['columnControl'][0]['content'][0]);
+        $this->assertSame('Draft', $searchList->jsonSerialize()['options'][0]['label']);
     }
 
     /**
@@ -227,7 +230,7 @@ final class RenderingPreparerTest extends TestCase
     }
 
     /**
-     * @param list<\Pentiminax\UX\DataTables\Contracts\ColumnInterface> $columns
+     * @param list<ColumnInterface> $columns
      */
     #[Test]
     #[DataProvider('provideColumnsForServerSideReading')]
@@ -798,9 +801,10 @@ final class RenderingPreparerTest extends TestCase
 
         $tablePayload = self::prepare(new RenderingPreparer(translator: $translator), $table, null);
 
+        $this->assertSame(['admin' => 'Admin'], $table->getColumns()['role']->getCustomOptions()['choices']);
         $this->assertSame(
             ['admin' => 'tr:role.admin'],
-            $table->getColumns()['role']->getCustomOptions()['choices'],
+            $tablePayload->configuredColumns[0]->getCustomOptions()['choices'],
         );
     }
 
@@ -1049,6 +1053,45 @@ final class RenderingPreparerTest extends TestCase
     }
 
     #[Test]
+    public function it_translates_into_the_payload_and_leaves_the_configured_table_untouched(): void
+    {
+        $translator = $this->createStub(TranslatorInterface::class);
+        $translator->method('trans')->willReturnCallback(static fn (string $id): string => 'T('.$id.')');
+
+        $searchList = SearchList::new()->options(RenderingPreparerSearchListStatus::class);
+        $table      = (new DataTable('Test'))
+            ->columns([
+                TextColumn::new('name', 'col.name'),
+                ChoiceColumn::new('role', 'col.role')->choices(RenderingPreparerRole::class),
+            ])
+            ->addExtension((new ColumnControlExtension([]))->add(1, [$searchList]))
+            ->setFilters((new Filters())
+                ->add(TextFilter::new('name')->label('filter.name')->placeholder('filter.name.hint'))
+                ->add(NumberRangeFilter::new('price'))
+                ->add(ChoiceFilter::new('role')->label('filter.role')->options(RenderingPreparerRole::class)));
+        $configured = [
+            'columns'    => array_map(static fn (ColumnInterface $column): array => $column->jsonSerialize(), $table->getColumns()),
+            'filters'    => $table->getFilters()->jsonSerialize(),
+            'searchList' => $searchList->jsonSerialize(),
+        ];
+        $preparer = new RenderingPreparer(translator: $translator);
+
+        $first  = self::prepare($preparer, $table, null)->getView();
+        $second = self::prepare($preparer, $table, null)->getView();
+
+        $this->assertSame(json_encode($first), json_encode($second));
+        $this->assertSame('T(col.name)', $first['columns'][0]['title']);
+        $this->assertSame('T(filter.name)', $first['filters'][0]['label']);
+        $this->assertSame('T(status.draft)', $first['columnControl'][0]['content'][0]['options'][0]['label']);
+        $this->assertSame('col.name', $table->getColumns()['name']->getTitle());
+        $this->assertSame($configured, [
+            'columns'    => array_map(static fn (ColumnInterface $column): array => $column->jsonSerialize(), $table->getColumns()),
+            'filters'    => $table->getFilters()->jsonSerialize(),
+            'searchList' => $searchList->jsonSerialize(),
+        ]);
+    }
+
+    #[Test]
     public function it_translates_column_titles_without_manual_resynchronization(): void
     {
         $translator = $this->createMock(TranslatorInterface::class);
@@ -1065,7 +1108,7 @@ final class RenderingPreparerTest extends TestCase
 
         $tablePayload = self::prepare($preparer, $table, null);
 
-        $this->assertSame('Statut', $table->getColumns()['status']->getTitle());
+        $this->assertSame('Status', $table->getColumns()['status']->getTitle());
         $this->assertSame('Statut', $tablePayload->getView()['columns'][0]['title']);
     }
 

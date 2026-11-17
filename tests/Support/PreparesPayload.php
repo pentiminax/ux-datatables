@@ -40,6 +40,7 @@ trait PreparesPayload
             configuredColumns: $configuredColumns,
             mercure: $table->getMercureConfig(),
             filters: $table->getFilters()?->jsonSerialize(),
+            editModalTemplate: $table->getEditModalTemplate(),
             editModalAdapter: $table->getEditModalAdapter(),
         );
     }

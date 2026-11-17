@@ -127,7 +127,7 @@ final class FilterEntityOptionsResolverTest extends TestCase
         $table   = (new DataTable('test_table'))->setFilters($filters);
 
         $resolver = new FilterEntityOptionsResolver($doctrine);
-        $resolver->prepare($table);
+        $resolver->prepare($table->getFilters());
 
         $this->assertSame([
             '1' => 'Bachelor',
@@ -150,7 +150,7 @@ final class FilterEntityOptionsResolverTest extends TestCase
         $filter = ChoiceFilter::new('typeDiplome')->entity(DummyEntity::class);
         $table  = (new DataTable('test_table'))->setFilters((new Filters())->add($filter));
 
-        (new FilterEntityOptionsResolver($doctrine))->prepare($table);
+        (new FilterEntityOptionsResolver($doctrine))->prepare($table->getFilters());
 
         $this->assertSame(['1' => '1'], $filter->jsonSerialize()['options']);
     }
@@ -180,7 +180,7 @@ final class FilterEntityOptionsResolverTest extends TestCase
         $table   = (new DataTable('test_table'))->setFilters($filters);
 
         $resolver = new FilterEntityOptionsResolver($doctrine);
-        $resolver->prepare($table);
+        $resolver->prepare($table->getFilters());
 
         $this->assertSame(['10' => 'ALPHA'], $filter->jsonSerialize()['options']);
     }
@@ -220,7 +220,7 @@ final class FilterEntityOptionsResolverTest extends TestCase
         $table   = (new DataTable('test_table'))->setFilters($filters);
 
         $resolver = new FilterEntityOptionsResolver($doctrine);
-        $resolver->prepare($table);
+        $resolver->prepare($table->getFilters());
 
         $this->assertTrue($invoked);
         $this->assertSame(['5' => 'Custom'], $filter->jsonSerialize()['options']);
@@ -253,7 +253,7 @@ final class FilterEntityOptionsResolverTest extends TestCase
         $table   = (new DataTable('test_table'))->setFilters($filters);
 
         $resolver = new FilterEntityOptionsResolver($doctrine);
-        $resolver->prepare($table);
+        $resolver->prepare($table->getFilters());
 
         $this->assertSame([], $filter->jsonSerialize()['options']);
     }
@@ -281,7 +281,7 @@ final class FilterEntityOptionsResolverTest extends TestCase
         $table   = (new DataTable('test_table'))->setFilters($filters);
 
         $resolver = new FilterEntityOptionsResolver($doctrine);
-        $resolver->prepare($table);
+        $resolver->prepare($table->getFilters());
 
         $this->assertSame([
             '100' => 'Stringable: Article 1',
@@ -304,7 +304,7 @@ final class FilterEntityOptionsResolverTest extends TestCase
         $filter = ChoiceFilter::new('level')->entity(DummyDisplayableEntity::class);
         $table  = (new DataTable('test_table'))->setFilters((new Filters())->add($filter));
 
-        (new FilterEntityOptionsResolver($doctrine))->prepare($table);
+        (new FilterEntityOptionsResolver($doctrine))->prepare($table->getFilters());
 
         $this->assertSame(['300' => 'Displayed'], $filter->jsonSerialize()['options']);
     }
@@ -324,7 +324,7 @@ final class FilterEntityOptionsResolverTest extends TestCase
         $filter = ChoiceFilter::new('typeDiplome')->entity(DummyEntity::class, label: 'trim');
         $table  = (new DataTable('test_table'))->setFilters((new Filters())->add($filter));
 
-        (new FilterEntityOptionsResolver($doctrine))->prepare($table);
+        (new FilterEntityOptionsResolver($doctrine))->prepare($table->getFilters());
 
         $this->assertSame(['1' => '1'], $filter->jsonSerialize()['options']);
     }
@@ -351,7 +351,7 @@ final class FilterEntityOptionsResolverTest extends TestCase
         $table   = (new DataTable('test_table'))->setFilters($filters);
 
         $resolver = new FilterEntityOptionsResolver($doctrine);
-        $resolver->prepare($table);
+        $resolver->prepare($table->getFilters());
 
         $this->assertSame([
             '200' => 'First Name',
@@ -369,6 +369,6 @@ final class FilterEntityOptionsResolverTest extends TestCase
         $resolver = new FilterEntityOptionsResolver(null);
 
         $this->expectException(\LogicException::class);
-        $resolver->prepare($table);
+        $resolver->prepare($table->getFilters());
     }
 }

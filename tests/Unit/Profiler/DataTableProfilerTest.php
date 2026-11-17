@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Profiler;
 
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\DataTableRequest\Column;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControl;
@@ -17,6 +18,7 @@ use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
+use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -60,6 +62,19 @@ final class DataTableProfilerTest extends TestCase
             'mercure'                  => null,
             'editModal'                => ['template' => null, 'adapter' => null],
         ]], $profiler->getRenderedTables());
+    }
+
+    #[Test]
+    public function it_reports_the_edit_modal_template_declared_on_the_attribute(): void
+    {
+        $table    = new DataTable('products');
+        $preparer = new RenderingPreparer();
+        $prepared = $preparer->prepare($table, $preparer->resolveOptIns($table, new AsDataTable(\stdClass::class, editModalTemplate: 'admin/edit_modal.html.twig')));
+
+        $profiler = new DataTableProfiler();
+        $profiler->collectRenderedTable('App\\ProductDataTable', $prepared, $table);
+
+        $this->assertSame(['template' => 'admin/edit_modal.html.twig', 'adapter' => null], $profiler->getRenderedTables()[0]['editModal']);
     }
 
     #[Test]

@@ -72,7 +72,7 @@ final class DataTableProfiler
             'filters'                  => $prepared->filters ?? [],
             'mercure'                  => $this->describeMercure($prepared),
             'editModal'                => [
-                'template' => $table->getEditModalTemplate(),
+                'template' => $prepared->editModalTemplate,
                 'adapter'  => $prepared->editModalAdapter,
             ],
         ];

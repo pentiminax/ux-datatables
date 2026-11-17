@@ -67,6 +67,7 @@ final readonly class PreparedDataTable
         public bool $showHeaderResetButton = false,
         public ?array $filterLabels = null,
         public ?string $actionToken = null,
+        public ?string $editModalTemplate = null,
         public ?string $editModalAdapter = null,
         public ?string $locale = null,
         public ?string $csrfToken = null,

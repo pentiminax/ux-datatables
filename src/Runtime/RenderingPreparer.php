@@ -116,7 +116,7 @@ final class RenderingPreparer
     }
 
     /**
-     * Validate the table and translate its columns and filters, before its rows are read.
+     * Validate the table before its rows are read.
      *
      * @throws \LogicException when the table opts into API Platform with no collection to read
      */
@@ -127,20 +127,6 @@ final class RenderingPreparer
         }
 
         $this->featureGuard->assertConfigurable($table, $optIns);
-
-        if (null !== $this->translator) {
-            ColumnTranslator::translate($table->getColumns(), $this->translator);
-        }
-
-        ($this->filterEntityOptionsResolver ?? new FilterEntityOptionsResolver())->prepare($table);
-
-        if (null !== $this->translator) {
-            foreach ($table->getFilters()?->getFilters() ?? [] as $filter) {
-                $filter->translateLabels($this->translator);
-            }
-        }
-
-        ($this->searchListOptionsResolver ?? new SearchListOptionsResolver($this->translator))->prepare($table);
     }
 
     /**
@@ -153,7 +139,7 @@ final class RenderingPreparer
     public function prepareAfterDataHydration(DataTable $table, ResolvedOptIns $optIns, ?array $rows = null, ?string $bulkRowIdField = null): PreparedDataTable
     {
         $dataTableClass    = $table->getDataTableClass();
-        $configuredColumns = array_values($table->getColumns());
+        $configuredColumns = $this->translatedColumns($table->getColumns());
         $columns           = array_values($this->columnResolver?->filterStaticPermissions($configuredColumns, $dataTableClass) ?? $configuredColumns);
 
         $options = $table->getOptions();
@@ -207,9 +193,10 @@ final class RenderingPreparer
             throw new \LogicException(\sprintf('Polling requires an Ajax source, but "%s" has no ajax option once prepared.', $table->getId()));
         }
 
-        $options['columns'] = array_map(static fn (ColumnInterface $column): array => $column->jsonSerialize(), $columns);
+        $searchLists        = $this->searchListOptionsResolver ?? new SearchListOptionsResolver($this->translator);
+        $options['columns'] = $searchLists->serialize(array_map(static fn (ColumnInterface $column): array => $column->jsonSerialize(), $columns));
 
-        $extensions  = $table->getExtensions();
+        $extensions  = $searchLists->serialize($table->getExtensions());
         $bulkActions = $this->allowedBulkActions($table->getBulkActions(), $dataTableClass);
 
         // Checkboxes the table only shows for its bulk actions would select rows for nothing.
@@ -218,7 +205,7 @@ final class RenderingPreparer
         }
 
         $hasRowActions = $this->hasRowActions($table);
-        $filters       = $table->getFilters();
+        $filters       = $this->translatedFilters($table->getFilters());
         $hasFilters    = null !== $filters && !$filters->isEmpty();
         $emptyState    = $table->getEmptyState();
 
@@ -258,6 +245,7 @@ final class RenderingPreparer
             showHeaderResetButton: $hasFilters && ($filters->isHeaderResetButtonVisible() ?? $table->getBundleOption('showHeaderResetButton') ?? false),
             filterLabels: $hasFilters ? $this->filterLabels($filters) : null,
             actionToken: null === $dataTableClass ? null : $this->ajaxRegistry?->getActionToken($dataTableClass),
+            editModalTemplate: $optIns->editModalTemplate,
             editModalAdapter: $optIns->editModalAdapter,
             locale: $this->requestStack?->getCurrentRequest()?->getLocale(),
             csrfToken: $this->mutationToken(),
@@ -307,6 +295,45 @@ final class RenderingPreparer
         }
 
         return $this->mercureResolver?->resolveMercureConfig($optIns->entityClass);
+    }
+
+    /**
+     * Translated copies of the columns, so the configured titles keep their translation keys.
+     *
+     * @param array<ColumnInterface> $columns
+     *
+     * @return list<ColumnInterface>
+     */
+    private function translatedColumns(array $columns): array
+    {
+        $columns = array_map(static fn (ColumnInterface $column): ColumnInterface => clone $column, array_values($columns));
+
+        if (null !== $this->translator) {
+            ColumnTranslator::translate($columns, $this->translator);
+        }
+
+        return $columns;
+    }
+
+    /**
+     * A copy of the filters with their entity options loaded and their labels translated.
+     */
+    private function translatedFilters(?Filters $filters): ?Filters
+    {
+        if (null === $filters) {
+            return null;
+        }
+
+        $filters = clone $filters;
+        ($this->filterEntityOptionsResolver ?? new FilterEntityOptionsResolver())->prepare($filters);
+
+        if (null !== $this->translator) {
+            foreach ($filters->getFilters() as $filter) {
+                $filter->translateLabels($this->translator);
+            }
+        }
+
+        return $filters;
     }
 
     /**
