@@ -278,7 +278,7 @@ final class InstallCommandTest extends TestCase
         $packages = array_merge(...array_column(array_filter($require, static fn (array $call): bool => null === $call[2]), 1));
         $this->assertContains('datatables.net-select-dt@4.1.1', $packages);
         $this->assertContains('datatables.net-select-dt/css/select.dataTables.min.css@4.1.1', $packages);
-        $this->assertContains('datatables.net-datetime@2.1.2', $packages);
+        $this->assertContains('datatables.net-datetime@2.1.3', $packages);
         $this->assertContains('lucide@1.52.0', $packages);
         $this->assertContains('datatables.net-dt/css/dataTables.dataTables.min.css@3.1.3', $packages);
         $this->assertContains('datatables.net-dt@3.1.3', $packages, 'A mapped package below the declared range is pinned again with its stylesheet.');
