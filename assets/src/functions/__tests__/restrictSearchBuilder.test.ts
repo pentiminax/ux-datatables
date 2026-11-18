@@ -13,6 +13,17 @@ describe('restrictSearchBuilder', () => {
         expect(payload.searchBuilder.columns).toEqual([0, 2])
     })
 
+    it('restricts a default SearchBuilder, which PHP serializes as an empty array', () => {
+        const payload: Record<string, any> = { columns, serverSide: true, searchBuilder: [] }
+
+        restrictSearchBuilder(payload)
+
+        expect(payload.searchBuilder).toEqual({
+            conditions: { array: { without: null } },
+            columns: [0, 2],
+        })
+    })
+
     it('keeps user conditions and narrows user columns', () => {
         const payload: Record<string, any> = {
             columns,

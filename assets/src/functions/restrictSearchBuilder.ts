@@ -7,10 +7,13 @@ import { isRecord } from './htmlUtils.js'
  * User-provided conditions and column indexes are narrowed, not replaced.
  */
 export function restrictSearchBuilder(payload: DataTableView): void {
-    const options = payload?.searchBuilder
+    const raw = payload?.searchBuilder
+    // PHP serializes a SearchBuilder with default options as `[]`.
+    const options = Array.isArray(raw) && raw.length === 0 ? {} : raw
     if (payload?.serverSide !== true || !isRecord(options)) {
         return
     }
+    payload.searchBuilder = options
 
     options.conditions = {
         ...options.conditions,
