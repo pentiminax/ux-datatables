@@ -1,3 +1,4 @@
+import type { DataTableView } from '../types/dataTableView.js'
 import type { StyleFramework } from '../types/styleFramework.js'
 import { applyFeatureLayout } from './featureLayout.js'
 import { isRecord } from './htmlUtils.js'
@@ -70,7 +71,7 @@ function optionEntries(options: FilterDefinition['options']): Array<[string, str
     return Object.entries(options ?? {})
 }
 
-export function hasFilters(payload: Record<string, any>): boolean {
+export function hasFilters(payload: DataTableView): boolean {
     return Array.isArray(payload?.filters) && payload.filters.length > 0
 }
 
@@ -133,7 +134,7 @@ export class FilterBar {
     private popoverController: Popover | null = null
 
     constructor(
-        payload: Record<string, any>,
+        payload: DataTableView,
         private readonly framework: StyleFramework
     ) {
         this.definitions = (payload.filters as FilterDefinition[]) ?? []
@@ -653,7 +654,7 @@ export function registerFilterFeature(DataTable: any): void {
  * Persist the applied filter values with the rest of the saved table state, after the user's
  * own callbacks have run.
  */
-function chainFilterState(payload: Record<string, any>, filterBar: FilterBar): void {
+function chainFilterState(payload: DataTableView, filterBar: FilterBar): void {
     const userStateSaveParams = payload.stateSaveParams
     payload.stateSaveParams = (settings: any, data: any) => {
         if (typeof userStateSaveParams === 'function') {
@@ -679,7 +680,7 @@ function chainFilterState(payload: Record<string, any>, filterBar: FilterBar): v
  * `filters` layout marker the server placed would otherwise fail as an unknown feature.
  */
 export function installFilterBar(
-    payload: Record<string, any>,
+    payload: DataTableView,
     DataTable: any,
     framework: StyleFramework
 ): FilterBar | null {

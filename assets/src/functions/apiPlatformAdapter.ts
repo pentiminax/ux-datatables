@@ -1,3 +1,4 @@
+import type { DataTableView, DataTableViewColumn } from '../types/dataTableView.js'
 import { isRecord } from './htmlUtils.js'
 
 interface DataTableServerSideOrder {
@@ -30,7 +31,7 @@ export interface ColumnConfig {
     data?: string | null
     defaultContent?: string
     field?: string | null
-    name: string
+    name: string | null
 }
 
 /**
@@ -52,7 +53,7 @@ export function resolveColumnDataKey(column: ColumnConfig): string | null | unde
  * reaches the browser: rows already carry rendered templates, actions and URLs, keyed by column
  * name. Rewriting its ajax transport or its column accessors here would break both.
  */
-export function isApiPlatformAdapterEnabled(payload: Record<string, unknown>): boolean {
+export function isApiPlatformAdapterEnabled(payload: DataTableView): boolean {
     return true === payload?.apiPlatform && true !== payload?.apiPlatformServerSide
 }
 
@@ -109,7 +110,7 @@ const DEFAULT_ROW_ID_FIELD = 'id'
  * DataTables `rowId` option to `DT_RowId`, so Hydra rows need that key even without highlight —
  * otherwise SelectionStore reads empty ids and page-scoped bulk POSTs nothing.
  */
-function resolveRowIdField(payload: Record<string, unknown>): string | null {
+function resolveRowIdField(payload: DataTableView): string | null {
     const highlight = payload.highlight
     if (isRecord(highlight)) {
         const idField = highlight.idField
@@ -283,7 +284,7 @@ export class ApiPlatformAdapter {
      * side goes through {@link toRequestParams}, which the controller hands to the request params
      * module as its transport.
      */
-    configure(payload: Record<string, unknown>): void {
+    configure(payload: DataTableView): void {
         const ajaxConfig = payload.ajax as Record<string, unknown>
         this.rowIdField = resolveRowIdField(payload)
         const originalDataFilter = ajaxConfig.dataFilter
@@ -306,12 +307,12 @@ export class ApiPlatformAdapter {
         }
     }
 
-    withDefaultColumnContent(columns: unknown): unknown {
+    withDefaultColumnContent(columns: DataTableViewColumn[]): DataTableViewColumn[] {
         if (!Array.isArray(columns)) {
             return columns
         }
 
-        return columns.map((column: unknown): unknown => {
+        return columns.map((column) => {
             if (!isRecord(column) || typeof column.defaultContent === 'string') {
                 return column
             }

@@ -1,8 +1,11 @@
+import { isRecord } from './htmlUtils.js';
 export function restrictSearchBuilder(payload) {
-    const options = payload?.searchBuilder;
-    if (payload?.serverSide !== true || !options || typeof options !== 'object') {
+    const raw = payload?.searchBuilder;
+    const options = Array.isArray(raw) && raw.length === 0 ? {} : raw;
+    if (payload?.serverSide !== true || !isRecord(options)) {
         return;
     }
+    payload.searchBuilder = options;
     options.conditions = {
         ...options.conditions,
         array: { ...options.conditions?.array, without: null },

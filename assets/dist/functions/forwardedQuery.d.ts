@@ -1,1 +1,2 @@
-export declare function forwardedQuery(payload: Record<string, any>): Record<string, unknown>;
+import type { DataTableView } from '../types/dataTableView.js';
+export declare function forwardedQuery(payload: DataTableView): Record<string, unknown>;

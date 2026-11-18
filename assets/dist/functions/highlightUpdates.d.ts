@@ -1,8 +1,10 @@
+import type { DataTableView } from '../types/dataTableView.js';
 import type { ColumnConfig } from './apiPlatformAdapter.js';
 export declare const HIGHLIGHT_CLASS = "dt-cell-updated";
 export interface HighlightConfig {
     durationMs?: number;
     ignoreColumns?: string[];
+    idField?: string;
 }
 interface HighlightTable {
     rows: () => {
@@ -33,5 +35,7 @@ export declare class UpdateHighlighter {
     private rowIndexes;
     private flash;
 }
-export declare function isHighlightEnabled(payload: Record<string, unknown>): boolean;
+export declare function isHighlightEnabled(payload: DataTableView): payload is DataTableView & {
+    highlight: HighlightConfig;
+};
 export {};

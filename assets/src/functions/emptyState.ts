@@ -1,3 +1,4 @@
+import type { DataTableView } from '../types/dataTableView.js'
 import { hasFilters } from './filters.js'
 import { escapeHtml, isRecord } from './htmlUtils.js'
 import { renderLucideIcon } from './lucideIcons.js'
@@ -9,7 +10,7 @@ interface EmptyStateLabels {
     resetFilters?: string
 }
 
-interface EmptyStateConfig {
+export interface EmptyStateConfig {
     heading: string
     description?: string | null
     icon?: string | null
@@ -60,7 +61,7 @@ export function buildNoResultsHtml(config: EmptyStateConfig, hasFilters: boolean
 }
 
 /** Replaces the language strings of a table that declared an empty state. Run after the catalog loads. */
-export function applyEmptyState(payload: Record<string, any>): void {
+export function applyEmptyState(payload: DataTableView): void {
     const config = payload.emptyState
 
     if (!isRecord(config) || typeof config.heading !== 'string') {

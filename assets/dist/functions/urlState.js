@@ -1,3 +1,4 @@
+import { isRecord } from './htmlUtils.js';
 export function isUrlStateEnabled(payload) {
     const cfg = payload?.urlState;
     if (!cfg || typeof cfg !== 'object')
@@ -101,7 +102,7 @@ export function readUrlState(cfg, search = window.location.search) {
 }
 export function applyUrlStateToPayload(payload, snapshot) {
     if (snapshot.search !== undefined) {
-        if (payload.search && typeof payload.search === 'object') {
+        if (isRecord(payload.search)) {
             payload.search.search = snapshot.search;
         }
         else {

@@ -269,7 +269,7 @@ export function installBulkActionBar(payload, DataTable, framework, dispatch, cu
         return null;
     }
     const bulkBar = new BulkActionBar(payload, framework, dispatch, currentParams);
-    applyFeatureLayout(payload, 'bulkActions', { bulkActions: { instance: bulkBar } }, { position: payload.bulkActions.position ?? 'topEnd' });
+    applyFeatureLayout(payload, 'bulkActions', { bulkActions: { instance: bulkBar } }, { position: payload.bulkActions?.position ?? 'topEnd' });
     return bulkBar;
 }
 //# sourceMappingURL=BulkActionBar.js.map

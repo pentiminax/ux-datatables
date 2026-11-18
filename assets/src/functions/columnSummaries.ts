@@ -1,3 +1,5 @@
+import type { DataTableView } from '../types/dataTableView.js'
+
 export type SummaryType = 'sum' | 'avg' | 'min' | 'max' | 'count'
 
 interface SummaryDefinition {
@@ -6,7 +8,7 @@ interface SummaryDefinition {
 }
 
 interface SummaryColumn {
-    name?: string
+    name?: string | null
     summaries?: SummaryDefinition[]
     customOptions?: { isMoney?: boolean }
     render?: (data: unknown, type: string) => unknown
@@ -20,7 +22,7 @@ const DEFAULT_LABELS: Record<SummaryType, string> = {
     count: 'Count',
 }
 
-export function hasSummaries(payload: Record<string, any>): boolean {
+export function hasSummaries(payload: DataTableView): boolean {
     return (
         Array.isArray(payload?.columns) &&
         payload.columns.some((column: SummaryColumn) => (column?.summaries?.length ?? 0) > 0)
@@ -112,10 +114,7 @@ function fill(
  * Must run before DataTables initializes: it only registers a footer present at that moment.
  * Returns false when an existing footer cannot hold the summaries.
  */
-export function ensureSummaryFooter(
-    tableElement: HTMLElement,
-    payload: Record<string, any>
-): boolean {
+export function ensureSummaryFooter(tableElement: HTMLElement, payload: DataTableView): boolean {
     const columnCount: number = payload.columns.length
     const existing = tableElement.querySelector('tfoot')
 
@@ -150,7 +149,7 @@ export function ensureSummaryFooter(
  * Renders summary totals in the table footer: from `json.summaries` on server-side tables (every
  * matching row, computed by the server), from the searched rows on client-side ones.
  */
-export function installColumnSummaries(table: any, payload: Record<string, any>): void {
+export function installColumnSummaries(table: any, payload: DataTableView): void {
     const columns: SummaryColumn[] = payload.columns
     const labels: Record<string, string> = payload.summaryLabels ?? {}
 

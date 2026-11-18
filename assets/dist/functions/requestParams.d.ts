@@ -1,3 +1,4 @@
+import type { DataTableView } from '../types/dataTableView.js';
 export type RequestParams = Record<string, any>;
 export interface RequestParamsOptions {
     filters?: () => Record<string, unknown>;
@@ -6,4 +7,4 @@ export interface RequestParamsOptions {
 export interface RequestParamsHandle {
     current(): RequestParams;
 }
-export declare function installRequestParams(payload: Record<string, any>, options?: RequestParamsOptions): RequestParamsHandle;
+export declare function installRequestParams(payload: DataTableView, options?: RequestParamsOptions): RequestParamsHandle;

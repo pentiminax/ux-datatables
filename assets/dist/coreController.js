@@ -25,6 +25,7 @@ import { fetchEditForm } from './functions/fetchEditForm.js';
 import { installFilterBar } from './functions/filters.js';
 import { forwardedQuery } from './functions/forwardedQuery.js';
 import { isHighlightEnabled } from './functions/highlightUpdates.js';
+import { isRecord } from './functions/htmlUtils.js';
 import { isDataTableClone } from './functions/isDataTableClone.js';
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
 import { hasLucideIcons, hasLucideIconsInActions, loadLucideIcons, } from './functions/lucideIcons.js';
@@ -121,10 +122,7 @@ class default_1 extends Controller {
         this.dispatchEvent('pre-init', { config: payload, DataTable });
         let apiPlatformAdapter = null;
         if (this.isApiPlatformEnabled(payload)) {
-            const columns = Array.isArray(payload.columns)
-                ? payload.columns
-                : [];
-            apiPlatformAdapter = new ApiPlatformAdapter(columns);
+            apiPlatformAdapter = new ApiPlatformAdapter(payload.columns);
             apiPlatformAdapter.configure(payload);
         }
         this.configureColumns(payload);
@@ -265,7 +263,7 @@ class default_1 extends Controller {
                 await packageLoaders.load(extensionName, framework);
             }
         }
-        if (payload?.select?.withCheckbox) {
+        if (isRecord(payload.select) && payload.select.withCheckbox) {
             payload.columns.unshift({
                 data: null,
                 defaultContent: '',
@@ -281,7 +279,7 @@ class default_1 extends Controller {
                     render: DataTable.render.select(),
                     targets: 0,
                 },
-                ...(payload.columnDefs ?? []),
+                ...(Array.isArray(payload.columnDefs) ? payload.columnDefs : []),
             ];
         }
         restrictSearchBuilder(payload);
@@ -310,7 +308,7 @@ class default_1 extends Controller {
                 }
             }
         });
-        if (this.isApiPlatformEnabled(payload) && Array.isArray(payload.columns)) {
+        if (this.isApiPlatformEnabled(payload)) {
             payload.columns = payload.columns.map((column) => ({
                 ...column,
                 data: resolveColumnDataKey(column),
@@ -356,7 +354,7 @@ class default_1 extends Controller {
         if (!this.element.isConnected || this.highlighter) {
             return;
         }
-        this.highlighter = new UpdateHighlighter(this.table, payload.highlight, Array.isArray(payload.columns) ? payload.columns : [], (cells) => this.dispatchEvent('highlight', { cells }));
+        this.highlighter = new UpdateHighlighter(this.table, payload.highlight, payload.columns, (cells) => this.dispatchEvent('highlight', { cells }));
     }
     bindActionHandler(payload) {
         ;

@@ -1,3 +1,5 @@
+import type { DataTableView } from '../types/dataTableView.js'
+
 type CatalogLoader = () => Promise<{ default: Record<string, unknown> }>
 
 const catalogs: Record<string, CatalogLoader> = {
@@ -7,7 +9,7 @@ const catalogs: Record<string, CatalogLoader> = {
 
 const CDN_LOCALE_PATTERN = /\/i18n\/([\w-]+)\.json(?:[?#].*)?$/
 
-export async function applyLocalLanguage(payload: any): Promise<void> {
+export async function applyLocalLanguage(payload: DataTableView): Promise<void> {
     const loader = payload?.language ? loaderForUrl(payload.language.url) : loaderForLocale(payload)
 
     if (!loader) {
@@ -32,7 +34,7 @@ function loaderForUrl(url: unknown): CatalogLoader | undefined {
  * (`fr`, `fr_FR` and `fr-CA` all load the French catalog). Locales without a bundled catalog keep
  * the DataTables built-in English strings.
  */
-function loaderForLocale(payload: any): CatalogLoader | undefined {
+function loaderForLocale(payload: DataTableView): CatalogLoader | undefined {
     if (typeof payload?.locale !== 'string') {
         return undefined
     }
