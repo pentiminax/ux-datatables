@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "../..",
+    "resolveJsonModule": true
+  },
+  "include": [
+    "renderedPayloadFixture.test.ts",
+    "../src/**/*.d.ts"
+  ],
+  "exclude": []
+}
