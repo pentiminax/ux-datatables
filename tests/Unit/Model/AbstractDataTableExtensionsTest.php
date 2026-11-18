@@ -53,7 +53,7 @@ final class AbstractDataTableExtensionsTest extends TestCase
             'topEnd'      => 'search',
             'bottomStart' => 'info',
             'bottomEnd'   => 'paging',
-        ], $table->prepareDataTableForRendering()->getOptions()['layout']);
+        ], $table->prepareRendering()->getView()['layout']);
 
         $this->assertSame([
             'columnControl' => [
@@ -88,7 +88,7 @@ final class AbstractDataTableExtensionsTest extends TestCase
                 'headerCheckbox' => false,
                 'withCheckbox'   => false,
             ],
-        ], $table->prepareDataTableForRendering()->getExtensions());
+        ], $table->getConfiguredDataTable()->getExtensions());
     }
 
     /**
@@ -105,7 +105,7 @@ final class AbstractDataTableExtensionsTest extends TestCase
             static fn (DataTable $table): DataTable => $table->buttons($buttons, $position),
         );
 
-        $this->assertSame($expectedLayout, $table->prepareDataTableForRendering()->getOptions()['layout']);
+        $this->assertSame($expectedLayout, $table->prepareRendering()->getView()['layout']);
     }
 
     /**
@@ -177,7 +177,7 @@ final class AbstractDataTableExtensionsTest extends TestCase
             ),
         );
 
-        $extensions = $table->prepareDataTableForRendering()->getExtensions();
+        $extensions = $table->getConfiguredDataTable()->getExtensions();
 
         $this->assertTrue($extensions['select']['withCheckbox']);
         $this->assertTrue($extensions['select']['headerCheckbox']);

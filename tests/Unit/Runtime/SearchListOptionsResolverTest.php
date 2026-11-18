@@ -231,20 +231,18 @@ final class SearchListOptionsResolverTest extends TestCase
             ['status.published', [], null, null, 'Publié'],
         ]);
         $static = SearchList::new()->options(SearchListTranslatableStatus::class);
-        $table  = $this->table([TextColumn::new('status')], $static);
 
         $this->assertSame(['Draft', 'Published'], array_column($static->jsonSerialize()['options'], 'label'));
 
         $resolver = new SearchListOptionsResolver($translator);
-        $resolver->prepare($table);
 
-        $this->assertSame([
+        $this->assertSame([[
             'extend'  => 'searchList',
             'options' => [
                 ['label' => 'Brouillon', 'value' => 'draft'],
                 ['label' => 'Publié', 'value' => 'published'],
             ],
-        ], $static->jsonSerialize());
+        ]], $resolver->serialize([$static]));
 
         $dynamic = SearchList::new()->ajaxOptionsProvider(
             new class implements SearchListOptionsProviderInterface {

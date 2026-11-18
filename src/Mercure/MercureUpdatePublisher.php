@@ -7,7 +7,6 @@ namespace Pentiminax\UX\DataTables\Mercure;
 use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Contracts\PrivateUpdatePublisherInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
-use Pentiminax\UX\DataTables\Model\DataTable;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Update;
@@ -30,16 +29,9 @@ final class MercureUpdatePublisher implements MercurePublisherInterface, Private
         return $this->send($topics, $data, true);
     }
 
-    /**
-     * Passing a DataTable is deprecated since 1.6, pass the AbstractDataTable instead. Removed in 2.0.
-     */
-    public function publishForDataTable(AbstractDataTable|DataTable $table, array $data = []): string
+    public function publishForDataTable(AbstractDataTable $table, array $data = []): string
     {
-        if ($table instanceof DataTable) {
-            trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Passing a "%s" to "%s()" is deprecated, pass the "%s" instead. Removed in 2.0.', DataTable::class, __METHOD__, AbstractDataTable::class);
-        }
-
-        $config = $table instanceof DataTable ? $table->getMercureConfig() : $table->resolveMercureConfigWithoutHydration();
+        $config = $table->resolveMercureConfigWithoutHydration();
 
         if (null === $config) {
             throw new \LogicException('The DataTable does not have Mercure configured.');

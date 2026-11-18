@@ -21,6 +21,7 @@ use Pentiminax\UX\DataTables\Tests\Fixtures\Count\SummaryNote;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\SummaryOrder;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\SummaryRegion;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
+use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -37,6 +38,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 #[CoversClass(RenderingPreparer::class)]
 final class DataTableRuntimeSummaryPermissionTest extends TestCase
 {
+    use PreparesPayload;
     use BuildsEntityManager;
 
     #[Test]
@@ -62,9 +64,10 @@ final class DataTableRuntimeSummaryPermissionTest extends TestCase
         $translator->method('trans')->willReturn('label');
         $table = (new DataTable('Test'))->add(NumberColumn::new('amount')->permission('ROLE_HR')->summarize(new Sum()));
 
-        (new RenderingPreparer(translator: $translator, columnResolver: new ColumnResolver(permissionChecker: $this->checker(false))))->prepare($table, null);
+        $preparer = new RenderingPreparer(translator: $translator, columnResolver: new ColumnResolver(permissionChecker: $this->checker(false)));
+        $prepared = self::prepareWith($preparer, $table, $preparer->resolveOptIns($table, null));
 
-        $this->assertArrayNotHasKey('summaryLabels', $table->getOptions());
+        $this->assertArrayNotHasKey('summaryLabels', $prepared->getView());
     }
 
     #[Test]

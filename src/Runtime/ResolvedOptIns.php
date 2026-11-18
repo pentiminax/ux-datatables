@@ -15,7 +15,8 @@ use Pentiminax\UX\DataTables\Model\DataTable;
  *
  * A fluent value overrides the attribute's, field by field; null or a blank string means unset, so
  * `apiPlatform` has three states. `mercure` is the fluent config when the table set one, else the
- * attribute's value.
+ * attribute's value. `serverSide` says whether the server pages the rows: the bundle's endpoint, or
+ * a custom `ajax()` endpoint the table declared `serverSide()` for.
  *
  * @internal
  */
@@ -34,6 +35,7 @@ final readonly class ResolvedOptIns
         public ?string $editModalAdapter = null,
         public array $serializationGroups = [],
         public DataSourceMode $dataSourceMode = DataSourceMode::ClientHydrated,
+        public bool $serverSide = false,
     ) {
     }
 
@@ -43,14 +45,9 @@ final readonly class ResolvedOptIns
     public static function resolve(DataTable $table, ?AsDataTable $asDataTable, ?ApiResourceCollectionUrlResolver $collectionUrlResolver = null): self
     {
         $entityClass = $asDataTable?->entityClass;
-        $apiPlatform = $table->getOption('apiPlatform') ?? (true === $asDataTable?->apiPlatform ? true : null);
+        $apiPlatform = $table->getBundleOption('apiPlatform') ?? (true === $asDataTable?->apiPlatform ? true : null);
 
         $dataSourceMode = DataSourceMode::resolve($table, $entityClass, true === $apiPlatform, $collectionUrlResolver);
-
-        // The payload, the runtime and the profiler read the table's own flag.
-        if (DataSourceMode::ServerSide === $dataSourceMode) {
-            $table->serverSide();
-        }
 
         return new self(
             entityClass: $entityClass,
@@ -60,6 +57,7 @@ final readonly class ResolvedOptIns
             editModalAdapter: self::firstText($table->getEditModalAdapter(), $asDataTable?->editModalAdapter),
             serializationGroups: $asDataTable?->serializationGroups ?? [],
             dataSourceMode: $dataSourceMode,
+            serverSide: DataSourceMode::ServerSide === $dataSourceMode || true === $table->getOption('serverSide'),
         );
     }
 

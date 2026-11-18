@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 use Pentiminax\UX\DataTables\Enum\Icon;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -19,10 +20,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 #[CoversClass(DataTable::class)]
 final class DataTableEmptyStateTest extends TestCase
 {
+    use PreparesPayload;
+
     #[Test]
     public function it_adds_nothing_to_the_payload_when_unused(): void
     {
-        $options = (new DataTable('t'))->getOptions();
+        $options = self::payloadOf(new DataTable('t'));
 
         $this->assertArrayNotHasKey('emptyState', $options);
         $this->assertArrayNotHasKey('recordUrl', $options);
@@ -44,7 +47,8 @@ final class DataTableEmptyStateTest extends TestCase
             'icon'        => 'inbox',
             'action'      => ['label' => 'Invite', 'url' => '/users/new'],
             'labels'      => [],
-        ], $table->getOptions()['emptyState']);
+        ], self::payloadOf($table)['emptyState']);
+        $this->assertArrayNotHasKey('emptyState', $table->getOptions());
     }
 
     #[Test]
@@ -54,13 +58,12 @@ final class DataTableEmptyStateTest extends TestCase
         $translator->method('trans')->willReturnCallback(static fn (string $id): string => strtoupper($id));
 
         $table = (new DataTable('t'))->emptyState('Nothing');
-        (new RenderingPreparer(translator: $translator))->prepareBeforeDataHydration($table, null);
 
         $this->assertSame([
             'noResults'     => 'EMPTY.NORESULTS',
             'noResultsHint' => 'EMPTY.NORESULTSHINT',
             'resetFilters'  => 'EMPTY.RESETFILTERS',
-        ], $table->getOptions()['emptyState']['labels']);
+        ], self::payloadOf($table, new RenderingPreparer(translator: $translator))['emptyState']['labels']);
     }
 
     /**
@@ -95,7 +98,7 @@ final class DataTableEmptyStateTest extends TestCase
             ->rowClass(static fn (): string => 'x')
             ->recordUrl(static fn (): string => '/x');
 
-        $this->assertTrue($table->getOptions()['recordUrl']);
+        $this->assertTrue(self::payloadOf($table)['recordUrl']);
         $this->assertArrayNotHasKey('rowClass', $table->getOptions());
         $this->assertInstanceOf(\Closure::class, $table->getRowClassResolver());
         $this->assertInstanceOf(\Closure::class, $table->getRecordUrlResolver());

@@ -130,13 +130,9 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.twig_extension', DataTablesExtension::class)
         ->arg(0, service('stimulus.helper'))
-        ->arg(1, service('datatables.column.resolver'))
-        ->arg(2, service('request_stack'))
-        ->arg(3, service('datatables.security.csrf_token_manager'))
-        ->arg(4, service('datatables.ajax.registry')->nullOnInvalid())
-        ->arg(5, service('datatables.profiler')->nullOnInvalid())
-        ->arg(6, service('datatables.security.authorization_checker'))
-        ->arg(7, param('datatables.controller_name'))
+        ->arg(1, service('datatables.profiler')->nullOnInvalid())
+        ->arg(2, service('datatables.security.authorization_checker'))
+        ->arg(3, param('datatables.controller_name'))
         ->tag('twig.extension')
         ->private();
 
@@ -343,6 +339,8 @@ return static function (ContainerConfigurator $container): void {
         ->arg(7, service('datatables.column_control.search_list_options_resolver'))
         ->arg(8, service('datatables.filter.entity_options_resolver')->nullOnInvalid())
         ->arg(9, service('datatables.column.resolver'))
+        ->arg('$csrfTokenManager', service('datatables.security.csrf_token_manager'))
+        ->arg('$permissionChecker', service('datatables.security.authorization_checker'))
         ->private();
 
     $services->alias(RenderingPreparer::class, 'datatables.rendering.preparer')

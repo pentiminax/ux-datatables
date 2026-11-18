@@ -60,6 +60,11 @@ final class Filters implements \JsonSerializable
         return $this->showHeaderResetButton;
     }
 
+    public function __clone()
+    {
+        $this->filters = array_map(static fn (FilterInterface $filter): FilterInterface => clone $filter, $this->filters);
+    }
+
     public function add(FilterInterface $filter): static
     {
         $this->filters[$filter->getName()] = $filter;

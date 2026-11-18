@@ -106,14 +106,22 @@ final class SearchList implements \JsonSerializable
         return ['extend' => 'searchList', ...$this->configuration];
     }
 
-    /** @internal */
-    public function prepareStaticOptions(?TranslatorInterface $translator): void
+    /**
+     * The serialized search list, with its static options translated.
+     *
+     * @internal
+     *
+     * @return array<string, mixed>
+     */
+    public function serialize(?TranslatorInterface $translator): array
     {
-        if (!$this->hasStaticOptions) {
-            return;
+        $serialized = $this->jsonSerialize();
+
+        if ($this->hasStaticOptions) {
+            $serialized['options'] = SearchListOptionsNormalizer::normalize($this->staticOptions, $translator);
         }
 
-        $this->configuration['options'] = SearchListOptionsNormalizer::normalize($this->staticOptions, $translator);
+        return $serialized;
     }
 
     /** @internal */

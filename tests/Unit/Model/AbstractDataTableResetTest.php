@@ -16,6 +16,7 @@ use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
+use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -32,6 +33,8 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 #[CoversClass(AbstractDataTable::class)]
 final class AbstractDataTableResetTest extends TestCase
 {
+    use PreparesPayload;
+
     #[Test]
     public function it_re_evaluates_the_configuration_after_a_reset(): void
     {
@@ -45,19 +48,19 @@ final class AbstractDataTableResetTest extends TestCase
         );
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
 
-        $this->assertSame([['id' => 1]], $table->prepareDataTableForRendering()->getOption('data'));
+        $this->assertSame([['id' => 1]], self::optionOf($table->prepareRendering(), 'data'));
 
         $rows = [['id' => 2]];
 
         $this->assertSame(
             [['id' => 1]],
-            $table->prepareDataTableForRendering()->getOption('data'),
+            self::optionOf($table->prepareRendering(), 'data'),
             'Without a reset the first request\'s rows stay frozen on the shared instance.',
         );
 
         $table->resetDataTableState();
 
-        $this->assertSame([['id' => 2]], $table->prepareDataTableForRendering()->getOption('data'));
+        $this->assertSame([['id' => 2]], self::optionOf($table->prepareRendering(), 'data'));
     }
 
     #[Test]
@@ -66,11 +69,11 @@ final class AbstractDataTableResetTest extends TestCase
         $table = new ConfigurableDataTable([TextColumn::new('id')]);
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
 
-        $first = $table->prepareDataTableForRendering();
+        $first = $table->getConfiguredDataTable();
 
         $table->resetDataTableState();
 
-        $this->assertNotSame($first, $table->prepareDataTableForRendering());
+        $this->assertNotSame($first, $table->getConfiguredDataTable());
     }
 
     #[Test]
@@ -151,12 +154,12 @@ final class AbstractDataTableResetTest extends TestCase
         $table = new ConfigurableDataTable([TextColumn::new('id')]);
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
 
-        $table->prepareDataTableForRendering();
+        $table->prepareRendering();
         $table->resetDataTableState();
 
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
 
-        $this->assertNotNull($table->prepareDataTableForRendering());
+        $this->assertNotNull($table->getConfiguredDataTable());
     }
 
     /**
@@ -183,11 +186,11 @@ final class AbstractDataTableResetTest extends TestCase
         };
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
 
-        $first = $table->prepareDataTableForRendering();
+        $first = $table->getConfiguredDataTable();
 
         $table->resetDataTableState();
 
-        $this->assertNotSame($first, $table->prepareDataTableForRendering());
+        $this->assertNotSame($first, $table->getConfiguredDataTable());
         $this->assertFalse($table->resetCalled);
     }
 
@@ -226,7 +229,7 @@ final class AbstractDataTableResetTest extends TestCase
      */
     private function rowActions(ConfigurableDataTable $table): ?array
     {
-        $data = $table->prepareDataTableForRendering()->getOption('data');
+        $data = self::optionOf($table->prepareRendering(), 'data');
 
         return $data[0][ActionRowDataResolver::ROW_ACTIONS_KEY] ?? null;
     }

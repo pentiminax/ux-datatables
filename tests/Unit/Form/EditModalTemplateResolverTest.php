@@ -47,7 +47,7 @@ final class EditModalTemplateResolverTest extends TestCase
             BlankFluentEditModalDataTable::class,
             static function (): BlankFluentEditModalDataTable {
                 $table = new BlankFluentEditModalDataTable();
-                $table->getDataTable();
+                $table->prepareRendering();
 
                 return $table;
             },
@@ -64,16 +64,6 @@ final class EditModalTemplateResolverTest extends TestCase
             DefaultEditModalDataTable::class,
             static fn (): DefaultEditModalDataTable => new DefaultEditModalDataTable(),
         ];
-    }
-
-    #[Test]
-    public function it_reads_a_template_changed_after_initialization(): void
-    {
-        $table = new DefaultEditModalDataTable();
-        $table->getConfiguredDataTable()->editModalTemplate('custom.html.twig');
-        $resolver = $this->createResolver([DefaultEditModalDataTable::class => static fn () => $table]);
-
-        $this->assertSame('custom.html.twig', $resolver->resolveChromeTemplate(DefaultEditModalDataTable::class));
     }
 
     #[Test]

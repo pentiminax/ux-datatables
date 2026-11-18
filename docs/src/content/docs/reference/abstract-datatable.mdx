@@ -358,10 +358,9 @@ the table declaratively and let the request-scoped boundaries do the rest:
     ['`handleRequest(Request $request)`', 'Deprecated since 1.7: use `DataTableResponder::respond()`'],
     ['`isRequestHandled()`', 'Deprecated since 1.7: use `DataTableResponder::respond()`'],
     ['`getResponse()`', 'Deprecated since 1.7: use `DataTableResponder::respond()`'],
-    ['`getDataTable()`', 'Deprecated since 1.6: use `getConfiguredDataTable()` to read or `render_datatable()` to render'],
     [
       '`getConfiguredDataTable()`',
-      'Read the configured DataTable without rendering preparation or data hydration',
+      'Read the DataTable as `configureDataTable()` returned it: rendering never writes to it',
     ],
     [
       '`getResolvedColumns()`',
@@ -517,9 +516,8 @@ This includes:
 />
 
 <Aside type="note">
-  `render_datatable()` prepares the table for you. `getDataTable()` and `prepareForRendering()` are
-  deprecated since 1.6: read the table with `getConfiguredDataTable()` and render it with
-  `render_datatable()`.
+  `render_datatable()` builds the payload without writing to the table: read the table with
+  `getConfiguredDataTable()` and render it with `render_datatable()`.
 </Aside>
 
 <Aside type="tip">

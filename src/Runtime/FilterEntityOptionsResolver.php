@@ -10,8 +10,11 @@ use Doctrine\Persistence\ObjectManager;
 use Pentiminax\UX\DataTables\Column\Rendering\PropertyReader;
 use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
 use Pentiminax\UX\DataTables\Filter\EntityFilter;
-use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Model\Filters;
 
+/**
+ * @internal
+ */
 final readonly class FilterEntityOptionsResolver
 {
     private const DEFAULT_LABEL_PATHS = ['display', 'name', 'label', 'title'];
@@ -21,9 +24,8 @@ final readonly class FilterEntityOptionsResolver
     ) {
     }
 
-    public function prepare(DataTable $table): void
+    public function prepare(?Filters $filters): void
     {
-        $filters = $table->getFilters();
         if (null === $filters) {
             return;
         }

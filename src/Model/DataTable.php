@@ -41,6 +41,11 @@ class DataTable
     public const MAX_POLL_INTERVAL = 86400;
 
     /**
+     * Keys the fluent API stores next to the DataTables.net options, read by the Stimulus controller only.
+     */
+    private const BUNDLE_OPTIONS = ['apiPlatform', 'pollInterval', 'urlState', 'styleFramework', 'exportUrl', 'showHeaderResetButton'];
+
+    /**
      * The slots DataTables 2 fills when `layout` does not mention them.
      */
     private const DEFAULT_LAYOUT = [
@@ -61,31 +66,7 @@ class DataTable
 
     private ?BulkActions $bulkActions = null;
 
-    /** @var array<string, string>|null */
-    private ?array $preparedBulkActionLabels = null;
-
-    /** @var array<string, string>|null */
-    private ?array $preparedActionLabels = null;
-
-    /** @var array<string, string>|null */
-    private ?array $preparedSummaryLabels = null;
-
-    /** @var array<string, mixed>|null */
-    private ?array $preparedForwardedQuery = null;
-
-    private ?string $bulkActionsUrl = null;
-
-    /** @var array<string, string>|null */
-    private ?array $rowActionUrls = null;
-
-    private ?string $bulkRowIdField = null;
-
     private bool $selectionForBulkActions = false;
-
-    /** @var array<string, string>|null */
-    private ?array $preparedFilterLabels = null;
-
-    private bool $templateColumnsRendered = false;
 
     private ?MercureConfig $mercureConfig = null;
 
@@ -107,9 +88,6 @@ class DataTable
     /** @var array{heading: string, description: ?string, icon: ?string, action: ?array{label: string, url: string}}|null */
     private ?array $emptyState = null;
 
-    /** @var array<string, string>|null */
-    private ?array $preparedEmptyStateLabels = null;
-
     private ?\Closure $rowClassResolver = null;
 
     private ?\Closure $recordUrlResolver = null;
@@ -129,93 +107,48 @@ class DataTable
         return $this->id;
     }
 
+    /**
+     * A DataTables.net option. Bundle keys such as `apiPlatform` or `pollInterval` are not options:
+     * they reach the browser through the prepared payload.
+     */
     public function getOption(string $name): mixed
     {
         if ('columns' === $name) {
             return $this->getColumnDefinitions();
         }
 
+        if (\in_array($name, self::BUNDLE_OPTIONS, true)) {
+            return null;
+        }
+
         return $this->options->get($name);
     }
 
+    /**
+     * The DataTables.net options, with the column definitions.
+     *
+     * @return array<string, mixed>
+     */
     public function getOptions(): array
     {
-        $options            = $this->options->getOptions();
+        $options            = array_diff_key($this->options->getOptions(), array_flip(self::BUNDLE_OPTIONS));
         $options['columns'] = $this->getColumnDefinitions();
 
         $this->deprecateSearchBuilderLayoutWithoutExtension($options);
         $this->addButtonsToLayout($options);
         $this->applyPagingFeatureToLayout($options);
 
-        if (null !== $this->mercureConfig) {
-            $options['mercure'] = $this->mercureConfig->jsonSerialize();
-        }
-
-        if (null !== $this->highlightConfig) {
-            $options['highlight'] = $this->highlightConfig->jsonSerialize();
-            $options['rowId'] ??= HighlightConfig::ROW_ID_KEY;
-        }
-
-        if ($this->hasBulkActions()) {
-            $options['bulkActions'] = [
-                'actions'               => $this->bulkActions->jsonSerialize(),
-                'selectCurrentPageOnly' => $this->bulkActions->isSelectCurrentPageOnly(),
-                // Client-side API Platform rows skip RowIdStage; the Stimulus adapter reads this
-                // to stamp DT_RowId from the same field setIdField() / Doctrine remapping chose.
-                'idField'  => $this->bulkRowIdField ?? $this->bulkActions->getIdField(),
-                'url'      => $this->bulkActionsUrl,
-                'labels'   => $this->preparedBulkActionLabels ?? [],
-                'position' => $this->bulkActions->getPosition(),
-            ];
-
-            $options['rowId'] ??= HighlightConfig::ROW_ID_KEY;
-        }
-
-        if (null !== $this->rowActionUrls) {
-            $options['rowActionUrls'] = $this->rowActionUrls;
-        }
-
-        if (null !== $this->emptyState) {
-            $options['emptyState'] = $this->emptyState + ['labels' => $this->preparedEmptyStateLabels ?? []];
-        }
-
-        if (null !== $this->recordUrlResolver) {
-            $options['recordUrl'] = true;
-        }
-
-        if (null !== $this->preparedActionLabels) {
-            $options['actionLabels'] = $this->preparedActionLabels;
-        }
-
-        if (null !== $this->preparedSummaryLabels) {
-            $options['summaryLabels'] = $this->preparedSummaryLabels;
-        }
-
-        if (null !== $this->preparedForwardedQuery) {
-            $options['forwardedQuery'] = $this->preparedForwardedQuery;
-        }
-
-        unset($options['showHeaderResetButton']);
-
-        if (null !== $this->filters && !$this->filters->isEmpty()) {
-            $options['filters'] = $this->filters->jsonSerialize();
-
-            $showReset = $this->filters->isHeaderResetButtonVisible()
-                ?? $this->options->get('showHeaderResetButton')
-                ?? false;
-
-            if ($showReset) {
-                $options['showHeaderResetButton'] = true;
-            }
-
-            if (null !== $this->preparedFilterLabels) {
-                $options['filterLabels'] = $this->preparedFilterLabels;
-            } elseif (!$this->filters->getLabels()->isEmpty()) {
-                $options['filterLabels'] = $this->filters->getLabels()->jsonSerialize();
-            }
-        }
-
         return $options;
+    }
+
+    /**
+     * A bundle key set through the fluent API, such as `apiPlatform` or `pollInterval`.
+     *
+     * @internal
+     */
+    public function getBundleOption(string $name): mixed
+    {
+        return \in_array($name, self::BUNDLE_OPTIONS, true) ? $this->options->get($name) : null;
     }
 
     public function getAttributes(): array
@@ -573,31 +506,6 @@ class DataTable
     }
 
     /**
-     * Read the API Platform collection on the server instead of from the browser.
-     *
-     * Template, action and URL columns need the source entity, which only the server has. The
-     * Stimulus adapter stands down and the table behaves as an ordinary server-side table.
-     *
-     * @deprecated since 1.6, the bundle sets this flag itself when the table needs it, so stop calling it. Removed in 2.0.
-     */
-    public function apiPlatformServerSide(bool $enabled = true): static
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, the bundle sets this flag itself when the table needs it, so stop calling it. Removed in 2.0.', __METHOD__);
-
-        return $this->markApiPlatformServerSide($enabled);
-    }
-
-    /**
-     * @internal
-     */
-    public function markApiPlatformServerSide(bool $enabled = true): static
-    {
-        $this->options->set('apiPlatformServerSide', $enabled);
-
-        return $this;
-    }
-
-    /**
      * Enable Mercure SSE real-time updates for this DataTable.
      * Requires symfony/mercure-bundle to be installed. The hub URL is resolved
      * automatically from the configured Mercure HubInterface at render time.
@@ -660,16 +568,6 @@ class DataTable
     public function getHighlightConfig(): ?HighlightConfig
     {
         return $this->highlightConfig;
-    }
-
-    /**
-     * @internal
-     */
-    public function setMercureConfig(MercureConfig $config): static
-    {
-        $this->mercureConfig = $config;
-
-        return $this;
     }
 
     public function getMercureConfig(): ?MercureConfig
@@ -865,20 +763,7 @@ class DataTable
      */
     public function setFilters(Filters $filters): static
     {
-        $this->filters              = $filters;
-        $this->preparedFilterLabels = null;
-
-        return $this;
-    }
-
-    /**
-     * @param array<string, string> $labels
-     *
-     * @internal
-     */
-    public function setPreparedFilterLabels(array $labels): static
-    {
-        $this->preparedFilterLabels = $labels;
+        $this->filters = $filters;
 
         return $this;
     }
@@ -923,23 +808,11 @@ class DataTable
     }
 
     /**
-     * @internal
+     * @return array{heading: string, description: ?string, icon: ?string, action: ?array{label: string, url: string}}|null
      */
-    public function hasEmptyState(): bool
+    public function getEmptyState(): ?array
     {
-        return null !== $this->emptyState;
-    }
-
-    /**
-     * @param array<string, string> $labels
-     *
-     * @internal
-     */
-    public function setPreparedEmptyStateLabels(array $labels): static
-    {
-        $this->preparedEmptyStateLabels = $labels;
-
-        return $this;
+        return $this->emptyState;
     }
 
     /**
@@ -997,8 +870,7 @@ class DataTable
      */
     public function setBulkActions(BulkActions $bulkActions): static
     {
-        $this->bulkActions              = $bulkActions;
-        $this->preparedBulkActionLabels = null;
+        $this->bulkActions = $bulkActions;
 
         if ($bulkActions->isEmpty()) {
             return $this;
@@ -1038,86 +910,6 @@ class DataTable
     public function isSelectionForBulkActions(): bool
     {
         return $this->selectionForBulkActions;
-    }
-
-    /**
-     * @param array<string, string> $labels
-     *
-     * @internal
-     */
-    public function setPreparedActionLabels(array $labels): static
-    {
-        $this->preparedActionLabels = $labels;
-
-        return $this;
-    }
-
-    /**
-     * @param array<string, mixed> $query forwarded query parameter values captured at render time
-     *
-     * @internal
-     */
-    public function setPreparedForwardedQuery(array $query): static
-    {
-        $this->preparedForwardedQuery = $query;
-
-        return $this;
-    }
-
-    /**
-     * @param array<string, string> $labels default footer label by summary type
-     *
-     * @internal
-     */
-    public function setPreparedSummaryLabels(array $labels): static
-    {
-        $this->preparedSummaryLabels = $labels;
-
-        return $this;
-    }
-
-    /**
-     * @param array<string, string> $labels
-     *
-     * @internal set by the RenderingPreparer once the translator has run
-     */
-    public function setPreparedBulkActionLabels(array $labels): static
-    {
-        $this->preparedBulkActionLabels = $labels;
-
-        return $this;
-    }
-
-    /**
-     * @internal
-     */
-    public function setBulkRowIdField(?string $field): static
-    {
-        $this->bulkRowIdField = $field;
-
-        return $this;
-    }
-
-    /**
-     * @internal set by the RenderingPreparer
-     */
-    public function setBulkActionsUrl(string $url): static
-    {
-        $this->bulkActionsUrl = $url;
-
-        return $this;
-    }
-
-    /**
-     * @param array<string, string> $urls
-     *
-     * @internal set by the RenderingPreparer
-     */
-    public function setRowActionUrls(array $urls): static
-    {
-        $this->rowActionUrls = $urls;
-
-        return $this;
     }
 
     public function language(Language $language): static
@@ -1540,24 +1332,6 @@ class DataTable
             static fn (ColumnInterface $column): array => $column->jsonSerialize(),
             $this->columns,
         ));
-    }
-
-    /**
-     * @internal
-     */
-    public function markTemplateColumnsRendered(bool $rendered = true): static
-    {
-        $this->templateColumnsRendered = $rendered;
-
-        return $this;
-    }
-
-    /**
-     * @internal
-     */
-    public function areTemplateColumnsRendered(): bool
-    {
-        return $this->templateColumnsRendered;
     }
 
     public function isServerSide(): bool

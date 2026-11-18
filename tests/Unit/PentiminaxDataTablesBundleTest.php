@@ -103,11 +103,11 @@ final class PentiminaxDataTablesBundleTest extends TestCase
         /** @var AbstractDataTable $table */
         $table = $this->kernel->getContainer()->get('test.datatables.server_side_template');
 
-        $configured = $table->prepareDataTableForRendering();
+        $configured = $table->getConfiguredDataTable();
 
         $this->container->get('services_resetter')->reset();
 
-        self::assertNotSame($configured, $table->prepareDataTableForRendering());
+        self::assertNotSame($configured, $table->getConfiguredDataTable());
     }
 
     #[Test]

@@ -154,7 +154,7 @@ final class DataTableRuntimeFactory
                 visibleColumns: $visibleColumns,
                 dataTableClass: $table->getDataTableClass(),
                 // A client-side table sums its rows in the browser, and its hydration drops the result.
-                summarize: $table->isServerSide(),
+                summarize: $optIns->serverSide,
             ),
             maxPageLength: $this->maxPageLength,
             columns: $columns,

@@ -26,6 +26,7 @@ use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
+use Pentiminax\UX\DataTables\Runtime\PreparedDataTable;
 use Pentiminax\UX\DataTables\Runtime\ResolvedOptIns;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -78,7 +79,7 @@ abstract class AbstractDataTable
 
     private bool $initialized = false;
 
-    private bool $renderingPrepared = false;
+    private bool $rowsMapped = false;
 
     /** @var array<string, true> */
     private static array $overrideReported = [];
@@ -102,12 +103,12 @@ abstract class AbstractDataTable
     {
         unset($this->table, $this->columns, $this->filters);
 
-        $this->defaultRowMapper  = null;
-        $this->asDataTable       = null;
-        $this->optIns            = null;
-        $this->runtime           = null;
-        $this->initialized       = false;
-        $this->renderingPrepared = false;
+        $this->defaultRowMapper = null;
+        $this->asDataTable      = null;
+        $this->optIns           = null;
+        $this->runtime          = null;
+        $this->initialized      = false;
+        $this->rowsMapped       = false;
     }
 
     private function initialize(): void
@@ -309,74 +310,37 @@ abstract class AbstractDataTable
     }
 
     /**
-     * @deprecated since 1.6, use getConfiguredDataTable() to read the table or render_datatable() to render it. Removed in 2.0.
-     */
-    public function prepareForRendering(): void
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "getConfiguredDataTable()" to read the table or "render_datatable()" to render it. Removed in 2.0.', __METHOD__);
-
-        $this->prepareDataTableForRendering();
-    }
-
-    /**
-     * Prepares the table for rendering, once, and returns it.
+     * Build the payload of one render. The table is left as configureDataTable() returned it.
      *
      * @internal
      */
-    public function prepareDataTableForRendering(): DataTable
+    public function prepareRendering(): PreparedDataTable
     {
         $this->initialize();
-
-        if ($this->renderingPrepared) {
-            return $this->table;
-        }
 
         $renderingPreparer = $this->infrastructure()->renderingPreparer;
         $optIns            = $this->getResolvedOptIns();
 
-        $renderingPreparer->prepareBeforeDataHydration($this->table, $this->asDataTable, $optIns);
-        $this->prepareExplicitInlineData();
-        $this->hydrateClientSideData($optIns);
-        $renderingPreparer->prepareAfterDataHydration($this->table, $this->asDataTable, $optIns);
+        $renderingPreparer->prepareBeforeDataHydration($this->table, $optIns);
 
-        if ($this->table->hasBulkActions()) {
-            $this->table->setBulkRowIdField($this->infrastructure()->runtimeFactory->resolveRowIdField(
+        $rows = DataSourceMode::ClientHydrated === $optIns->dataSourceMode
+            ? $this->hydrateClientSideRows()
+            : $this->mapExplicitInlineRows();
+
+        $bulkRowIdField = $this->table->hasBulkActions()
+            ? $this->infrastructure()->runtimeFactory->resolveRowIdField(
                 null,
                 $this->table->getBulkActions()?->getIdField(),
                 $this->asDataTable?->entityClass,
-            ));
-        }
+            )
+            : null;
 
-        $this->renderingPrepared = true;
-
-        return $this->table;
-    }
-
-    /**
-     * @deprecated since 1.6, use getConfiguredDataTable() to read the table or render_datatable() to render it. Removed in 2.0.
-     */
-    public function getDataTable(): DataTable
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "getConfiguredDataTable()" to read the table or "render_datatable()" to render it. Removed in 2.0.', __METHOD__);
-
-        if (self::class !== (new \ReflectionMethod($this, 'prepareForRendering'))->getDeclaringClass()->getName()) {
-            $this->prepareForRendering();
-
-            return $this->getConfiguredDataTable();
-        }
-
-        return $this->prepareDataTableForRendering();
+        return $renderingPreparer->prepareAfterDataHydration($this->table, $optIns, $rows, $bulkRowIdField);
     }
 
     public function getConfiguredDataTable(): DataTable
     {
         $this->initialize();
-
-        // The caller may change the configuration until rendering prepares the table, after which
-        // the opt-ins stay what rendering read.
-        if (!$this->renderingPrepared) {
-            $this->optIns = null;
-        }
 
         return $this->table;
     }
@@ -388,7 +352,7 @@ abstract class AbstractDataTable
     {
         $this->initialize();
 
-        return $this->infrastructure()->renderingPreparer->resolveMercureConfig($this->table, $this->asDataTable, $this->getResolvedOptIns());
+        return $this->infrastructure()->renderingPreparer->resolveMercureConfig($this->table, $this->getResolvedOptIns());
     }
 
     final public function getEntityClass(): ?string
@@ -505,31 +469,22 @@ abstract class AbstractDataTable
     }
 
     /**
-     * The table's data source mode, once it has been prepared for rendering.
-     *
-     * @internal
+     * @return list<array<string, mixed>>
      */
-    public function getRenderedDataSourceMode(): ?DataSourceMode
+    private function hydrateClientSideRows(): array
     {
-        return $this->renderingPrepared ? $this->getResolvedOptIns()->dataSourceMode : null;
+        $rows = $this->fetchDataTableResult($this->createClientSideDataRequest())->data;
+        $rows = array_values(\is_array($rows) ? $rows : iterator_to_array($rows));
+
+        $this->warnWhenHydrationIsLarge(\count($rows));
+
+        return $rows;
     }
 
-    private function hydrateClientSideData(ResolvedOptIns $optIns): void
-    {
-        if (DataSourceMode::ClientHydrated !== $optIns->dataSourceMode) {
-            return;
-        }
-
-        $this->fetchDataTableResult($this->createClientSideDataRequest());
-
-        $this->warnWhenHydrationIsLarge();
-    }
-
-    private function warnWhenHydrationIsLarge(): void
+    private function warnWhenHydrationIsLarge(int $rows): void
     {
         $infrastructure = $this->infrastructure();
         $threshold      = $infrastructure->hydrationRowThreshold;
-        $rows           = \count($this->table->getOption('data') ?? []);
 
         if ($threshold <= 0 || $rows <= $threshold) {
             return;
@@ -541,14 +496,19 @@ abstract class AbstractDataTable
         ]);
     }
 
-    private function prepareExplicitInlineData(): void
+    /**
+     * Rows set through data() still need the row pipeline; rows() already ran it.
+     *
+     * @return list<array<string, mixed>>|null
+     */
+    private function mapExplicitInlineRows(): ?array
     {
         $data = $this->table->getOption('data');
-        if (null === $data || $this->table->areTemplateColumnsRendered()) {
-            return;
+        if (null === $data || $this->rowsMapped) {
+            return null;
         }
 
-        $this->mapInlineRows($data);
+        return $this->mapInlineRows($data);
     }
 
     /**
@@ -710,8 +670,10 @@ abstract class AbstractDataTable
     {
         $this->initialize();
 
-        $this->mapInlineRows($data);
-        $this->optIns = null;
+        $this->table->data($this->mapInlineRows($data));
+        $this->rowsMapped = true;
+        // The rows may change where the table reads from, so the opt-ins are resolved again.
+        $this->optIns = $this->resolveOptIns();
     }
 
     /**
@@ -726,8 +688,10 @@ abstract class AbstractDataTable
 
     /**
      * @param iterable<mixed> $data
+     *
+     * @return list<array<string, mixed>>
      */
-    private function mapInlineRows(iterable $data): void
+    private function mapInlineRows(iterable $data): array
     {
         $rowMapper = $this->createRowMapper();
         $rows      = [];
@@ -736,8 +700,7 @@ abstract class AbstractDataTable
             $rows[] = $rowMapper->map($item);
         }
 
-        $this->table->data($rows);
-        $this->table->markTemplateColumnsRendered();
+        return $rows;
     }
 
     private function getDefaultRowMapper(): DefaultRowMapper

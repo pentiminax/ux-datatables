@@ -14,6 +14,9 @@ use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchListOptionsNormalizer;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+/**
+ * @internal
+ */
 final readonly class SearchListOptionsResolver
 {
     public function __construct(
@@ -22,21 +25,20 @@ final readonly class SearchListOptionsResolver
     ) {
     }
 
-    public function prepare(DataTable $table): void
+    /**
+     * Replace the search lists nested in a serialized configuration with their translated form.
+     *
+     * @param array<mixed> $configuration
+     *
+     * @return array<mixed>
+     */
+    public function serialize(array $configuration): array
     {
-        $seen = [];
-
-        foreach ($this->configurations($table) as $configuration) {
-            foreach ($this->searchLists($configuration) as $searchList) {
-                $id = spl_object_id($searchList);
-                if (isset($seen[$id])) {
-                    continue;
-                }
-
-                $seen[$id] = true;
-                $searchList->prepareStaticOptions($this->translator);
-            }
-        }
+        return array_map(fn (mixed $item): mixed => match (true) {
+            $item instanceof SearchList => $item->serialize($this->translator),
+            \is_array($item)            => $this->serialize($item),
+            default                     => $item,
+        }, $configuration);
     }
 
     /**
@@ -135,24 +137,6 @@ final readonly class SearchListOptionsResolver
         }
 
         return $providers;
-    }
-
-    /**
-     * @return iterable<array<mixed>>
-     */
-    private function configurations(DataTable $table): iterable
-    {
-        $tableConfiguration = $this->tableConfiguration($table);
-        if (null !== $tableConfiguration) {
-            yield $tableConfiguration;
-        }
-
-        foreach ($table->getColumns() as $column) {
-            $configuration = $column->jsonSerialize()['columnControl'] ?? null;
-            if (\is_array($configuration)) {
-                yield $configuration;
-            }
-        }
     }
 
     /**

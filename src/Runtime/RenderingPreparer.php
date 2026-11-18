@@ -12,19 +12,29 @@ use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\ColumnTranslator;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\TemplateAwareColumnInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
+use Pentiminax\UX\DataTables\Model\BulkActions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\FilterLabels;
+use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Model\Summary\SummaryType;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
+use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+/**
+ * @internal
+ */
 final class RenderingPreparer
 {
     public const AJAX_DATA_ROUTE   = 'ux_datatables_ajax_data';
@@ -93,94 +103,150 @@ final class RenderingPreparer
         private readonly ?FilterEntityOptionsResolver $filterEntityOptionsResolver = null,
         private readonly ?ColumnResolver $columnResolver = null,
         private readonly DataSourceFeatureGuard $featureGuard = new DataSourceFeatureGuard(),
+        private readonly ?CsrfTokenManagerInterface $csrfTokenManager = null,
+        private readonly ?AuthorizationChecker $permissionChecker = null,
     ) {
     }
 
-    public function prepare(DataTable $table, ?AsDataTable $asDataTable, ?ResolvedOptIns $optIns = null): void
-    {
-        $optIns ??= $this->resolveOptIns($table, $asDataTable);
-
-        $this->prepareBeforeDataHydration($table, $asDataTable, $optIns);
-        $this->prepareAfterDataHydration($table, $asDataTable, $optIns);
-    }
-
     /**
+     * Validate the table before its rows are read.
+     *
      * @throws \LogicException when the table opts into API Platform with no collection to read
      */
-    public function prepareBeforeDataHydration(DataTable $table, ?AsDataTable $asDataTable, ?ResolvedOptIns $optIns = null): void
+    public function prepareBeforeDataHydration(DataTable $table, ResolvedOptIns $optIns): void
     {
-        $optIns ??= $this->resolveOptIns($table, $asDataTable);
-        $mode = $optIns->dataSourceMode;
-
-        if (DataSourceMode::ApiPlatformUnavailable === $mode) {
+        if (DataSourceMode::ApiPlatformUnavailable === $optIns->dataSourceMode) {
             throw new \LogicException(\sprintf('Table "%s" opts into API Platform but "%s" exposes no collection operation, or API Platform is not installed. Expose a collection operation or remove the apiPlatform opt-in.', $table->getDataTableClass() ?? $table->getId(), $optIns->entityClass ?? 'no entity class'));
         }
 
         $this->featureGuard->assertConfigurable($table, $optIns);
-
-        if (DataSourceMode::ApiPlatform === $mode) {
-            $this->configureApiPlatform($table, $optIns);
-        }
-
-        if (DataSourceMode::Ajax === $mode && $optIns->optsIntoApiPlatform()) {
-            $table->apiPlatform();
-        }
-
-        if (DataSourceMode::ServerSide === $mode) {
-            $this->configureAutoAjax($table);
-        }
-
-        $this->configureExportUrl($table);
-
-        $this->configureBulkActions($table);
-        $this->configureRowActionUrls($table);
-        $this->configureActionLabels($table);
-        $this->configureSummaryLabels($table);
-        $this->configureEmptyStateLabels($table);
-        $this->configureForwardedQueryParameters($table);
-        $this->configureEditModal($table, $optIns);
-        $this->translateColumnTitles($table);
-        $this->resolveFilterEntityOptions($table);
-        $this->translateFilterLabels($table);
-        ($this->searchListOptionsResolver ?? new SearchListOptionsResolver($this->translator))->prepare($table);
     }
 
-    private function configureSummaryLabels(DataTable $table): void
+    /**
+     * Build the payload of one render. Nothing is written back to the table.
+     *
+     * @param list<array<string, mixed>>|null $rows rows read for this render, replacing the table's `data`
+     *
+     * @throws \LogicException when the table polls without an Ajax source, or the payload sets a key twice
+     */
+    public function prepareAfterDataHydration(DataTable $table, ResolvedOptIns $optIns, ?array $rows = null, ?string $bulkRowIdField = null): PreparedDataTable
     {
-        $columns = $this->columnResolver?->filterStaticPermissions($table->getColumns(), $table->getDataTableClass()) ?? $table->getColumns();
+        $dataTableClass    = $table->getDataTableClass();
+        $configuredColumns = $this->translatedColumns($table->getColumns());
+        $columns           = array_values($this->columnResolver?->filterStaticPermissions($configuredColumns, $dataTableClass) ?? $configuredColumns);
 
-        if (null === $this->translator || [] === ColumnResolver::filterSummarized($columns)) {
-            return;
+        $options = $table->getOptions();
+        if (null !== $rows) {
+            $options['data'] = $rows;
         }
 
-        $labels = [];
-        foreach (SummaryType::cases() as $type) {
-            $labels[$type->value] = $this->translator->trans('summary.'.$type->value, domain: FilterLabels::DOMAIN);
+        $apiPlatform           = $table->getBundleOption('apiPlatform');
+        $apiPlatformServerSide = false;
+
+        if (DataSourceMode::ApiPlatform === $optIns->dataSourceMode) {
+            $collectionUrl = null === $optIns->entityClass ? null : $this->urlResolver?->resolveCollectionUrl($optIns->entityClass);
+
+            if (null !== $collectionUrl) {
+                $apiPlatform = true;
+
+                // A template, action or resolved URL column renders from the source entity, which the
+                // browser never holds. Those tables read the collection server-side, through the same
+                // operation, and the Stimulus adapter stays out of the way.
+                $serverSideAjax = $this->hasEntityDependentColumn($table) ? $this->bundleAjax($dataTableClass) : null;
+
+                if (null !== $serverSideAjax) {
+                    $apiPlatformServerSide = true;
+                    $options['serverSide'] = true;
+                    $options['ajax']       = $serverSideAjax;
+                } else {
+                    $options['ajax'] = ['type' => 'GET', 'url' => $collectionUrl];
+                }
+            }
         }
 
-        $table->setPreparedSummaryLabels($labels);
-    }
-
-    private function resolveFilterEntityOptions(DataTable $table): void
-    {
-        ($this->filterEntityOptionsResolver ?? new FilterEntityOptionsResolver())->prepare($table);
-    }
-
-    public function prepareAfterDataHydration(DataTable $table, ?AsDataTable $asDataTable, ?ResolvedOptIns $optIns = null): void
-    {
-        $optIns ??= $this->resolveOptIns($table, $asDataTable);
-
-        $this->assertPollingHasAjaxSource($table);
-        $this->configureMercure($table, $optIns);
-    }
-
-    private function assertPollingHasAjaxSource(DataTable $table): void
-    {
-        if (null === $table->getOption('pollInterval') || null !== $table->getOption('ajax')) {
-            return;
+        if (DataSourceMode::Ajax === $optIns->dataSourceMode && $optIns->optsIntoApiPlatform()) {
+            $apiPlatform = true;
         }
 
-        throw new \LogicException(\sprintf('Polling requires an Ajax source, but "%s" has no ajax option once prepared.', $table->getId()));
+        if (DataSourceMode::ServerSide === $optIns->dataSourceMode) {
+            $options['serverSide'] = true;
+            $bundleAjax            = $this->bundleAjax($dataTableClass);
+
+            if (null !== $bundleAjax) {
+                $options['ajax'] = $bundleAjax;
+            }
+        }
+
+        $forwardedQuery = $this->forwardedQuery($table);
+        if (null !== $forwardedQuery && \is_array($options['ajax'] ?? null)) {
+            $options['ajax']['data'] = array_merge($options['ajax']['data'] ?? [], $forwardedQuery);
+        }
+
+        if (null !== $table->getBundleOption('pollInterval') && null === ($options['ajax'] ?? null)) {
+            throw new \LogicException(\sprintf('Polling requires an Ajax source, but "%s" has no ajax option once prepared.', $table->getId()));
+        }
+
+        $searchLists        = $this->searchListOptionsResolver ?? new SearchListOptionsResolver($this->translator);
+        $options['columns'] = $searchLists->serialize(array_map(static fn (ColumnInterface $column): array => $column->jsonSerialize(), $columns));
+
+        $extensions  = $searchLists->serialize($table->getExtensions());
+        $bulkActions = $this->allowedBulkActions($table->getBulkActions(), $dataTableClass);
+
+        // Checkboxes the table only shows for its bulk actions would select rows for nothing.
+        if (null === $bulkActions && $table->isSelectionForBulkActions()) {
+            unset($extensions['select']);
+        }
+
+        $hasRowActions = $this->hasRowActions($table);
+        $filters       = $this->translatedFilters($table->getFilters());
+        $hasFilters    = null !== $filters && !$filters->isEmpty();
+        $emptyState    = $table->getEmptyState();
+
+        return new PreparedDataTable(
+            id: $table->getId(),
+            attributes: $table->getAttributes(),
+            dataTableClass: $dataTableClass,
+            dataSourceMode: $optIns->dataSourceMode,
+            options: $options,
+            extensions: $extensions,
+            columns: $columns,
+            configuredColumns: $configuredColumns,
+            bundleOptions: array_filter([
+                'pollInterval'   => $table->getBundleOption('pollInterval'),
+                'urlState'       => $table->getBundleOption('urlState'),
+                'styleFramework' => $table->getBundleOption('styleFramework'),
+            ], static fn (mixed $value): bool => null !== $value),
+            apiPlatform: $apiPlatform,
+            apiPlatformServerSide: $apiPlatformServerSide,
+            exportUrl: $table->getBundleOption('exportUrl') ?? $this->exportUrl($table),
+            mercure: $this->resolveMercureConfig($table, $optIns),
+            highlight: $table->getHighlightConfig()?->jsonSerialize(),
+            bulkActions: null === $bulkActions ? null : [
+                'actions'               => $bulkActions['actions'],
+                'selectCurrentPageOnly' => $bulkActions['selectCurrentPageOnly'],
+                // Client-side API Platform rows skip RowIdStage; the Stimulus adapter reads this
+                // to stamp DT_RowId from the same field setIdField() / Doctrine remapping chose.
+                'idField'  => $bulkRowIdField ?? $bulkActions['idField'],
+                'url'      => $this->urlGenerator?->generate(self::AJAX_BULK_ROUTE),
+                'labels'   => $this->translateLabels(self::BULK_LABEL_KEYS) ?? [],
+                'position' => $bulkActions['position'],
+            ],
+            declaresBulkActions: $table->hasBulkActions(),
+            rowActionUrls: $hasRowActions ? $this->rowActionUrls() : null,
+            emptyState: null === $emptyState ? null : $emptyState + ['labels' => $this->translateLabels(self::EMPTY_STATE_LABEL_KEYS) ?? []],
+            recordUrl: null !== $table->getRecordUrlResolver(),
+            actionLabels: $hasRowActions ? $this->translateLabels(self::ACTION_LABEL_KEYS) : null,
+            summaryLabels: $this->summaryLabels($columns),
+            forwardedQuery: $forwardedQuery,
+            filters: $hasFilters ? $filters->jsonSerialize() : null,
+            showHeaderResetButton: $hasFilters && ($filters->isHeaderResetButtonVisible() ?? $table->getBundleOption('showHeaderResetButton') ?? false),
+            filterLabels: $hasFilters ? $this->filterLabels($filters) : null,
+            actionToken: null === $dataTableClass ? null : $this->ajaxRegistry?->getActionToken($dataTableClass),
+            editModalTemplate: $optIns->editModalTemplate,
+            editModalAdapter: $optIns->editModalAdapter,
+            locale: $this->requestStack?->getCurrentRequest()?->getLocale(),
+            csrfToken: $this->mutationToken(),
+        );
     }
 
     /**
@@ -193,55 +259,101 @@ final class RenderingPreparer
         return ResolvedOptIns::resolve($table, $asDataTable, $this->urlResolver);
     }
 
-    private function configureApiPlatform(DataTable $table, ResolvedOptIns $optIns): void
+    /**
+     * Resolve the Mercure configuration a table serializes to the browser.
+     *
+     * Single source of truth for the topic precedence — manual ->mercure() >
+     * explicit #[AsDataTable(mercure: [...])] > entity-class auto-resolver —
+     * so the server-side publish path can reuse it and always publish to the
+     * exact topics the client subscribed to. Returns null when the table
+     * exposes no live Mercure config.
+     */
+    public function resolveMercureConfig(DataTable $table, ResolvedOptIns $optIns): ?MercureConfig
     {
-        $collectionUrl = null === $optIns->entityClass ? null : $this->urlResolver?->resolveCollectionUrl($optIns->entityClass);
+        $mercure = $optIns->mercure;
 
-        if (null === $collectionUrl) {
-            return;
+        if ($mercure instanceof MercureConfig) {
+            return $mercure
+                ->withHubUrl($this->resolveHubUrlOrThrow())
+                ->withProtocolVersion($this->resolveProtocolVersion());
         }
 
-        $table->apiPlatform();
-
-        // A template, action or resolved URL column renders from the source entity, which the
-        // browser never holds. Those tables read the collection server-side, through the same
-        // operation, and the Stimulus adapter stays out of the way.
-        if ($this->configureApiPlatformServerSide($table)) {
-            return;
+        if (false === $mercure || null === $optIns->entityClass) {
+            return null;
         }
 
-        $table->ajax($collectionUrl);
+        // Embedded rows never refresh, so only a manual ->mercure() config subscribes them.
+        if (\in_array($optIns->dataSourceMode, [DataSourceMode::Inline, DataSourceMode::ClientHydrated], true)) {
+            return null;
+        }
+
+        if (\is_array($mercure)) {
+            return $this->createExplicitMercureConfig($mercure, $optIns->entityClass);
+        }
+
+        return $this->mercureResolver?->resolveMercureConfig($optIns->entityClass);
     }
 
     /**
-     * @return bool whether the table now reads its collection through the bundle's Ajax endpoint
+     * Translated copies of the columns, so the configured titles keep their translation keys.
+     *
+     * @param array<ColumnInterface> $columns
+     *
+     * @return list<ColumnInterface>
      */
-    private function configureApiPlatformServerSide(DataTable $table): bool
+    private function translatedColumns(array $columns): array
     {
-        if (!$this->hasEntityDependentColumn($table)) {
-            return false;
+        $columns = array_map(static fn (ColumnInterface $column): ColumnInterface => clone $column, array_values($columns));
+
+        if (null !== $this->translator) {
+            ColumnTranslator::translate($columns, $this->translator);
         }
 
-        $fqcn = $table->getDataTableClass();
-        if (null === $fqcn || null === $this->urlGenerator || null === $this->ajaxRegistry) {
-            return false;
+        return $columns;
+    }
+
+    /**
+     * A copy of the filters with their entity options loaded and their labels translated.
+     */
+    private function translatedFilters(?Filters $filters): ?Filters
+    {
+        if (null === $filters) {
+            return null;
         }
 
-        $token = $this->ajaxRegistry->getToken($fqcn);
+        $filters = clone $filters;
+        ($this->filterEntityOptionsResolver ?? new FilterEntityOptionsResolver())->prepare($filters);
+
+        if (null !== $this->translator) {
+            foreach ($filters->getFilters() as $filter) {
+                $filter->translateLabels($this->translator);
+            }
+        }
+
+        return $filters;
+    }
+
+    /**
+     * The bundle's Ajax data route, carrying the table's read token.
+     *
+     * @return array{type: string, url: string, data: array<string, string>}|null
+     */
+    private function bundleAjax(?string $dataTableClass): ?array
+    {
+        if (null === $dataTableClass || null === $this->urlGenerator) {
+            return null;
+        }
+
+        $token = $this->ajaxRegistry?->getToken($dataTableClass);
         if (null === $token) {
-            return false;
+            return null;
         }
 
-        $table->markApiPlatformServerSide();
-        // The Stimulus adapter used to force serverSide on the payload; nothing does it now.
-        $table->serverSide();
-        $table->ajaxRequestData(
-            url: $this->urlGenerator->generate(self::AJAX_DATA_ROUTE),
-            data: ['table' => $token],
-            type: 'GET',
-        );
-
-        return true;
+        return [
+            'type' => 'GET',
+            'url'  => $this->urlGenerator->generate(self::AJAX_DATA_ROUTE),
+            'data' => ['table' => $token],
+        ];
     }
 
     /**
@@ -267,77 +379,61 @@ final class RenderingPreparer
         return false;
     }
 
-    private function configureAutoAjax(DataTable $table): void
+    private function exportUrl(DataTable $table): ?string
     {
-        $fqcn = $table->getDataTableClass();
-        if (null === $fqcn || null === $this->urlGenerator) {
-            return;
-        }
-
-        $token = $this->ajaxRegistry?->getToken($fqcn);
-        if (null === $token) {
-            return;
-        }
-
-        $url = $this->urlGenerator->generate(self::AJAX_DATA_ROUTE);
-
-        $table->ajaxRequestData(
-            url: $url,
-            data: ['table' => $token],
-            type: 'GET',
-        );
-    }
-
-    private function configureExportUrl(DataTable $table): void
-    {
-        if (null !== $table->getOption('exportUrl')) {
-            return;
-        }
-
         $buttons = $table->getExtensionsCollection()->getButtonsExtension();
         if (!$buttons instanceof ButtonsExtension || !$buttons->hasServerExportButton()) {
-            return;
+            return null;
         }
 
         $fqcn = $table->getDataTableClass();
         if (null === $fqcn || null === $this->urlGenerator || null === $this->ajaxRegistry) {
-            return;
+            return null;
         }
 
         $token = $this->ajaxRegistry->getToken($fqcn);
         if (null === $token) {
-            return;
+            return null;
         }
 
-        $table->exportUrl($this->urlGenerator->generate(self::AJAX_EXPORT_ROUTE, ['table' => $token]));
+        return $this->urlGenerator->generate(self::AJAX_EXPORT_ROUTE, ['table' => $token]);
     }
 
-    private function configureBulkActions(DataTable $table): void
+    /**
+     * Drop bulk actions the user may not run, without touching the container-shared collection.
+     *
+     * @return array{actions: array<mixed>, selectCurrentPageOnly: bool, idField: ?string, position: mixed}|null null when the user may run none
+     */
+    private function allowedBulkActions(?BulkActions $bulkActions, ?string $dataTableClass): ?array
     {
-        if (!$table->hasBulkActions()) {
-            return;
+        if (null === $bulkActions || $bulkActions->isEmpty()) {
+            return null;
         }
 
-        if (null !== $this->urlGenerator) {
-            $table->setBulkActionsUrl($this->urlGenerator->generate(self::AJAX_BULK_ROUTE));
+        $allowed = (clone $bulkActions)->filterStaticPermissions(
+            $this->permissionChecker ?? AuthorizationChecker::fallbackFor(self::class),
+            $dataTableClass,
+        );
+
+        if ($allowed->isEmpty()) {
+            return null;
         }
 
-        if (null === $this->translator) {
-            return;
-        }
-
-        $labels = [];
-        foreach (self::BULK_LABEL_KEYS as $name => $key) {
-            $labels[$name] = $this->translator->trans($key, domain: FilterLabels::DOMAIN);
-        }
-
-        $table->setPreparedBulkActionLabels($labels);
+        return [
+            'actions'               => $allowed->jsonSerialize(),
+            'selectCurrentPageOnly' => $bulkActions->isSelectCurrentPageOnly(),
+            'idField'               => $bulkActions->getIdField(),
+            'position'              => $bulkActions->getPosition(),
+        ];
     }
 
-    private function configureRowActionUrls(DataTable $table): void
+    /**
+     * @return array<string, string>|null
+     */
+    private function rowActionUrls(): ?array
     {
-        if (null === $this->urlGenerator || !$this->hasRowActions($table)) {
-            return;
+        if (null === $this->urlGenerator) {
+            return null;
         }
 
         $urls = [];
@@ -349,35 +445,52 @@ final class RenderingPreparer
             }
         }
 
-        $table->setRowActionUrls($urls);
+        return $urls;
     }
 
-    private function configureActionLabels(DataTable $table): void
+    /**
+     * @param list<ColumnInterface> $columns
+     *
+     * @return array<string, string>|null
+     */
+    private function summaryLabels(array $columns): ?array
     {
-        if (null === $this->translator || !$this->hasRowActions($table)) {
-            return;
+        if (null === $this->translator || [] === ColumnResolver::filterSummarized($columns)) {
+            return null;
         }
 
         $labels = [];
-        foreach (self::ACTION_LABEL_KEYS as $name => $key) {
-            $labels[$name] = $this->translator->trans($key, domain: FilterLabels::DOMAIN);
+        foreach (SummaryType::cases() as $type) {
+            $labels[$type->value] = $this->translator->trans('summary.'.$type->value, domain: FilterLabels::DOMAIN);
         }
 
-        $table->setPreparedActionLabels($labels);
+        return $labels;
     }
 
-    private function configureEmptyStateLabels(DataTable $table): void
+    /**
+     * @return array<string, string>|null
+     */
+    private function filterLabels(Filters $filters): ?array
     {
-        if (null === $this->translator || !$table->hasEmptyState()) {
-            return;
+        if (null !== $this->translator) {
+            return $filters->getLabels()->toTranslatedArray($this->translator);
         }
 
-        $labels = [];
-        foreach (self::EMPTY_STATE_LABEL_KEYS as $name => $key) {
-            $labels[$name] = $this->translator->trans($key, domain: FilterLabels::DOMAIN);
+        return $filters->getLabels()->isEmpty() ? null : $filters->getLabels()->jsonSerialize();
+    }
+
+    /**
+     * @param array<string, string> $keys
+     *
+     * @return array<string, string>|null null without a translator
+     */
+    private function translateLabels(array $keys): ?array
+    {
+        if (null === $this->translator) {
+            return null;
         }
 
-        $table->setPreparedEmptyStateLabels($labels);
+        return array_map(fn (string $key): string => $this->translator->trans($key, domain: FilterLabels::DOMAIN), $keys);
     }
 
     private function hasRowActions(DataTable $table): bool
@@ -391,78 +504,39 @@ final class RenderingPreparer
         return false;
     }
 
-    private function configureForwardedQueryParameters(DataTable $table): void
+    /**
+     * The values of the forwarded query parameters present on the current request.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function forwardedQuery(DataTable $table): ?array
     {
         $names = $table->getForwardedQueryParameters();
         if ([] === $names) {
-            return;
+            return null;
         }
 
         $request = $this->requestStack?->getCurrentRequest();
         if (null === $request) {
-            return;
-        }
-
-        $all       = $request->query->all();
-        $forwarded = [];
-        foreach ($names as $name) {
-            if (\array_key_exists($name, $all)) {
-                $forwarded[$name] = $all[$name];
-            }
-        }
-
-        if ([] === $forwarded) {
-            return;
-        }
-
-        $table->mergeAjaxData($forwarded);
-        $table->setPreparedForwardedQuery($forwarded);
-    }
-
-    private function configureMercure(DataTable $table, ResolvedOptIns $optIns): void
-    {
-        $config = $this->resolveMercureConfig($table, null, $optIns);
-
-        if (null !== $config) {
-            $table->setMercureConfig($config);
-        }
-    }
-
-    /**
-     * Resolve the Mercure configuration a table serializes to the browser,
-     * WITHOUT mutating the table.
-     *
-     * Single source of truth for the topic precedence — manual ->mercure() >
-     * explicit #[AsDataTable(mercure: [...])] > entity-class auto-resolver —
-     * so the server-side publish path can reuse it and always publish to the
-     * exact topics the client subscribed to. Returns null when the table
-     * exposes no live Mercure config.
-     */
-    public function resolveMercureConfig(DataTable $table, ?AsDataTable $asDataTable, ?ResolvedOptIns $optIns = null): ?MercureConfig
-    {
-        $optIns ??= $this->resolveOptIns($table, $asDataTable);
-        $mercure = $optIns->mercure;
-
-        if ($mercure instanceof MercureConfig) {
-            return $mercure
-                ->withHubUrl($this->resolveHubUrlOrThrow())
-                ->withProtocolVersion($this->resolveProtocolVersion());
-        }
-
-        if (false === $mercure || null === $optIns->entityClass) {
             return null;
         }
 
-        // Embedded rows never refresh, so only a manual ->mercure() config subscribes them.
-        if (\in_array($optIns->dataSourceMode, [DataSourceMode::Inline, DataSourceMode::ClientHydrated], true)) {
+        $forwarded = array_intersect_key($request->query->all(), array_flip($names));
+
+        return [] === $forwarded ? null : $forwarded;
+    }
+
+    private function mutationToken(): ?string
+    {
+        if (null === $this->csrfTokenManager) {
             return null;
         }
 
-        if (\is_array($mercure)) {
-            return $this->createExplicitMercureConfig($mercure, $optIns->entityClass);
+        try {
+            return $this->csrfTokenManager->getToken(MutationTokenValidator::TOKEN_ID)->getValue();
+        } catch (SessionNotFoundException) {
+            return null;
         }
-
-        return $this->mercureResolver?->resolveMercureConfig($optIns->entityClass);
     }
 
     /**
@@ -549,45 +623,5 @@ final class RenderingPreparer
     private function resolveProtocolVersion(): string
     {
         return $this->mercureHubUrlResolver?->resolveProtocolVersion() ?? MercureConfig::PROTOCOL_VERSION_0_X;
-    }
-
-    private function configureEditModal(DataTable $table, ResolvedOptIns $optIns): void
-    {
-        if (null !== $optIns->editModalAdapter) {
-            $table->editModalAdapter($optIns->editModalAdapter);
-        }
-
-        if (null !== $optIns->editModalTemplate) {
-            $table->editModalTemplate($optIns->editModalTemplate);
-        }
-    }
-
-    private function translateColumnTitles(DataTable $table): void
-    {
-        if (null === $this->translator) {
-            return;
-        }
-
-        ColumnTranslator::translate($table->getColumns(), $this->translator);
-    }
-
-    private function translateFilterLabels(DataTable $table): void
-    {
-        if (null === $this->translator) {
-            return;
-        }
-
-        $filters = $table->getFilters();
-        if (null === $filters) {
-            return;
-        }
-
-        foreach ($filters->getFilters() as $filter) {
-            $filter->translateLabels($this->translator);
-        }
-
-        $table->setPreparedFilterLabels(
-            $filters->getLabels()->toTranslatedArray($this->translator)
-        );
     }
 }

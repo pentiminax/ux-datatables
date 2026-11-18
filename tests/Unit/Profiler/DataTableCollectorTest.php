@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Profiler\DataTableCollector;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
+use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -22,11 +23,14 @@ use Symfony\Component\VarDumper\Cloner\Data;
 #[CoversClass(DataTableCollector::class)]
 final class DataTableCollectorTest extends TestCase
 {
+    use PreparesPayload;
+
     #[Test]
     public function it_collects_rendered_tables_and_ajax_queries_from_profiler(): void
     {
         $profiler = new DataTableProfiler();
-        $profiler->collectRenderedTable('App\\ProductDataTable', new DataTable('products'));
+        $products = new DataTable('products');
+        $profiler->collectRenderedTable('App\\ProductDataTable', self::preparedFor($products), $products);
         $profiler->collectAjaxQuery('App\\ProductDataTable', 'token', null, 42, 10, 1.5);
 
         $collector = new DataTableCollector($profiler);
@@ -88,7 +92,7 @@ final class DataTableCollectorTest extends TestCase
         $table->data([['name' => 'Sensitive-Row-Value']]);
 
         $profiler = new DataTableProfiler();
-        $profiler->collectRenderedTable('App\\ProductDataTable', $table);
+        $profiler->collectRenderedTable('App\\ProductDataTable', self::preparedFor($table), $table);
         $profiler->collectAjaxQuery('App\\ProductDataTable', 'token', null, 1, 1, 0.5, rowCount: 1, payloadBytes: 128);
 
         $collector = new DataTableCollector($profiler);

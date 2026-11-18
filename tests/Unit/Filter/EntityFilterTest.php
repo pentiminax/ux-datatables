@@ -278,6 +278,6 @@ final class EntityFilterTest extends TestCase
 
         $table = (new DataTable('test_table'))->setFilters((new Filters())->add($filter));
 
-        (new FilterEntityOptionsResolver($doctrine))->prepare($table);
+        (new FilterEntityOptionsResolver($doctrine))->prepare($table->getFilters());
     }
 }

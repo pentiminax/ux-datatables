@@ -14,6 +14,7 @@ use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
+use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -26,6 +27,8 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 #[CoversClass(AbstractDataTable::class)]
 final class AbstractDataTableMapRowTest extends TestCase
 {
+    use PreparesPayload;
+
     /**
      * @param array<int, object>   $columns
      * @param array<string, mixed> $expected
@@ -52,8 +55,7 @@ final class AbstractDataTableMapRowTest extends TestCase
 
         $table->rows($data);
 
-        $this->assertSame($expected, $table->prepareDataTableForRendering()->getOption('data'));
-        $this->assertTrue($table->prepareDataTableForRendering()->areTemplateColumnsRendered());
+        $this->assertSame($expected, self::optionOf($table->prepareRendering(), 'data'));
     }
 
     /**

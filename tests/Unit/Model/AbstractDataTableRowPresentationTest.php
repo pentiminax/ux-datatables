@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -17,6 +18,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(AbstractDataTable::class)]
 final class AbstractDataTableRowPresentationTest extends TestCase
 {
+    use PreparesPayload;
+
     #[Test]
     public function set_data_emits_the_row_class_and_record_url_for_client_side_rows(): void
     {
@@ -27,8 +30,8 @@ final class AbstractDataTableRowPresentationTest extends TestCase
         $this->assertSame([
             ['id' => 1, 'late' => true, 'DT_RowClass' => 'table-danger', 'DT_RowAttr' => ['data-record-url' => '/items/1']],
             ['id' => 2, 'late' => false, 'DT_RowAttr' => ['data-record-url' => '/items/2']],
-        ], $table->prepareDataTableForRendering()->getOption('data'));
-        $this->assertTrue($table->prepareDataTableForRendering()->getOptions()['recordUrl']);
+        ], self::optionOf($table->prepareRendering(), 'data'));
+        $this->assertTrue($table->prepareRendering()->getView()['recordUrl']);
     }
 }
 

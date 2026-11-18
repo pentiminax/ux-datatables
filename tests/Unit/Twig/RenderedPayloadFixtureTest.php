@@ -4,11 +4,19 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Twig;
 
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Runtime\DataTableResponder;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessServerSideDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\PayloadFixtureDataTable;
 use Pentiminax\UX\DataTables\Tests\Kernel\TestHarnessAppKernel;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\KernelInterface;
 
 /**
@@ -52,6 +60,74 @@ final class RenderedPayloadFixtureTest extends KernelTestCase
             json_decode((string) file_get_contents(self::FIXTURE), true, 512, \JSON_THROW_ON_ERROR),
             $payload,
         );
+    }
+
+    /**
+     * @param \Closure(ContainerInterface): AbstractDataTable $createTable
+     */
+    #[Test]
+    #[DataProvider('provideRenderedTables')]
+    public function it_renders_twice_identically_without_writing_to_the_configured_table(\Closure $createTable): void
+    {
+        static::bootKernel();
+        $container = static::getContainer();
+        $table     = $createTable($container);
+        $extension = $container->get('datatables.twig_extension');
+
+        $configured = $this->describe($table->getConfiguredDataTable());
+        $first      = $extension->renderDataTable($table);
+
+        $this->assertSame($configured, $this->describe($table->getConfiguredDataTable()));
+        $this->assertSame($first, $extension->renderDataTable($table));
+    }
+
+    #[Test]
+    public function it_renders_a_server_side_table_identically_after_answering_a_draw(): void
+    {
+        static::bootKernel();
+        $container = static::getContainer();
+        $table     = $container->get(HarnessServerSideDataTable::class);
+        $extension = $container->get('datatables.twig_extension');
+
+        $configured = $this->describe($table->getConfiguredDataTable());
+        $first      = $extension->renderDataTable($table);
+
+        $response = $container->get(DataTableResponder::class)->respond($table, new Request(query: ['draw' => 1, 'start' => 0, 'length' => 10]));
+        $this->assertSame(3, json_decode((string) $response?->getContent(), true, 512, \JSON_THROW_ON_ERROR)['recordsTotal']);
+
+        $this->assertSame($first, $extension->renderDataTable($table));
+        $this->assertSame($configured, $this->describe($table->getConfiguredDataTable()));
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(ContainerInterface): AbstractDataTable}>
+     */
+    public static function provideRenderedTables(): iterable
+    {
+        yield 'inline rows, bulk and row actions, filters' => [static function (ContainerInterface $container): AbstractDataTable {
+            $table = new PayloadFixtureDataTable();
+            $table->setDataTableInfrastructure($container->get('datatables.infrastructure'));
+
+            return $table;
+        }];
+
+        yield 'server-side' => [static fn (ContainerInterface $container): AbstractDataTable => $container->get(HarnessServerSideDataTable::class)];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function describe(DataTable $table): array
+    {
+        return [
+            'options'    => $table->getOptions(),
+            'titles'     => array_map(static fn (ColumnInterface $column): ?string => $column->getTitle(), $table->getColumns()),
+            'bundle'     => array_map($table->getBundleOption(...), ['apiPlatform', 'pollInterval', 'urlState', 'styleFramework', 'exportUrl', 'showHeaderResetButton']),
+            'extensions' => $table->getExtensions(),
+            'mercure'    => $table->getMercureConfig()?->topics,
+            'editModal'  => [$table->getEditModalTemplate(), $table->getEditModalAdapter()],
+            'filters'    => $table->getFilters()?->jsonSerialize(),
+        ];
     }
 
     protected static function createKernel(array $options = []): KernelInterface

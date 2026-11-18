@@ -15,6 +15,7 @@ use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
+use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -28,6 +29,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 #[CoversClass(AbstractDataTable::class)]
 final class AbstractDataTableOptInsTest extends TestCase
 {
+    use PreparesPayload;
     use CollectsDeprecations;
 
     /**
@@ -101,48 +103,22 @@ final class AbstractDataTableOptInsTest extends TestCase
                 return '/api/books';
             }
         };
-        $table = new FluentOptInFixture($resolver);
-        $table->prepareDataTableForRendering();
+        $table    = new FluentOptInFixture($resolver);
+        $prepared = $table->prepareRendering();
 
-        $this->assertSame(DataSourceMode::ApiPlatform, $table->getRenderedDataSourceMode());
-        $this->assertNotNull($table->getConfiguredDataTable()->getOption('ajax'));
+        $this->assertSame(DataSourceMode::ApiPlatform, $prepared->dataSourceMode);
+        $this->assertNotNull(self::optionOf($prepared, 'ajax'));
+        $this->assertNull($table->getConfiguredDataTable()->getOption('ajax'));
         $this->assertSame(DataSourceMode::ApiPlatform, $table->getResolvedOptIns()->dataSourceMode);
-        $table->resetDataTableState();
-        $this->assertNull($table->getRenderedDataSourceMode());
     }
 
     #[Test]
-    public function it_calls_a_prepare_for_rendering_override_from_get_data_table(): void
-    {
-        $table = new class(null) extends FluentOptInFixture {
-            public int $calls = 0;
-
-            public function prepareForRendering(): void
-            {
-                ++$this->calls;
-                parent::prepareForRendering();
-            }
-        };
-
-        $this->expectException(\LogicException::class);
-
-        try {
-            $this->deprecationsOf(static fn () => $table->getDataTable());
-        } finally {
-            $this->assertSame(1, $table->calls);
-        }
-    }
-
-    #[Test]
-    public function it_reads_the_configuration_changed_after_initialization_when_rendering(): void
+    public function it_keeps_the_opt_ins_resolved_when_the_table_was_configured(): void
     {
         $table = new AttributeOptInFluentOptOutFixture(null);
         $table->getConfiguredDataTable()->editModalTemplate('custom/modal.html.twig');
 
-        $payload = $table->prepareDataTableForRendering();
-
-        $this->assertSame('custom/modal.html.twig', $payload->getEditModalTemplate());
-        $this->assertSame('custom/modal.html.twig', $table->getResolvedOptIns()->editModalTemplate);
+        $this->assertNotSame('custom/modal.html.twig', $table->getResolvedOptIns()->editModalTemplate);
     }
 
     #[Test]
@@ -217,7 +193,7 @@ final class AbstractDataTableOptInsTest extends TestCase
             }
         };
 
-        $options = (new $tableClass($urlResolver, $detector))->prepareDataTableForRendering()->getOptions();
+        $options = (new $tableClass($urlResolver, $detector))->prepareRendering()->getView();
         unset($options['columns']);
 
         return $options;
