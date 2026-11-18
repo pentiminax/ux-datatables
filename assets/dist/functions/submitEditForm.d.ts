@@ -4,7 +4,7 @@ type SubmitEditFormPayload = {
     formData: Record<string, any>;
     csrfToken?: string;
     query?: Record<string, unknown>;
-    url?: string;
+    url: string;
 };
 type SubmitEditFormResponse = {
     success: boolean;

@@ -2,7 +2,7 @@ type FetchEditFormPayload = {
     dataTable: string;
     id: string;
     query?: Record<string, unknown>;
-    url?: string;
+    url: string;
 };
 type FetchEditFormResponse = {
     success: boolean;

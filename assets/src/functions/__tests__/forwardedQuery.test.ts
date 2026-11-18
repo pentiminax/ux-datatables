@@ -37,7 +37,13 @@ describe('forwarded query on single-row calls', () => {
     it.each([
         [
             'deleteEntity',
-            () => deleteEntity({ dataTable: 't', id: '1', query: forwardedQuery(payload) }),
+            () =>
+                deleteEntity({
+                    url: '/u',
+                    dataTable: 't',
+                    id: '1',
+                    query: forwardedQuery(payload),
+                }),
         ],
         [
             'toggleBooleanValue',
@@ -53,16 +59,29 @@ describe('forwarded query on single-row calls', () => {
         ],
         [
             'fetchDetailRow',
-            () => fetchDetailRow({ dataTable: 't', id: '1', query: forwardedQuery(payload) }),
+            () =>
+                fetchDetailRow({
+                    url: '/u',
+                    dataTable: 't',
+                    id: '1',
+                    query: forwardedQuery(payload),
+                }),
         ],
         [
             'fetchEditForm',
-            () => fetchEditForm({ dataTable: 't', id: '1', query: forwardedQuery(payload) }),
+            () =>
+                fetchEditForm({
+                    url: '/u',
+                    dataTable: 't',
+                    id: '1',
+                    query: forwardedQuery(payload),
+                }),
         ],
         [
             'submitEditForm',
             () =>
                 submitEditForm({
+                    url: '/u',
                     dataTable: 't',
                     id: '1',
                     formData: {},

@@ -15,7 +15,7 @@ describe('action token transport', () => {
         const fetchMock = vi.fn().mockResolvedValue(new Response('{}', { status: 200 }))
         vi.stubGlobal('fetch', fetchMock)
 
-        await fetcher({ dataTable: 'signed-token', id: '42' })
+        await fetcher({ url, dataTable: 'signed-token', id: '42' })
 
         const [calledUrl, init] = fetchMock.mock.calls[0]
 

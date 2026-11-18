@@ -475,7 +475,7 @@ export default class extends Controller {
 
         const columnRenderers: ColumnRenderer[] = [
             createBooleanColumnRenderer(
-                rowActionUrl(payload, 'toggle'),
+                payload.rowActionUrls?.toggle ?? '',
                 this.areMutationsEnabled(payload) &&
                     typeof payload.dataTable === 'string' &&
                     payload.dataTable.length > 0,
@@ -836,7 +836,7 @@ export default class extends Controller {
 
             const toggled = await this.runRowAction(target, 'TOGGLE', id, payload, async () => {
                 const response = await toggleBooleanValue({
-                    url: url ?? rowActionUrl(payload, 'toggle'),
+                    url: url || rowActionUrl(payload, 'toggle'),
                     id,
                     rowId,
                     field,

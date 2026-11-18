@@ -103,6 +103,14 @@ Both 1.6 deprecations now throw a `LogicException`:
 - `data()` or `rows()` combined with an API Platform opt-in throws when the table is configured.
   Keep one of them, or add `apiPlatform(false)` over an attribute opt-in.
 
+### Row actions need the URLs from the payload
+
+The browser no longer falls back to the default `/datatables/ajax/...` paths when the payload
+carries no `rowActionUrls`: a delete, toggle, detail or edit click fails with a
+`datatables:action:error` event and the generic failure message instead. Every payload rendered
+since 1.5.1 carries the URLs. Purge HTTP or page caches that hold pages rendered before 1.5.1, and
+import the bundle's routes so the row action URLs can be generated.
+
 ### Entity tables are server-side by default
 
 An entity table (`#[AsDataTable(entityClass: ...)]`) that never calls `serverSide()`, `ajax()` or

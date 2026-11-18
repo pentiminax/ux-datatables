@@ -1,12 +1,8 @@
-export const DEFAULT_ROW_ACTION_URLS = {
-    delete: '/datatables/ajax/delete',
-    toggle: '/datatables/ajax/edit',
-    detail: '/datatables/ajax/detail',
-    editForm: '/datatables/ajax/edit-form/view',
-    editFormSubmit: '/datatables/ajax/edit-form',
-};
 export function rowActionUrl(payload, name) {
-    const url = payload?.rowActionUrls?.[name];
-    return typeof url === 'string' && url.length > 0 ? url : DEFAULT_ROW_ACTION_URLS[name];
+    const url = payload.rowActionUrls?.[name];
+    if (typeof url !== 'string' || url.length === 0) {
+        throw new Error(`The payload has no "${name}" row action URL.`);
+    }
+    return url;
 }
 //# sourceMappingURL=rowActionUrl.js.map

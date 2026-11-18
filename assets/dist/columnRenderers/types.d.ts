@@ -67,8 +67,9 @@ export interface ImageCustomOptions {
     placeholder?: string;
     clickable?: boolean;
 }
+export type ActionType = 'DELETE' | 'DETAIL' | 'EDIT' | 'CUSTOM';
 export interface ActionConfig {
-    type: string;
+    type: ActionType;
     name: string;
     label: string;
     className: string;
@@ -80,7 +81,7 @@ export interface ActionConfig {
         value: unknown;
     };
     entityClass?: string;
-    htmlAttributes?: Record<string, string | number | boolean | null>;
+    htmlAttributes?: Record<string, string | number | boolean | null> | never[];
     idField: string;
     url?: string;
     collapsible?: boolean;

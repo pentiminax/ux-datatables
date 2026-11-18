@@ -16,22 +16,6 @@ describe('row action requests', () => {
         return fetchMock
     }
 
-    it('calls the default paths when no URL is given', async () => {
-        const fetchMock = stubFetch()
-
-        await deleteEntity({ dataTable: 't', id: '1' })
-        await fetchDetailRow({ dataTable: 't', id: '1' })
-        await fetchEditForm({ dataTable: 't', id: '1' })
-        await submitEditForm({ dataTable: 't', id: '1', formData: {} })
-
-        expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([
-            '/datatables/ajax/delete',
-            '/datatables/ajax/detail',
-            '/datatables/ajax/edit-form/view',
-            '/datatables/ajax/edit-form',
-        ])
-    })
-
     it('calls the given URL and keeps it out of the body', async () => {
         const fetchMock = stubFetch()
 

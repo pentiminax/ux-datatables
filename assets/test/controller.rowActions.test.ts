@@ -404,28 +404,30 @@ describe('built-in row actions', () => {
             )
         })
 
-        it('falls back to the default paths when the payload carries no URLs', async () => {
-            const table = await mountTable()
+        it('refuses a row action when the payload carries no URLs', async () => {
+            const table = await mountTable({ rowActionUrls: undefined })
+            const errors = collectEvents(table, 'datatables:action:error')
+            const toggle = toggleSwitch(table)
 
             actionButton(table, 'DELETE').click()
             await settle()
             actionButton(table, 'EDIT').click()
             await settle()
-            toggleSwitch(table).dispatchEvent(new Event('change', { bubbles: true }))
+            toggle.dispatchEvent(new Event('change', { bubbles: true }))
             await settle()
 
-            expect(deleteEntity).toHaveBeenCalledWith(
-                expect.objectContaining({ url: '/datatables/ajax/delete' })
-            )
-            expect(fetchEditForm).toHaveBeenCalledWith(
-                expect.objectContaining({ url: '/datatables/ajax/edit-form/view' })
-            )
-            expect(submitEditForm).toHaveBeenCalledWith(
-                expect.objectContaining({ url: '/datatables/ajax/edit-form' })
-            )
-            expect(toggleBooleanValue).toHaveBeenCalledWith(
-                expect.objectContaining({ url: '/datatables/ajax/edit' })
-            )
+            expect(deleteEntity).not.toHaveBeenCalled()
+            expect(fetchEditForm).not.toHaveBeenCalled()
+            expect(toggleBooleanValue).not.toHaveBeenCalled()
+            expect(toggle.checked).toBe(false)
+            expect(errors.map((event) => event.detail.error.message)).toEqual([
+                'The payload has no "delete" row action URL.',
+                'The payload has no "editForm" row action URL.',
+                'The payload has no "toggle" row action URL.',
+            ])
+            expect(
+                table.closest('.dt-container')?.querySelector(STATUS_SELECTOR)?.textContent
+            ).toBe('The action could not be completed.')
         })
 
         it('keeps an explicit per-switch URL ahead of the payload', async () => {
@@ -469,6 +471,13 @@ async function mountTable(extraView: Record<string, unknown> = {}): Promise<HTML
             columns: [{ data: 'name', title: 'Name' }],
             dataTable: 'token',
             mutationsEnabled: true,
+            rowActionUrls: {
+                delete: '/datatables/ajax/delete',
+                toggle: '/datatables/ajax/edit',
+                detail: '/datatables/ajax/detail',
+                editForm: '/datatables/ajax/edit-form/view',
+                editFormSubmit: '/datatables/ajax/edit-form',
+            },
             ...extraView,
         })
     )

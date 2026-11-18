@@ -288,7 +288,7 @@ class default_1 extends Controller {
         normalizeDisabledColumnControls(payload);
         const style = resolveColumnStyleAdapter(this.framework, detectTheme());
         const columnRenderers = [
-            createBooleanColumnRenderer(rowActionUrl(payload, 'toggle'), this.areMutationsEnabled(payload) &&
+            createBooleanColumnRenderer(payload.rowActionUrls?.toggle ?? '', this.areMutationsEnabled(payload) &&
                 typeof payload.dataTable === 'string' &&
                 payload.dataTable.length > 0, style),
             createChoiceColumnRenderer(style),
@@ -548,7 +548,7 @@ class default_1 extends Controller {
             const previousState = !target.checked;
             const toggled = await this.runRowAction(target, 'TOGGLE', id, payload, async () => {
                 const response = await toggleBooleanValue({
-                    url: url ?? rowActionUrl(payload, 'toggle'),
+                    url: url || rowActionUrl(payload, 'toggle'),
                     id,
                     rowId,
                     field,

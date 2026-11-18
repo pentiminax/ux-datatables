@@ -1,6 +1,5 @@
 import { createMutationHeaders } from './createMutationHeaders.js';
-import { DEFAULT_ROW_ACTION_URLS } from './rowActionUrl.js';
-export async function deleteEntity({ dataTable, id, csrfToken, query, url = DEFAULT_ROW_ACTION_URLS.delete, }) {
+export async function deleteEntity({ dataTable, id, csrfToken, query, url, }) {
     return await fetch(url, {
         method: 'DELETE',
         headers: createMutationHeaders(csrfToken),

@@ -81,8 +81,11 @@ export interface ImageCustomOptions {
     clickable?: boolean
 }
 
+/** The cases of the PHP `ActionType` enum. */
+export type ActionType = 'DELETE' | 'DETAIL' | 'EDIT' | 'CUSTOM'
+
 export interface ActionConfig {
-    type: string
+    type: ActionType
     name: string
     label: string
     className: string
@@ -91,7 +94,8 @@ export interface ActionConfig {
     confirm?: string
     displayCondition?: { field: string; value: unknown }
     entityClass?: string
-    htmlAttributes?: Record<string, string | number | boolean | null>
+    /** PHP serializes an empty map as `[]`. */
+    htmlAttributes?: Record<string, string | number | boolean | null> | never[]
     idField: string
     url?: string
     collapsible?: boolean
