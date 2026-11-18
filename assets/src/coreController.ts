@@ -15,7 +15,6 @@ import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js'
 import { resolveColumnStyleAdapter } from './columnStyles/resolveColumnStyleAdapter.js'
 import {
     ApiPlatformAdapter,
-    type ColumnConfig,
     isApiPlatformAdapterEnabled,
     resolveColumnDataKey,
 } from './functions/apiPlatformAdapter.js'
@@ -197,10 +196,7 @@ export default class extends Controller {
 
         let apiPlatformAdapter: ApiPlatformAdapter | null = null
         if (this.isApiPlatformEnabled(payload)) {
-            const columns = Array.isArray(payload.columns)
-                ? (payload.columns as ColumnConfig[])
-                : []
-            apiPlatformAdapter = new ApiPlatformAdapter(columns)
+            apiPlatformAdapter = new ApiPlatformAdapter(payload.columns)
             apiPlatformAdapter.configure(payload)
         }
 
@@ -506,8 +502,8 @@ export default class extends Controller {
             }
         })
 
-        if (this.isApiPlatformEnabled(payload) && Array.isArray(payload.columns)) {
-            payload.columns = (payload.columns as ColumnConfig[]).map((column) => ({
+        if (this.isApiPlatformEnabled(payload)) {
+            payload.columns = payload.columns.map((column) => ({
                 ...column,
                 data: resolveColumnDataKey(column),
             }))
@@ -568,7 +564,7 @@ export default class extends Controller {
         this.highlighter = new UpdateHighlighter(
             this.table,
             payload.highlight,
-            Array.isArray(payload.columns) ? (payload.columns as ColumnConfig[]) : [],
+            payload.columns,
             (cells) => this.dispatchEvent('highlight', { cells })
         )
     }

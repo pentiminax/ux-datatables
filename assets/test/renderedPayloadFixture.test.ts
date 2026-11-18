@@ -5,6 +5,7 @@ import frFR from '../src/i18n/fr-FR.js'
 import { loadDataTableLibrary } from '../src/functions/loadDataTableLibrary.js'
 import { packageLoaders } from '../src/functions/packageLoaders.js'
 import { type RowActionName, rowActionUrl } from '../src/functions/rowActionUrl.js'
+import type { FilterDefinition } from '../src/functions/filters.js'
 import type { DataTableView } from '../src/types/dataTableView.js'
 import fixture from '../../tests/Fixtures/rendered-payload.json'
 
@@ -47,10 +48,15 @@ type Unpinned = Exclude<DeclaredKey, FixtureKey | UnexercisedKey>
 
 const everyFixtureKeyDeclared: [Undeclared] extends [never] ? true : Undeclared = true
 const everyDeclaredKeyPinned: [Unpinned] extends [never] ? true : Unpinned = true
-// JSON modules widen string literals, so the filter `type` union is restored by hand.
+type StaleKey = Exclude<UnexercisedKey, DeclaredKey>
+const everyUnexercisedKeyDeclared: [StaleKey] extends [never] ? true : StaleKey = true
+// JSON modules widen string literals: only the filter `type` union is restored by hand.
 const view: DataTableView = {
     ...fixture,
-    filters: fixture.filters as DataTableView['filters'],
+    filters: fixture.filters.map((filter) => ({
+        ...filter,
+        type: filter.type as FilterDefinition['type'],
+    })),
 }
 
 describe('rendered payload fixture', () => {
@@ -100,6 +106,7 @@ describe('rendered payload fixture', () => {
     it('declares every key of the pinned payload in the view interface', () => {
         expect(everyFixtureKeyDeclared).toBe(true)
         expect(everyDeclaredKeyPinned).toBe(true)
+        expect(everyUnexercisedKeyDeclared).toBe(true)
         expect(view).toEqual(fixture)
     })
 
