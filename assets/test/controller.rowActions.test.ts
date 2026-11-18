@@ -411,16 +411,23 @@ describe('built-in row actions', () => {
 
             actionButton(table, 'DELETE').click()
             await settle()
+            actionButton(table, 'EDIT').click()
+            await settle()
             toggle.dispatchEvent(new Event('change', { bubbles: true }))
             await settle()
 
             expect(deleteEntity).not.toHaveBeenCalled()
+            expect(fetchEditForm).not.toHaveBeenCalled()
             expect(toggleBooleanValue).not.toHaveBeenCalled()
             expect(toggle.checked).toBe(false)
             expect(errors.map((event) => event.detail.error.message)).toEqual([
                 'The payload has no "delete" row action URL.',
+                'The payload has no "editForm" row action URL.',
                 'The payload has no "toggle" row action URL.',
             ])
+            expect(
+                table.closest('.dt-container')?.querySelector(STATUS_SELECTOR)?.textContent
+            ).toBe('The action could not be completed.')
         })
 
         it('keeps an explicit per-switch URL ahead of the payload', async () => {

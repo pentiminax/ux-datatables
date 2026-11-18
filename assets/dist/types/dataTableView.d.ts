@@ -9,9 +9,9 @@ import type { RowActionLabels } from '../functions/rowActionFeedback.js';
 import type { RowActionName } from '../functions/rowActionUrl.js';
 import type { UrlStateConfig } from '../functions/urlState.js';
 import type { StyleFramework } from './styleFramework.js';
-export type DataTableViewColumn = ColumnConfig & {
+export interface DataTableViewColumn extends ColumnConfig, Record<string, unknown> {
     actions?: ActionConfig[];
-} & Record<string, unknown>;
+}
 export interface DataTableView {
     columns: DataTableViewColumn[];
     dataTable: string | null;

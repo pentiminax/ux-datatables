@@ -10,7 +10,9 @@ import type { RowActionName } from '../functions/rowActionUrl.js'
 import type { UrlStateConfig } from '../functions/urlState.js'
 import type { StyleFramework } from './styleFramework.js'
 
-export type DataTableViewColumn = ColumnConfig & { actions?: ActionConfig[] } & Record<string, unknown>
+export interface DataTableViewColumn extends ColumnConfig, Record<string, unknown> {
+    actions?: ActionConfig[]
+}
 
 /**
  * The payload `render_datatable()` hands the Stimulus controller, as `PreparedDataTable::getView()`
