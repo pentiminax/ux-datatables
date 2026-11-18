@@ -1,3 +1,5 @@
+import type { DataTableView } from '../types/dataTableView.js'
+
 /**
  * Put a feature instance where its marker sits in the DataTables `layout` option.
  *
@@ -5,7 +7,7 @@
  * placed one, the feature falls back to its default cell without dropping what already sits there.
  */
 export function applyFeatureLayout(
-    payload: Record<string, any>,
+    payload: Pick<DataTableView, 'layout'>,
     feature: string,
     entry: Record<string, unknown>,
     fallback: { position: string; before?: string[] }

@@ -2,6 +2,7 @@ import { applyFeatureLayout } from '../functions/featureLayout.js'
 import { renderLucideIcon } from '../functions/lucideIcons.js'
 import { createPopover, type Popover } from '../functions/popover.js'
 import { runBulkAction } from '../functions/runBulkAction.js'
+import type { DataTableView } from '../types/dataTableView.js'
 import type { StyleFramework } from '../types/styleFramework.js'
 import { confirmAction } from './confirmModal.js'
 import { type SelectionSnapshot, SelectionStore } from './selectionStore.js'
@@ -53,7 +54,7 @@ const KEBAB_ICON =
     '<circle cx="10" cy="4" r="1.6" /><circle cx="10" cy="10" r="1.6" />' +
     '<circle cx="10" cy="16" r="1.6" /></svg>'
 
-export function hasBulkActions(payload: Record<string, any>): boolean {
+export function hasBulkActions(payload: DataTableView): boolean {
     const config = payload?.bulkActions
 
     return (
@@ -64,7 +65,7 @@ export function hasBulkActions(payload: Record<string, any>): boolean {
     )
 }
 
-export function getBulkActionsConfig(payload: Record<string, any>): BulkActionsConfig {
+export function getBulkActionsConfig(payload: DataTableView): BulkActionsConfig {
     return payload.bulkActions as BulkActionsConfig
 }
 
@@ -95,7 +96,7 @@ export class BulkActionBar {
     private resultMessage: string | null = null
 
     constructor(
-        payload: Record<string, any>,
+        payload: DataTableView,
         private readonly framework: StyleFramework,
         private readonly dispatch: (
             name: string,
@@ -454,7 +455,7 @@ export function registerBulkActionsFeature(DataTable: any): void {
  * keeps the layout marker when the user may run none of them.
  */
 export function installBulkActionBar(
-    payload: Record<string, any>,
+    payload: DataTableView,
     DataTable: any,
     framework: StyleFramework,
     dispatch: (name: string, detail: Record<string, unknown>) => void,
@@ -472,7 +473,7 @@ export function installBulkActionBar(
         payload,
         'bulkActions',
         { bulkActions: { instance: bulkBar } },
-        { position: payload.bulkActions.position ?? 'topEnd' }
+        { position: payload.bulkActions?.position ?? 'topEnd' }
     )
 
     return bulkBar

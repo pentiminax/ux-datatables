@@ -1,3 +1,5 @@
+import type { DataTableView } from '../types/dataTableView.js'
+
 export interface PollingTable {
     ajax?: { reload: (callback?: (() => void) | null, resetPaging?: boolean) => void }
     on: (event: string, callback: (...args: any[]) => void) => unknown
@@ -8,7 +10,9 @@ const MODAL_SELECTOR = '[data-ux-datatables-modal]'
 const OPEN_CHILD_ROW_SELECTOR = 'tr.dt-hasChild'
 const SEARCH_INPUT_SELECTOR = 'input[type="search"], .dt-search input'
 
-export function isPollingEnabled(payload: Record<string, any>): boolean {
+export function isPollingEnabled(
+    payload: DataTableView
+): payload is DataTableView & { pollInterval: number } {
     return typeof payload?.pollInterval === 'number' && payload.pollInterval > 0
 }
 
@@ -76,7 +80,7 @@ let hasWarnedPollingWithMercure = false
 
 interface EnsurePollingOptions {
     table: PollingTable | null
-    payload: Record<string, any>
+    payload: DataTableView
     element: HTMLElement
     mercureEnabled: boolean
 }

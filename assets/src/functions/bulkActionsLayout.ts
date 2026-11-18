@@ -1,4 +1,5 @@
 import type { BulkActionBar } from '../bulk/BulkActionBar.js'
+import type { DataTableView } from '../types/dataTableView.js'
 import { applyFeatureLayout } from './featureLayout.js'
 
 export interface BulkActionsLayoutEntry {
@@ -10,7 +11,7 @@ export interface BulkActionsLayoutEntry {
  * Removed in 2.0.
  */
 export function applyBulkActionsLayout(
-    payload: Record<string, any>,
+    payload: Pick<DataTableView, 'layout'>,
     instance: BulkActionBar,
     position = 'topEnd'
 ): void {

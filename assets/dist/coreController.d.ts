@@ -1,6 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
+import type { DataTableView } from './types/dataTableView.js';
 export default class extends Controller {
-    readonly viewValue: any;
+    readonly viewValue: DataTableView;
     static readonly values: {
         view: ObjectConstructor;
     };

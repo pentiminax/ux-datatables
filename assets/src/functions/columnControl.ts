@@ -1,3 +1,4 @@
+import type { DataTableView } from '../types/dataTableView.js'
 import { isRecord } from './htmlUtils.js'
 
 type ColumnControlTarget = number | string
@@ -38,7 +39,7 @@ function extractTargets(columnControl: unknown): ColumnControlTarget[] {
     return []
 }
 
-export function normalizeDisabledColumnControls(payload: Record<string, unknown>): void {
+export function normalizeDisabledColumnControls(payload: DataTableView): void {
     if (!Array.isArray(payload.columns)) {
         return
     }

@@ -1,3 +1,4 @@
+import type { DataTableView, DataTableViewColumn } from '../types/dataTableView.js';
 interface DataTableServerSideOrder {
     column: number;
     dir: 'asc' | 'desc' | string;
@@ -24,10 +25,10 @@ export interface ColumnConfig {
     data?: string | null;
     defaultContent?: string;
     field?: string | null;
-    name: string;
+    name: string | null;
 }
 export declare function resolveColumnDataKey(column: ColumnConfig): string | null | undefined;
-export declare function isApiPlatformAdapterEnabled(payload: Record<string, unknown>): boolean;
+export declare function isApiPlatformAdapterEnabled(payload: DataTableView): boolean;
 interface HydraCollectionResponse {
     'hydra:member'?: unknown[];
     member?: unknown[];
@@ -52,8 +53,8 @@ export declare class ApiPlatformAdapter {
     buildRequestParams(params: DataTableServerSideParams): Record<string, string>;
     buildResponse(json: HydraCollectionResponse, draw: number): DataTableServerSideResponse;
     private resolveTotalItems;
-    configure(payload: Record<string, unknown>): void;
-    withDefaultColumnContent(columns: unknown): unknown;
+    configure(payload: DataTableView): void;
+    withDefaultColumnContent(columns: DataTableViewColumn[]): DataTableViewColumn[];
     private resolveColumnConfig;
     private appendFilters;
     private setFilterParam;

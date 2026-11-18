@@ -1,3 +1,4 @@
+import type { DataTableView } from '../types/dataTableView.js'
 import { buttonActions } from './buttonActionRegistry.js'
 
 // Collection-type buttons (colvis, or any button with `extend: 'collection'`) nest further
@@ -63,7 +64,7 @@ function resolveLayoutValue(value: unknown): unknown {
     return 'buttons' in record ? { ...record, buttons: resolveButtonsArray(record.buttons) } : value
 }
 
-export function applyCustomButtonActions(payload: Record<string, unknown>): void {
+export function applyCustomButtonActions(payload: DataTableView): void {
     const layout = payload.layout
 
     if (typeof layout !== 'object' || layout === null || Array.isArray(layout)) {

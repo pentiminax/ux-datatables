@@ -1,3 +1,4 @@
+import type { DataTableView } from '../types/dataTableView.js'
 import type { ColumnConfig } from './apiPlatformAdapter.js'
 
 export const HIGHLIGHT_CLASS = 'dt-cell-updated'
@@ -8,6 +9,7 @@ const DEFAULT_DURATION_MS = 1200
 export interface HighlightConfig {
     durationMs?: number
     ignoreColumns?: string[]
+    idField?: string
 }
 
 interface HighlightTable {
@@ -158,7 +160,9 @@ export class UpdateHighlighter {
     }
 }
 
-export function isHighlightEnabled(payload: Record<string, unknown>): boolean {
+export function isHighlightEnabled(
+    payload: DataTableView
+): payload is DataTableView & { highlight: HighlightConfig } {
     return typeof payload?.highlight === 'object' && payload.highlight !== null
 }
 

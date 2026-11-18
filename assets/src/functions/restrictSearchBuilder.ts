@@ -1,11 +1,14 @@
+import type { DataTableView } from '../types/dataTableView.js'
+import { isRecord } from './htmlUtils.js'
+
 /**
  * Keeps SearchBuilder from offering what a server-side table refuses: the `without` condition and
  * columns flagged `searchable: false`. Client-side tables filter in the browser and are left alone.
  * User-provided conditions and column indexes are narrowed, not replaced.
  */
-export function restrictSearchBuilder(payload: Record<string, any>): void {
+export function restrictSearchBuilder(payload: DataTableView): void {
     const options = payload?.searchBuilder
-    if (payload?.serverSide !== true || !options || typeof options !== 'object') {
+    if (payload?.serverSide !== true || !isRecord(options)) {
         return
     }
 
@@ -19,7 +22,7 @@ export function restrictSearchBuilder(payload: Record<string, any>): void {
         return
     }
 
-    const columns: Array<{ searchable?: boolean }> = payload.columns ?? []
+    const columns = payload.columns ?? []
     options.columns = columns.flatMap((column, index) =>
         column.searchable !== false && (!Array.isArray(offered) || offered.includes(index))
             ? [index]

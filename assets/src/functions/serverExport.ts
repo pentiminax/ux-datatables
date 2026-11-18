@@ -1,3 +1,4 @@
+import type { DataTableView } from '../types/dataTableView.js'
 import { buttonActions } from './buttonActionRegistry.js'
 
 export const SERVER_EXPORT_ACTION = 'ux:export'
@@ -65,7 +66,7 @@ export function flattenFormValues(
 }
 
 export function applyServerExportUrls(
-    payload: Record<string, unknown>,
+    payload: DataTableView,
     protocolParams?: ProtocolParamsProvider
 ): void {
     const url = payload.exportUrl

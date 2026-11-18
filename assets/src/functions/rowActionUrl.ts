@@ -1,3 +1,5 @@
+import type { DataTableView } from '../types/dataTableView.js'
+
 export const DEFAULT_ROW_ACTION_URLS = {
     delete: '/datatables/ajax/delete',
     toggle: '/datatables/ajax/edit',
@@ -8,7 +10,7 @@ export const DEFAULT_ROW_ACTION_URLS = {
 
 export type RowActionName = keyof typeof DEFAULT_ROW_ACTION_URLS
 
-export function rowActionUrl(payload: Record<string, any>, name: RowActionName): string {
+export function rowActionUrl(payload: DataTableView, name: RowActionName): string {
     const url = payload?.rowActionUrls?.[name]
 
     return typeof url === 'string' && url.length > 0 ? url : DEFAULT_ROW_ACTION_URLS[name]

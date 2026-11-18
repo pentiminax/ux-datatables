@@ -1,3 +1,6 @@
+import type { DataTableView } from '../types/dataTableView.js'
+import { isRecord } from './htmlUtils.js'
+
 export interface UrlStateConfig {
     search: boolean
     order: boolean
@@ -18,7 +21,7 @@ export interface UrlStateSnapshot {
     pageLength?: number
 }
 
-export function isUrlStateEnabled(payload: Record<string, any>): UrlStateConfig | null {
+export function isUrlStateEnabled(payload: DataTableView): UrlStateConfig | null {
     const cfg = payload?.urlState
 
     if (!cfg || typeof cfg !== 'object') return null
@@ -129,12 +132,9 @@ export function readUrlState(
     return out
 }
 
-export function applyUrlStateToPayload(
-    payload: Record<string, any>,
-    snapshot: UrlStateSnapshot
-): void {
+export function applyUrlStateToPayload(payload: DataTableView, snapshot: UrlStateSnapshot): void {
     if (snapshot.search !== undefined) {
-        if (payload.search && typeof payload.search === 'object') {
+        if (isRecord(payload.search)) {
             payload.search.search = snapshot.search
         } else {
             payload.search = { search: snapshot.search }

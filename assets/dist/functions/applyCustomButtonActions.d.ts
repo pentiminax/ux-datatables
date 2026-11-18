@@ -1,1 +1,2 @@
-export declare function applyCustomButtonActions(payload: Record<string, unknown>): void;
+import type { DataTableView } from '../types/dataTableView.js';
+export declare function applyCustomButtonActions(payload: DataTableView): void;

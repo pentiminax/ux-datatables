@@ -1,3 +1,4 @@
+import type { DataTableView } from '../types/dataTableView.js';
 import type { StyleFramework } from '../types/styleFramework.js';
 export interface BulkActionDefinition {
     name: string;
@@ -30,8 +31,8 @@ export interface BulkActionsConfig {
     labels?: BulkActionLabels;
     position?: string;
 }
-export declare function hasBulkActions(payload: Record<string, any>): boolean;
-export declare function getBulkActionsConfig(payload: Record<string, any>): BulkActionsConfig;
+export declare function hasBulkActions(payload: DataTableView): boolean;
+export declare function getBulkActionsConfig(payload: DataTableView): BulkActionsConfig;
 export declare class BulkActionBar {
     private readonly framework;
     private readonly dispatch;
@@ -54,7 +55,7 @@ export declare class BulkActionBar {
     private api;
     private running;
     private resultMessage;
-    constructor(payload: Record<string, any>, framework: StyleFramework, dispatch?: (name: string, detail: Record<string, unknown>) => void, currentParams?: () => Record<string, unknown>);
+    constructor(payload: DataTableView, framework: StyleFramework, dispatch?: (name: string, detail: Record<string, unknown>) => void, currentParams?: () => Record<string, unknown>);
     render(api: any): HTMLElement;
     private mountSummary;
     private update;
@@ -72,4 +73,4 @@ export declare class BulkActionBar {
     private buttonClass;
 }
 export declare function registerBulkActionsFeature(DataTable: any): void;
-export declare function installBulkActionBar(payload: Record<string, any>, DataTable: any, framework: StyleFramework, dispatch: (name: string, detail: Record<string, unknown>) => void, currentParams: () => Record<string, unknown>): BulkActionBar | null;
+export declare function installBulkActionBar(payload: DataTableView, DataTable: any, framework: StyleFramework, dispatch: (name: string, detail: Record<string, unknown>) => void, currentParams: () => Record<string, unknown>): BulkActionBar | null;

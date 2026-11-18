@@ -1,3 +1,4 @@
+import type { DataTableView } from '../types/dataTableView.js'
 import { isRecord } from './htmlUtils.js'
 
 export type RequestParams = Record<string, any>
@@ -23,7 +24,7 @@ export interface RequestParamsHandle {
  * the filter values and an optional transport, in that order.
  */
 export function installRequestParams(
-    payload: Record<string, any>,
+    payload: DataTableView,
     options: RequestParamsOptions = {}
 ): RequestParamsHandle {
     let last: RequestParams = {}

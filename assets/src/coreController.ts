@@ -34,6 +34,7 @@ import { fetchEditForm } from './functions/fetchEditForm.js'
 import { installFilterBar } from './functions/filters.js'
 import { forwardedQuery } from './functions/forwardedQuery.js'
 import { isHighlightEnabled, type UpdateHighlighter } from './functions/highlightUpdates.js'
+import { isRecord } from './functions/htmlUtils.js'
 import { isDataTableClone } from './functions/isDataTableClone.js'
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js'
 import {
@@ -41,6 +42,7 @@ import {
     hasLucideIconsInActions,
     loadLucideIcons,
 } from './functions/lucideIcons.js'
+import type { MercureConfig } from './functions/mercureSubscription.js'
 import { type ExtensionName, packageLoaders } from './functions/packageLoaders.js'
 import { ensurePolling } from './functions/polling.js'
 import { installRequestParams, type RequestParamsHandle } from './functions/requestParams.js'
@@ -62,6 +64,7 @@ import {
     writeUrlState,
 } from './functions/urlState.js'
 import { resolveModalAdapter } from './modal/resolveModalAdapter.js'
+import type { DataTableView } from './types/dataTableView.js'
 import { isStyleFramework, type StyleFramework } from './types/styleFramework.js'
 
 /**
@@ -108,7 +111,7 @@ const GENERATED_MARKUP_SELECTOR = [
 ].join(',')
 
 export default class extends Controller {
-    declare readonly viewValue: any
+    declare readonly viewValue: DataTableView
 
     static readonly values = {
         view: Object,
@@ -242,10 +245,7 @@ export default class extends Controller {
         // ajax.params(): after an API Platform transport (or a JSON-string ajax.data callback)
         // the wire snapshot is not DataTables protocol, and the PHP export endpoint would drop
         // search/filters. Tables without that hook keep DataTables' own ajax.params().
-        applyServerExportUrls(
-            payload,
-            requestParams ? () => requestParams.current() : undefined
-        )
+        applyServerExportUrls(payload, requestParams ? () => requestParams.current() : undefined)
         applyCustomButtonActions(payload)
 
         // A concurrent connect may have built the table while this one awaited. Nothing is awaited
@@ -434,7 +434,7 @@ export default class extends Controller {
     }
 
     private async loadExtensions(
-        payload: Record<string, any>,
+        payload: DataTableView,
         framework: StyleFramework,
         DataTable: any
     ): Promise<void> {
@@ -449,7 +449,7 @@ export default class extends Controller {
             }
         }
 
-        if (payload?.select?.withCheckbox) {
+        if (isRecord(payload.select) && payload.select.withCheckbox) {
             payload.columns.unshift({
                 data: null,
                 defaultContent: '',
@@ -465,14 +465,14 @@ export default class extends Controller {
                     render: DataTable.render.select(),
                     targets: 0,
                 },
-                ...(payload.columnDefs ?? []),
+                ...(Array.isArray(payload.columnDefs) ? payload.columnDefs : []),
             ]
         }
 
         restrictSearchBuilder(payload)
     }
 
-    private configureColumns(payload: Record<string, any>): void {
+    private configureColumns(payload: DataTableView): void {
         normalizeDisabledColumnControls(payload)
 
         const style = resolveColumnStyleAdapter(this.framework, detectTheme())
@@ -514,7 +514,7 @@ export default class extends Controller {
         }
     }
 
-    private async startMercure(payload: Record<string, any>): Promise<void> {
+    private async startMercure(payload: DataTableView): Promise<void> {
         try {
             await this.initMercure(payload)
         } catch (error) {
@@ -522,7 +522,7 @@ export default class extends Controller {
         }
     }
 
-    private async initMercure(payload: Record<string, any>): Promise<void> {
+    private async initMercure(payload: DataTableView): Promise<void> {
         if (this.eventSource || !this.isMercureEnabled(payload)) {
             return
         }
@@ -545,7 +545,7 @@ export default class extends Controller {
         })
     }
 
-    private initPolling(payload: Record<string, any>): void {
+    private initPolling(payload: DataTableView): void {
         this.stopPolling = ensurePolling(this.stopPolling, {
             table: this.table,
             payload,
@@ -554,7 +554,7 @@ export default class extends Controller {
         })
     }
 
-    private async initHighlighter(payload: Record<string, any>): Promise<void> {
+    private async initHighlighter(payload: DataTableView): Promise<void> {
         if (!this.table || !isHighlightEnabled(payload)) {
             return
         }
@@ -573,7 +573,7 @@ export default class extends Controller {
         )
     }
 
-    private bindActionHandler(payload: Record<string, any>): void {
+    private bindActionHandler(payload: DataTableView): void {
         ;(this.element as HTMLElement).addEventListener(
             'click',
             async (e: MouseEvent): Promise<void> => {
@@ -759,7 +759,7 @@ export default class extends Controller {
         element: HTMLElement,
         actionType: string,
         id: string,
-        payload: Record<string, any>,
+        payload: DataTableView,
         run: () => Promise<T>,
         reportSuccess = true
     ): Promise<T | null> {
@@ -778,7 +778,7 @@ export default class extends Controller {
     private async executeAjaxAction(
         button: HTMLElement,
         method: string,
-        payload: Record<string, any>
+        payload: DataTableView
     ): Promise<void> {
         const url = button.getAttribute('data-ajax-url')
         const token = button.getAttribute('data-ajax-token')
@@ -806,7 +806,7 @@ export default class extends Controller {
         })
     }
 
-    private bindBooleanToggleHandler(payload: Record<string, any>): void {
+    private bindBooleanToggleHandler(payload: DataTableView): void {
         this.element.addEventListener('change', async (e: Event): Promise<void> => {
             const target = e.target as EventTarget | null
             if (
@@ -860,7 +860,7 @@ export default class extends Controller {
         })
     }
 
-    private hasButtonsInLayout(payload: Record<string, any>): boolean {
+    private hasButtonsInLayout(payload: DataTableView): boolean {
         const layout = payload?.layout
         if (!layout) return false
 
@@ -887,24 +887,26 @@ export default class extends Controller {
         })
     }
 
-    private isApiPlatformEnabled(payload: Record<string, any>): boolean {
+    private isApiPlatformEnabled(payload: DataTableView): boolean {
         return isApiPlatformAdapterEnabled(payload)
     }
 
-    private isMercureEnabled(payload: Record<string, any>): boolean {
+    private isMercureEnabled(
+        payload: DataTableView
+    ): payload is DataTableView & { mercure: MercureConfig } {
         return !!payload?.mercure?.hubUrl && this.getMercureTopics(payload).length > 0
     }
 
-    private getCsrfToken(payload: Record<string, any>): string | undefined {
+    private getCsrfToken(payload: DataTableView): string | undefined {
         const token = payload?.csrfToken
         return typeof token === 'string' && token.length > 0 ? token : undefined
     }
 
-    private areMutationsEnabled(payload: Record<string, any>): boolean {
+    private areMutationsEnabled(payload: DataTableView): boolean {
         return payload?.mutationsEnabled === true
     }
 
-    private getMercureTopics(payload: Record<string, any>): string[] {
+    private getMercureTopics(payload: DataTableView): string[] {
         const topics = payload?.mercure?.topics
 
         if (Array.isArray(topics) && topics.length > 0) {

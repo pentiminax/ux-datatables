@@ -1,3 +1,4 @@
+import type { DataTableView } from '../types/dataTableView.js';
 import type { StyleFramework } from '../types/styleFramework.js';
 export type FilterType = 'text' | 'select' | 'ternary' | 'dateRange' | 'numberRange' | 'checkbox';
 export interface FilterDefinition {
@@ -25,7 +26,7 @@ export interface FilterBarLabels {
     apply?: string;
     all?: string;
 }
-export declare function hasFilters(payload: Record<string, any>): boolean;
+export declare function hasFilters(payload: DataTableView): boolean;
 export declare class FilterBar {
     private readonly framework;
     private readonly definitions;
@@ -39,7 +40,7 @@ export declare class FilterBar {
     private applied;
     private reload;
     private popoverController;
-    constructor(payload: Record<string, any>, framework: StyleFramework);
+    constructor(payload: DataTableView, framework: StyleFramework);
     collectValues(): Record<string, FilterValue>;
     private snapshot;
     restoreValues(values: unknown): void;
@@ -60,4 +61,4 @@ export declare class FilterBar {
     private buildCheckbox;
 }
 export declare function registerFilterFeature(DataTable: any): void;
-export declare function installFilterBar(payload: Record<string, any>, DataTable: any, framework: StyleFramework): FilterBar | null;
+export declare function installFilterBar(payload: DataTableView, DataTable: any, framework: StyleFramework): FilterBar | null;

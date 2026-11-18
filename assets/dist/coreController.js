@@ -25,6 +25,7 @@ import { fetchEditForm } from './functions/fetchEditForm.js';
 import { installFilterBar } from './functions/filters.js';
 import { forwardedQuery } from './functions/forwardedQuery.js';
 import { isHighlightEnabled } from './functions/highlightUpdates.js';
+import { isRecord } from './functions/htmlUtils.js';
 import { isDataTableClone } from './functions/isDataTableClone.js';
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
 import { hasLucideIcons, hasLucideIconsInActions, loadLucideIcons, } from './functions/lucideIcons.js';
@@ -265,7 +266,7 @@ class default_1 extends Controller {
                 await packageLoaders.load(extensionName, framework);
             }
         }
-        if (payload?.select?.withCheckbox) {
+        if (isRecord(payload.select) && payload.select.withCheckbox) {
             payload.columns.unshift({
                 data: null,
                 defaultContent: '',
@@ -281,7 +282,7 @@ class default_1 extends Controller {
                     render: DataTable.render.select(),
                     targets: 0,
                 },
-                ...(payload.columnDefs ?? []),
+                ...(Array.isArray(payload.columnDefs) ? payload.columnDefs : []),
             ];
         }
         restrictSearchBuilder(payload);

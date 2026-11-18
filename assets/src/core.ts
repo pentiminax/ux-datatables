@@ -30,3 +30,4 @@ export type {
     ModalHandlers,
 } from './modal/ModalAdapter.js'
 export { ModalAdapterRegistry, modalAdapters } from './modal/ModalAdapterRegistry.js'
+export type { DataTableView, DataTableViewColumn } from './types/dataTableView.js'

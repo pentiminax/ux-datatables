@@ -1,3 +1,4 @@
+import type { DataTableView } from '../types/dataTableView.js'
 import { applyFeatureLayout } from './featureLayout.js'
 import type { FilterBar } from './filters.js'
 
@@ -8,7 +9,10 @@ export interface FilterLayoutEntry {
 /**
  * @deprecated since 1.2, use installFilterBar() from './filters.js' instead. Removed in 2.0.
  */
-export function applyFilterLayout(payload: Record<string, any>, instance: FilterBar): void {
+export function applyFilterLayout(
+    payload: Pick<DataTableView, 'layout'>,
+    instance: FilterBar
+): void {
     console.warn(
         'applyFilterLayout() is deprecated and removed in 2.0. Use installFilterBar() instead.'
     )
