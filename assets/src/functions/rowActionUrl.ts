@@ -1,17 +1,13 @@
 import type { DataTableView } from '../types/dataTableView.js'
 
-export const DEFAULT_ROW_ACTION_URLS = {
-    delete: '/datatables/ajax/delete',
-    toggle: '/datatables/ajax/edit',
-    detail: '/datatables/ajax/detail',
-    editForm: '/datatables/ajax/edit-form/view',
-    editFormSubmit: '/datatables/ajax/edit-form',
-}
-
-export type RowActionName = keyof typeof DEFAULT_ROW_ACTION_URLS
+export type RowActionName = 'delete' | 'toggle' | 'detail' | 'editForm' | 'editFormSubmit'
 
 export function rowActionUrl(payload: DataTableView, name: RowActionName): string {
-    const url = payload?.rowActionUrls?.[name]
+    const url = payload.rowActionUrls?.[name]
 
-    return typeof url === 'string' && url.length > 0 ? url : DEFAULT_ROW_ACTION_URLS[name]
+    if (typeof url !== 'string' || url.length === 0) {
+        throw new Error(`The payload has no "${name}" row action URL.`)
+    }
+
+    return url
 }

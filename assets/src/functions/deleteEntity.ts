@@ -1,18 +1,17 @@
 import { createMutationHeaders } from './createMutationHeaders.js'
-import { DEFAULT_ROW_ACTION_URLS } from './rowActionUrl.js'
 
 export async function deleteEntity({
     dataTable,
     id,
     csrfToken,
     query,
-    url = DEFAULT_ROW_ACTION_URLS.delete,
+    url,
 }: {
     dataTable: string
     id: string
     csrfToken?: string
     query?: Record<string, unknown>
-    url?: string
+    url: string
 }): Promise<Response> {
     return await fetch(url, {
         method: 'DELETE',

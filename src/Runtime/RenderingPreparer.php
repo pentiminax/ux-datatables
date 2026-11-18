@@ -441,7 +441,7 @@ final class RenderingPreparer
             try {
                 $urls[$name] = $this->urlGenerator->generate($route);
             } catch (RouteNotFoundException) {
-                // The route is not imported (or Form is absent): the frontend falls back to its default path.
+                // The route is not imported (or Form is absent): the frontend refuses that row action.
             }
         }
 

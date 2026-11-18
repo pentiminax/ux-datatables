@@ -270,5 +270,8 @@ change, the application and its test suite must run with no call to a removed me
    `resolveMercureConfig()` lose the `?AsDataTable` parameter, and `prepareAfterDataHydration()`
    returns a `PreparedDataTable`. `FilterEntityOptionsResolver::prepare()` takes the `Filters`.
    `SearchListOptionsResolver::prepare()` is removed.
+9. Purge HTTP and page caches that hold pages rendered before 1.5.1, and make sure the bundle's
+   routes are imported: the browser refuses a row action (delete, toggle, detail, edit) whose URL
+   is missing from the payload's `rowActionUrls` instead of falling back to a default path.
 
 </upgrade-prompt>

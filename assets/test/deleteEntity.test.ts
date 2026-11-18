@@ -11,6 +11,7 @@ describe('deleteEntity', () => {
         vi.stubGlobal('fetch', fetchMock)
 
         await deleteEntity({
+            url: '/datatables/ajax/delete',
             dataTable: 'signed-token',
             id: '42',
         })
@@ -32,6 +33,7 @@ describe('deleteEntity', () => {
         vi.stubGlobal('fetch', fetchMock)
 
         await deleteEntity({
+            url: '/datatables/ajax/delete',
             dataTable: 'signed-token',
             id: '9007199254740993',
         })
@@ -44,6 +46,7 @@ describe('deleteEntity', () => {
         vi.stubGlobal('fetch', fetchMock)
 
         await deleteEntity({
+            url: '/datatables/ajax/delete',
             dataTable: 'signed-token',
             id: '00123',
         })
@@ -56,6 +59,7 @@ describe('deleteEntity', () => {
         vi.stubGlobal('fetch', fetchMock)
 
         await deleteEntity({
+            url: '/datatables/ajax/delete',
             dataTable: 'signed-token',
             id: 'user-uuid-42',
         })

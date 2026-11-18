@@ -1,11 +1,10 @@
 import { JSON_HEADERS, postRowRequest } from './postRowRequest.js'
-import { DEFAULT_ROW_ACTION_URLS } from './rowActionUrl.js'
 
 type FetchDetailRowPayload = {
     dataTable: string
     id: string
     query?: Record<string, unknown>
-    url?: string
+    url: string
 }
 
 type FetchDetailRowResponse = {
@@ -15,7 +14,7 @@ type FetchDetailRowResponse = {
 }
 
 export function fetchDetailRow({
-    url = DEFAULT_ROW_ACTION_URLS.detail,
+    url,
     ...payload
 }: FetchDetailRowPayload): Promise<FetchDetailRowResponse> {
     return postRowRequest(url, JSON_HEADERS, payload, {

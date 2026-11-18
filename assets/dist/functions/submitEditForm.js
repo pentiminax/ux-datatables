@@ -1,8 +1,7 @@
 import { createMutationHeaders } from './createMutationHeaders.js';
 import { postRowRequest } from './postRowRequest.js';
-import { DEFAULT_ROW_ACTION_URLS } from './rowActionUrl.js';
 export function submitEditForm(payload) {
-    const { csrfToken, url = DEFAULT_ROW_ACTION_URLS.editFormSubmit, ...body } = payload;
+    const { csrfToken, url, ...body } = payload;
     return postRowRequest(url, createMutationHeaders(csrfToken), body, {
         success: false,
     });

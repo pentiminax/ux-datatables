@@ -3,5 +3,5 @@ export declare function deleteEntity({ dataTable, id, csrfToken, query, url, }: 
     id: string;
     csrfToken?: string;
     query?: Record<string, unknown>;
-    url?: string;
+    url: string;
 }): Promise<Response>;

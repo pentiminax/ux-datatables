@@ -214,6 +214,7 @@ describe('datatable controller Turbo lifecycle', () => {
         const table = mountTable({
             dataTable: 'mutation-token',
             mutationsEnabled: true,
+            rowActionUrls: { delete: '/datatables/ajax/delete', toggle: '/datatables/ajax/edit' },
         })
         await getController(application, table)
 

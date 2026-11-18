@@ -2,7 +2,7 @@ type FetchDetailRowPayload = {
     dataTable: string;
     id: string;
     query?: Record<string, unknown>;
-    url?: string;
+    url: string;
 };
 type FetchDetailRowResponse = {
     success: boolean;

@@ -1,11 +1,10 @@
 import { JSON_HEADERS, postRowRequest } from './postRowRequest.js'
-import { DEFAULT_ROW_ACTION_URLS } from './rowActionUrl.js'
 
 type FetchEditFormPayload = {
     dataTable: string
     id: string
     query?: Record<string, unknown>
-    url?: string
+    url: string
 }
 
 type FetchEditFormResponse = {
@@ -15,7 +14,7 @@ type FetchEditFormResponse = {
 }
 
 export function fetchEditForm({
-    url = DEFAULT_ROW_ACTION_URLS.editForm,
+    url,
     ...payload
 }: FetchEditFormPayload): Promise<FetchEditFormResponse> {
     return postRowRequest(url, JSON_HEADERS, payload, {
