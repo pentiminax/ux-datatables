@@ -2,6 +2,7 @@ import { Application } from '@hotwired/stimulus'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import DatatableController from '../src/controller.js'
 import frFR from '../src/i18n/fr-FR.js'
+import type { ActionType } from '../src/columnRenderers/types.js'
 import { loadDataTableLibrary } from '../src/functions/loadDataTableLibrary.js'
 import { packageLoaders } from '../src/functions/packageLoaders.js'
 import { type RowActionName, rowActionUrl } from '../src/functions/rowActionUrl.js'
@@ -50,9 +51,16 @@ const everyFixtureKeyDeclared: [Undeclared] extends [never] ? true : Undeclared 
 const everyDeclaredKeyPinned: [Unpinned] extends [never] ? true : Unpinned = true
 type StaleKey = Exclude<UnexercisedKey, DeclaredKey>
 const everyUnexercisedKeyDeclared: [StaleKey] extends [never] ? true : StaleKey = true
-// JSON modules widen string literals: only the filter `type` union is restored by hand.
+// JSON modules widen string literals: the filter and action `type` unions are restored by hand.
 const view: DataTableView = {
     ...fixture,
+    columns: fixture.columns.map((column) => ({
+        ...column,
+        actions: column.actions?.map((action) => ({
+            ...action,
+            type: action.type as ActionType,
+        })),
+    })),
     filters: fixture.filters.map((filter) => ({
         ...filter,
         type: filter.type as FilterDefinition['type'],
