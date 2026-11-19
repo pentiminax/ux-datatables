@@ -1,177 +1,165 @@
 // Bootstrap 5 edit modal adapter, copied by bin/console ux-datatables:install. Adapt it to your Bootstrap setup.
 import {
-	createModalRoot,
-	extractFormData,
-	modalAdapters,
-	packageLoaders,
-} from "@pentiminax/ux-datatables/dist/core.js";
+    createModalRoot,
+    extractFormData,
+    modalAdapters,
+    packageLoaders,
+} from '@pentiminax/ux-datatables/dist/core.js'
 
 async function loadBootstrapModal() {
-	try {
-		const bootstrap = await packageLoaders.load("bootstrap");
+    try {
+        const bootstrap = await packageLoaders.load('bootstrap')
 
-		return bootstrap.Modal ?? null;
-	} catch (error) {
-		console.error(
-			"[ux-datatables] Bootstrap is required for the BootstrapModalAdapter.",
-			error,
-		);
+        return bootstrap.Modal ?? null
+    } catch (error) {
+        console.error('[ux-datatables] Bootstrap is required for the BootstrapModalAdapter.', error)
 
-		return null;
-	}
+        return null
+    }
 }
 
 class BootstrapModalAdapter {
-	modalRoot = null;
-	modalBody = null;
-	submitButton = null;
-	modalInstance = null;
-	handlers = null;
-	open = false;
-	notifyCancelOnHide = true;
-	hideResolver = null;
+    modalRoot = null
+    modalBody = null
+    submitButton = null
+    modalInstance = null
+    handlers = null
+    open = false
+    notifyCancelOnHide = true
+    hideResolver = null
 
-	hiddenListener = () => {
-		const shouldCancel = this.notifyCancelOnHide;
-		const onCancel = this.handlers?.onCancel;
+    hiddenListener = () => {
+        const shouldCancel = this.notifyCancelOnHide
+        const onCancel = this.handlers?.onCancel
 
-		this.cleanup();
-		this.hideResolver?.();
-		this.hideResolver = null;
+        this.cleanup()
+        this.hideResolver?.()
+        this.hideResolver = null
 
-		if (shouldCancel) {
-			onCancel?.();
-		}
-	};
+        if (shouldCancel) {
+            onCancel?.()
+        }
+    }
 
-	submitListener = async () => {
-		if (!this.handlers || !this.submitButton || !this.modalBody) {
-			return;
-		}
+    submitListener = async () => {
+        if (!this.handlers || !this.submitButton || !this.modalBody) {
+            return
+        }
 
-		const form = this.modalBody.querySelector("#ux-datatables-edit-form");
+        const form = this.modalBody.querySelector('#ux-datatables-edit-form')
 
-		if (!form) {
-			console.error(
-				"[ux-datatables] Missing #ux-datatables-edit-form inside the modal body.",
-			);
+        if (!form) {
+            console.error('[ux-datatables] Missing #ux-datatables-edit-form inside the modal body.')
 
-			return;
-		}
+            return
+        }
 
-		const originalLabel = this.submitButton.innerHTML;
-		this.submitButton.disabled = true;
-		this.submitButton.innerHTML =
-			'<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+        const originalLabel = this.submitButton.innerHTML
+        this.submitButton.disabled = true
+        this.submitButton.innerHTML =
+            '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...'
 
-		try {
-			await this.handlers.onSubmit(extractFormData(form));
-		} finally {
-			if (this.submitButton) {
-				this.submitButton.disabled = false;
-				this.submitButton.innerHTML = originalLabel;
-			}
-		}
-	};
+        try {
+            await this.handlers.onSubmit(extractFormData(form))
+        } finally {
+            if (this.submitButton) {
+                this.submitButton.disabled = false
+                this.submitButton.innerHTML = originalLabel
+            }
+        }
+    }
 
-	async show(html, handlers) {
-		this.cleanup();
-		this.handlers = handlers;
-		this.notifyCancelOnHide = true;
+    async show(html, handlers) {
+        this.cleanup()
+        this.handlers = handlers
+        this.notifyCancelOnHide = true
 
-		const modalRoot = createModalRoot(html);
+        const modalRoot = createModalRoot(html)
 
-		if (!modalRoot) {
-			return;
-		}
+        if (!modalRoot) {
+            return
+        }
 
-		const modalBody = modalRoot.querySelector(
-			"[data-ux-datatables-modal-body]",
-		);
-		const submitButton = modalRoot.querySelector("[data-ux-datatables-submit]");
+        const modalBody = modalRoot.querySelector('[data-ux-datatables-modal-body]')
+        const submitButton = modalRoot.querySelector('[data-ux-datatables-submit]')
 
-		if (!modalBody || !submitButton) {
-			console.error(
-				"[ux-datatables] Edit modal template must include [data-ux-datatables-modal-body] and [data-ux-datatables-submit].",
-			);
+        if (!modalBody || !submitButton) {
+            console.error(
+                '[ux-datatables] Edit modal template must include [data-ux-datatables-modal-body] and [data-ux-datatables-submit].'
+            )
 
-			return;
-		}
+            return
+        }
 
-		const ModalClass = await loadBootstrapModal();
+        const ModalClass = await loadBootstrapModal()
 
-		if (!ModalClass) {
-			return;
-		}
+        if (!ModalClass) {
+            return
+        }
 
-		document.body.appendChild(modalRoot);
+        document.body.appendChild(modalRoot)
 
-		this.modalRoot = modalRoot;
-		this.modalBody = modalBody;
-		this.submitButton = submitButton;
-		this.modalInstance = new ModalClass(modalRoot);
+        this.modalRoot = modalRoot
+        this.modalBody = modalBody
+        this.submitButton = submitButton
+        this.modalInstance = new ModalClass(modalRoot)
 
-		this.modalRoot.addEventListener("hidden.bs.modal", this.hiddenListener);
-		this.submitButton.addEventListener("click", this.submitListener);
+        this.modalRoot.addEventListener('hidden.bs.modal', this.hiddenListener)
+        this.submitButton.addEventListener('click', this.submitListener)
 
-		this.modalInstance.show();
-		this.open = true;
-	}
+        this.modalInstance.show()
+        this.open = true
+    }
 
-	replaceBody(html) {
-		if (!this.modalBody) {
-			console.error(
-				"[ux-datatables] Cannot replace modal body before the modal is shown.",
-			);
+    replaceBody(html) {
+        if (!this.modalBody) {
+            console.error('[ux-datatables] Cannot replace modal body before the modal is shown.')
 
-			return;
-		}
+            return
+        }
 
-		this.modalBody.innerHTML = html;
-	}
+        this.modalBody.innerHTML = html
+    }
 
-	hide() {
-		if (!this.modalInstance || !this.open) {
-			this.cleanup();
+    hide() {
+        if (!this.modalInstance || !this.open) {
+            this.cleanup()
 
-			return Promise.resolve();
-		}
+            return Promise.resolve()
+        }
 
-		this.notifyCancelOnHide = false;
+        this.notifyCancelOnHide = false
 
-		return new Promise((resolve) => {
-			this.hideResolver = resolve;
-			this.modalInstance?.hide();
-		});
-	}
+        return new Promise((resolve) => {
+            this.hideResolver = resolve
+            this.modalInstance?.hide()
+        })
+    }
 
-	isOpen() {
-		return this.open;
-	}
+    isOpen() {
+        return this.open
+    }
 
-	cleanup() {
-		this.open = false;
+    cleanup() {
+        this.open = false
 
-		if (this.submitButton) {
-			this.submitButton.removeEventListener("click", this.submitListener);
-		}
+        if (this.submitButton) {
+            this.submitButton.removeEventListener('click', this.submitListener)
+        }
 
-		if (this.modalRoot) {
-			this.modalRoot.removeEventListener(
-				"hidden.bs.modal",
-				this.hiddenListener,
-			);
-		}
+        if (this.modalRoot) {
+            this.modalRoot.removeEventListener('hidden.bs.modal', this.hiddenListener)
+        }
 
-		this.modalInstance?.dispose?.();
-		this.modalRoot?.remove();
+        this.modalInstance?.dispose?.()
+        this.modalRoot?.remove()
 
-		this.modalInstance = null;
-		this.modalRoot = null;
-		this.modalBody = null;
-		this.submitButton = null;
-		this.handlers = null;
-	}
+        this.modalInstance = null
+        this.modalRoot = null
+        this.modalBody = null
+        this.submitButton = null
+        this.handlers = null
+    }
 }
 
-modalAdapters.register("bs5", () => new BootstrapModalAdapter());
+modalAdapters.register('bs5', () => new BootstrapModalAdapter())
