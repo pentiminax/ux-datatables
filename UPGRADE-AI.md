@@ -315,5 +315,10 @@ change, the application and its test suite must run with no call to a removed me
 17. Remove the fourth positional argument (`Filters`) of `new ArrayDataProvider(...)`, and the second
     argument of `FilterTypeMapper::mapType()`. If an intent factory was passed fifth, pass it fourth
     or as `intentFactory:`.
+18. Replace imports of the removed frontend modules `functions/filterFeature.js`,
+    `functions/filterLayout.js`, `functions/bulkActionsFeature.js` and
+    `functions/bulkActionsLayout.js` with `installFilterBar()` (`functions/filters.js`) or
+    `installBulkActionBar()` (`bulk/BulkActionBar.js`), and `confirmBulkAction()` with
+    `confirmAction()`.
 
 </upgrade-prompt>

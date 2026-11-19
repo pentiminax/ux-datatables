@@ -35,10 +35,6 @@ export async function confirmAction(request) {
         });
     });
 }
-export function confirmBulkAction(...args) {
-    console.warn('confirmBulkAction() is deprecated and removed in 2.0. Use confirmAction() instead.');
-    return confirmAction(...args);
-}
 function buildHtml(request) {
     const message = escapeHtml(request.message);
     const confirmLabel = escapeHtml(request.confirmLabel);

@@ -257,6 +257,18 @@ Everything below was deprecated in 1.x and is removed. Each line names its repla
   authorized the row. Do not call the services from application code.
 - The `$filters` argument of `ArrayDataProvider` and the `$name` argument of
   `FilterTypeMapper::mapType()`.
+- The frontend modules `functions/filterFeature.js`, `functions/filterLayout.js`,
+  `functions/bulkActionsFeature.js` and `functions/bulkActionsLayout.js`, and `confirmBulkAction()`:
+  use `installFilterBar()` from `functions/filters.js`, `installBulkActionBar()` from
+  `bulk/BulkActionBar.js` and `confirmAction()` from `bulk/confirmModal.js`.
+
+  ```js
+  // Before (1.x)
+  import { confirmBulkAction } from '@pentiminax/ux-datatables/dist/bulk/confirmModal.js'
+
+  // After (2.0)
+  import { confirmAction } from '@pentiminax/ux-datatables/dist/bulk/confirmModal.js'
+  ```
 
 ### `ArrayDataProvider` loses its `$filters` argument
 

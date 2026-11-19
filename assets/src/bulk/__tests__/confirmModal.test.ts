@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { resolveModalAdapter } from '../../modal/resolveModalAdapter.js'
-import { confirmAction, confirmBulkAction } from '../confirmModal.js'
+import { confirmAction } from '../confirmModal.js'
 
 vi.mock('../../modal/resolveModalAdapter.js', () => ({
     resolveModalAdapter: vi.fn(),
@@ -71,16 +71,5 @@ describe('confirmAction', () => {
 
         await expect(confirmAction(request)).resolves.toBe(true)
         expect(nativeConfirm).toHaveBeenCalledWith(request.message)
-    })
-
-    it('keeps the deprecated bulk alias and warns about it', async () => {
-        vi.mocked(resolveModalAdapter).mockResolvedValue(null as never)
-        vi.spyOn(window, 'confirm').mockReturnValue(true)
-        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-
-        await expect(confirmBulkAction(request)).resolves.toBe(true)
-        expect(warn).toHaveBeenCalledWith(
-            expect.stringContaining('confirmBulkAction() is deprecated')
-        )
     })
 })
