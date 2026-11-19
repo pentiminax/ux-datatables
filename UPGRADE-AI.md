@@ -40,7 +40,7 @@ test suite and the application must log no `pentiminax/ux-datatables` deprecatio
 - `Actions`: `setColumnLabel()` → `columnLabel()`, `setColumnClassName()` → `columnClassName()`, `setColumnControl()` → `columnControl()`
 - `BulkActions`: `setIdField()` → `idField()`
 - `DataTableOptions`: `setLanguage()` → `language()`, `setSearch()` → `search()`
-- `DataTable`: `setAttributes()` → `attributes()`, `setPermission()` → `permission()`, `setHighlightConfig()` → `highlightConfig()`
+- `AbstractDataTable`: `setData()` → `rows()`; `DataTable`: `setAttributes()` → `attributes()`, `setPermission()` → `permission()`, `setHighlightConfig()` → `highlightConfig()`
 - `AbstractDataTable`: `setData()` → `rows()`
 
    Before:

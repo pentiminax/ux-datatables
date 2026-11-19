@@ -250,6 +250,7 @@ Everything below was deprecated in 1.x and is removed. Each line names its repla
   `setHighlightConfig()` on `DataTable`: use the bare method (`className()`, `entityClass()`, ...).
 - `DataTable::setExtensions()`: declare extensions with `extensions([...])`.
 - `Action::csrfTokenId()`: use `csrfToken()`.
+- `AbstractDataTable::setData()`: use `rows()`.
 - `EntityMutator::delete()` and `setProperty()`, `DetailRowService::handleView()`,
   `EditFormService::handleView()` and `handleSubmit()`: the bundle's Ajax controllers call
   `deleteRow()`, `toggleRow()`, `render()`, `renderForm()` and `submitForm()` after the row gate has

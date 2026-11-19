@@ -203,8 +203,8 @@ final class RelationFieldResolver
      * rejected too: it is a virtual column assembled in mapRow(), and emitting
      * "<alias>.<field>" for it makes Doctrine reject the whole query with "has no field or
      * association named ...", taking down the table rather than just that column. Such a
-     * column is skipped instead, and its owner opts back into search with setSearchField(),
-     * addSearchJoin(), or setSearchPredicate().
+     * column is skipped instead, and its owner opts back into search with searchField(),
+     * addSearchJoin(), or searchPredicate().
      */
     public static function supportsSearchFiltering(QueryBuilder $qb, ?string $fieldPath): bool
     {

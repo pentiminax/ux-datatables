@@ -9,6 +9,7 @@ use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
+use Pentiminax\UX\DataTables\Ajax\DetailRowService;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Ajax\RowActionGate;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
@@ -19,7 +20,11 @@ use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\IdentifierDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
+use Pentiminax\UX\DataTables\Controller\AjaxDetailController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
+use Pentiminax\UX\DataTables\Controller\AjaxEditFormController;
+use Pentiminax\UX\DataTables\Controller\AjaxEditFormRequestDto;
+use Pentiminax\UX\DataTables\Controller\AjaxEditFormSubmitController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditRequestDto;
 use Pentiminax\UX\DataTables\Controller\AjaxEntityQueryDto;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
@@ -62,6 +67,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\PropertyAccess\PropertyAccess;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Twig\Environment;
+use Twig\Loader\ArrayLoader;
 
 /**
  * Account 3 is hidden: the table scope excludes it, yet it exists and could be mutated by id.
@@ -231,6 +238,42 @@ final class RowScopeGuardTest extends TestCase
         $toggle = new AjaxEditController($this->mutator(), $this->gate($this->forwardingRegistry(), $guard));
         $toggle($stack->getCurrentRequest(), new AjaxEditRequestDto($token, 2, 'active', false));
         $this->assertFalse($this->em->find(CountAccount::class, 2)->active);
+    }
+
+    #[Test]
+    public function it_replays_forwarded_query_parameters_on_detail(): void
+    {
+        $stack = $this->forwardingRequestStack(['hidden' => 'hidden']);
+        $guard = new RowScopeGuard($this->locator(), $stack);
+        $token = $this->forwardingToken();
+
+        $twig    = new Environment(new ArrayLoader(['detail.html.twig' => '{{ entity.name }}']));
+        $service = new DetailRowService($this->locator(), $guard, $twig, new AuthorizationChecker(new TestAuthorizationChecker()));
+        $detail  = new AjaxDetailController($service, $this->gate($this->forwardingRegistry(), $guard));
+
+        $this->assertSame('Beta', json_decode($detail($stack->getCurrentRequest(), new AjaxEntityQueryDto($token, 2))->getContent(), true)['html']);
+
+        $this->expectException(EntityNotFoundException::class);
+        $detail($stack->getCurrentRequest(), new AjaxEntityQueryDto($token, 3));
+    }
+
+    #[Test]
+    public function it_replays_forwarded_query_parameters_on_the_edit_form_view_and_submit(): void
+    {
+        $stack   = $this->forwardingRequestStack(['hidden' => 'hidden']);
+        $guard   = new RowScopeGuard($this->locator(), $stack);
+        $service = $this->forwardingEditFormService($guard);
+        $token   = $this->forwardingToken();
+        $view    = new AjaxEditFormController($service, $this->gate($this->forwardingRegistry(), $guard));
+        $submit  = new AjaxEditFormSubmitController($service, $this->gate($this->forwardingRegistry(), $guard));
+        $request = $stack->getCurrentRequest();
+
+        $this->assertSame(200, $view($request, new AjaxEntityQueryDto($token, 1))->getStatusCode());
+        $this->assertSame(200, $submit($request, new AjaxEditFormRequestDto($token, 1, ['name' => 'Renamed']))->getStatusCode());
+
+        $this->assertNotNull($this->em->find(CountAccount::class, 3));
+        $this->expectException(EntityNotFoundException::class);
+        $view($request, new AjaxEntityQueryDto($token, 3));
     }
 
     #[Test]

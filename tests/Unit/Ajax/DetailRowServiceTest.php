@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Ajax;
 
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\EntityRepository;
-use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
 use Pentiminax\UX\DataTables\Ajax\AuthorizedRow;
 use Pentiminax\UX\DataTables\Ajax\DetailRowService;
@@ -84,28 +81,6 @@ final class DetailRowServiceTest extends TestCase
     {
         return new ResolvedDataTable($dataTable, DetailRowEntity::class, $dataTable::class);
     }
-
-    private function twigThatNeverRenders(): Environment
-    {
-        $twig = $this->createMock(Environment::class);
-        $twig->expects($this->never())->method('render');
-
-        return $twig;
-    }
-
-    private function locatorReturning(object $entity): EntityLocator
-    {
-        $repository = $this->createStub(EntityRepository::class);
-        $repository->method('find')->willReturn($entity);
-
-        $manager = $this->createStub(EntityManagerInterface::class);
-        $manager->method('getRepository')->willReturn($repository);
-
-        $registry = $this->createStub(ManagerRegistry::class);
-        $registry->method('getManagerForClass')->willReturn($manager);
-
-        return new EntityLocator($registry);
-    }
 }
 
 final class DetailRowEntity
@@ -126,53 +101,5 @@ final class CollapsibleDetailDataTable extends AbstractDataTable
     public function configureActions(Actions $actions): Actions
     {
         return $actions->add(Action::detail()->collapsible('detail.html.twig', ['extra' => 'hint']));
-    }
-}
-
-#[AsDataTable(entityClass: DetailRowEntity::class)]
-final class PlainDetailDataTable extends AbstractDataTable
-{
-    public function configureColumns(): iterable
-    {
-        yield TextColumn::new('email', 'Email');
-    }
-
-    public function configureActions(Actions $actions): Actions
-    {
-        return $actions->add(Action::detail()->linkToUrl('/detail/1'));
-    }
-}
-
-#[AsDataTable(entityClass: DetailRowEntity::class)]
-final class StaticPermissionDetailDataTable extends AbstractDataTable
-{
-    public function configureColumns(): iterable
-    {
-        yield TextColumn::new('email', 'Email');
-    }
-
-    public function configureActions(Actions $actions): Actions
-    {
-        return $actions->add(
-            Action::detail()->collapsible('detail.html.twig')->permission('SHOW_DETAIL')
-        );
-    }
-}
-
-#[AsDataTable(entityClass: DetailRowEntity::class)]
-final class PerRowPermissionDetailDataTable extends AbstractDataTable
-{
-    public function configureColumns(): iterable
-    {
-        yield TextColumn::new('email', 'Email');
-    }
-
-    public function configureActions(Actions $actions): Actions
-    {
-        return $actions->add(
-            Action::detail()
-                ->collapsible('detail.html.twig')
-                ->permission('SHOW_DETAIL', static fn (DetailRowEntity $entity): string => $entity->email)
-        );
     }
 }
