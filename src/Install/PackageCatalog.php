@@ -128,21 +128,23 @@ final class PackageCatalog
 
     /**
      * @param list<string> $packages
+     * @param bool         $scoped   register DataTables and extension loaders for the kit's framework, as 2.0 does; false renders the 1.x file
      */
-    public static function render(array $packages, InstallStyle $style, string $header): string
+    public static function render(array $packages, InstallStyle $style, string $header, bool $scoped = true): string
     {
         $registrations = array_map(
             static fn (string $package): string => \sprintf(
-                "    .register('%s', %s)",
+                "    .register('%s', %s%s)",
                 $package,
                 self::renderLoader($package, self::specifiers($package, $style)),
+                $scoped && !isset(self::SHARED[$package]) ? ", '".$style->framework()->value."'" : '',
             ),
             $packages,
         );
 
         return $header."\n"
             ."import { packageLoaders } from '@pentiminax/ux-datatables/dist/core.js'\n"
-            .(InstallStyle::Bootstrap5 === $style ? "import './datatables_bootstrap_modal.js'\n" : '')
+            .($scoped && InstallStyle::Bootstrap5 === $style ? "import './datatables_bootstrap_modal.js'\n" : '')
             ."\n"
             ."packageLoaders\n"
             .implode("\n", $registrations)."\n";

@@ -40,7 +40,7 @@ final class InstallCommand extends Command
     {
         $this
             ->addArgument('extensions', InputArgument::IS_ARRAY, 'Extensions to install: '.implode(', ', PackageCatalog::selectable()))
-            ->addOption('style', null, InputOption::VALUE_REQUIRED, 'Kit: tailwind, dt or bs5 (default: the kit of assets/datatables.js, else tailwind)')
+            ->addOption('style', null, InputOption::VALUE_REQUIRED, 'Kit: tailwind, dt or bs5 (default: inferred from your assets/datatables.js, config and controllers.json, tailwind on a fresh project)')
             ->addOption('all', null, InputOption::VALUE_NONE, 'Install every extension')
             ->addOption('no-detect', null, InputOption::VALUE_NONE, 'Do not scan your DataTable classes for the extensions they use')
         ;
@@ -51,7 +51,14 @@ final class InstallCommand extends Command
         $io      = new SymfonyStyle($input, $output);
         $loaders = $this->projectDir.'/assets/datatables.js';
         $current = is_file($loaders) ? (string) file_get_contents($loaders) : null;
-        $style   = InstallStyle::tryFrom((string) ($input->getOption('style') ?? $this->styleOf($current) ?? InstallStyle::Tailwind->value));
+        $given   = $input->getOption('style');
+        $style   = null === $given ? $this->inferStyle($current) : InstallStyle::tryFrom((string) $given);
+
+        if (null === $given && null === $style) {
+            $io->error('The kit of this project is ambiguous: assets/datatables.js, "style_framework" and assets/controllers.json disagree. Pass --style=tailwind, --style=dt or --style=bs5.');
+
+            return Command::INVALID;
+        }
 
         if (null === $style) {
             $io->error('Unknown style "'.$input->getOption('style').'". Valid styles: '.implode(', ', array_column(InstallStyle::cases(), 'value')).'.');
@@ -162,6 +169,12 @@ final class InstallCommand extends Command
             return Command::FAILURE;
         }
 
+        if ([] !== $kept) {
+            $io->writeln('Next steps: review the kept files, then clear the cache.');
+
+            return $input->isInteractive() ? Command::SUCCESS : Command::FAILURE;
+        }
+
         $io->success('DataTables is set up with the '.$style->value.' kit.');
         $io->writeln('Next steps: clear the cache and reload a page that renders a table.');
 
@@ -250,7 +263,71 @@ final class InstallCommand extends Command
             return null;
         }
 
-        return str_contains($loaders, "'datatables.net-bs5'") ? InstallStyle::Bootstrap5->value : InstallStyle::Tailwind->value;
+        return str_contains($loaders, "'datatables.net-bs5'") ? InstallStyle::Bootstrap5->value : InstallStyle::DataTables->value;
+    }
+
+    /**
+     * The kit the project already uses, read from its loader file, its "style_framework" and the autoimport flags
+     * of its controllers.json. Tailwind on a project without any of them, null when they disagree.
+     */
+    private function inferStyle(?string $loaders): ?InstallStyle
+    {
+        $families = [];
+
+        if (null !== $loaders) {
+            $families[] = $this->styleOf($loaders);
+        }
+
+        foreach (glob($this->projectDir.'/config/packages/*.yaml') ?: [] as $file) {
+            $yaml = (string) file_get_contents($file);
+
+            if (1 === preg_match('/^data_tables:/m', $yaml) && 1 === preg_match('/^\s+style_framework:\s*[\'"]?(\w+)/m', $yaml, $match)) {
+                $families[] = $match[1];
+            }
+        }
+
+        $flags = $this->autoimportFlags();
+
+        if (null !== $flags && true === ($flags['datatables.net-bs5/css/dataTables.bootstrap5.min.css'] ?? null)) {
+            $families[] = InstallStyle::Bootstrap5->value;
+        } elseif (null !== $flags && true === ($flags['datatables.net-dt/css/dataTables.dataTables.min.css'] ?? null)) {
+            $families[] = InstallStyle::DataTables->value;
+        }
+
+        $families = array_values(array_unique($families));
+
+        if ([] === $families) {
+            return InstallStyle::Tailwind;
+        }
+
+        if (\count($families) > 1) {
+            return null;
+        }
+
+        if (InstallStyle::Bootstrap5->value === $families[0]) {
+            return InstallStyle::Bootstrap5;
+        }
+
+        return false === ($flags['@pentiminax/ux-datatables/dist/styles/datatables-tailwind-theme.css'] ?? null) ? InstallStyle::DataTables : InstallStyle::Tailwind;
+    }
+
+    /**
+     * @return array<string, bool>|null the autoimport flags of the datatable controller the application uses
+     */
+    private function autoimportFlags(): ?array
+    {
+        $file   = $this->projectDir.'/assets/controllers.json';
+        $data   = is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
+        $bundle = \is_array($data) && \is_array($data['controllers'] ?? null) ? ($data['controllers'][self::PACKAGE] ?? null) : null;
+
+        if (!\is_array($bundle)) {
+            return null;
+        }
+
+        $controller = true === ($bundle['datatable_core']['enabled'] ?? false) && false === ($bundle['datatable']['enabled'] ?? true) ? 'datatable_core' : 'datatable';
+        $flags      = $bundle[$controller]['autoimport'] ?? null;
+
+        return \is_array($flags) ? $flags : null;
     }
 
     /**
@@ -272,11 +349,17 @@ final class InstallCommand extends Command
             return false;
         }
 
-        $style    = InstallStyle::tryFrom((string) $this->styleOf($loaders)) ?? InstallStyle::Tailwind;
+        $style    = InstallStyle::tryFrom((string) $this->styleOf($loaders)) ?? InstallStyle::DataTables;
         $selected = array_values(array_intersect($this->registeredNames($loaders), PackageCatalog::selectable()));
-        $expected = PackageCatalog::render(PackageCatalog::registered($selected, $style), $style, '');
+        $packages = PackageCatalog::registered($selected, $style);
 
-        return $this->withoutHeader($expected) === $this->withoutHeader($loaders);
+        foreach ([true, false] as $scoped) {
+            if ($this->withoutHeader(PackageCatalog::render($packages, $style, '', $scoped)) === $this->withoutHeader($loaders)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function withoutHeader(string $loaders): string
@@ -319,10 +402,37 @@ final class InstallCommand extends Command
         $old = explode("\n", $before);
         $new = explode("\n", $after);
 
-        return implode("\n", [
-            ...array_map(static fn (string $line): string => '<fg=red>- '.OutputFormatter::escape($line).'</>', array_diff($old, $new)),
-            ...array_map(static fn (string $line): string => '<fg=green>+ '.OutputFormatter::escape($line).'</>', array_diff($new, $old)),
-        ]);
+        // Longest common subsequence, so a line moved or repeated shows up.
+        $lcs = array_fill(0, \count($old) + 1, array_fill(0, \count($new) + 1, 0));
+        for ($i = \count($old) - 1; $i >= 0; --$i) {
+            for ($j = \count($new) - 1; $j >= 0; --$j) {
+                $lcs[$i][$j] = $old[$i] === $new[$j] ? $lcs[$i + 1][$j + 1] + 1 : max($lcs[$i + 1][$j], $lcs[$i][$j + 1]);
+            }
+        }
+
+        $lines = [];
+        $i     = $j = 0;
+
+        while ($i < \count($old) && $j < \count($new)) {
+            if ($old[$i] === $new[$j]) {
+                ++$i;
+                ++$j;
+            } elseif ($lcs[$i + 1][$j] >= $lcs[$i][$j + 1]) {
+                $lines[] = '<fg=red>- '.OutputFormatter::escape($old[$i++]).'</>';
+            } else {
+                $lines[] = '<fg=green>+ '.OutputFormatter::escape($new[$j++]).'</>';
+            }
+        }
+
+        for (; $i < \count($old); ++$i) {
+            $lines[] = '<fg=red>- '.OutputFormatter::escape($old[$i]).'</>';
+        }
+
+        for (; $j < \count($new); ++$j) {
+            $lines[] = '<fg=green>+ '.OutputFormatter::escape($new[$j]).'</>';
+        }
+
+        return implode("\n", $lines);
     }
 
     private function hasBootstrapImport(): bool
@@ -371,11 +481,6 @@ final class InstallCommand extends Command
         // The StimulusBundle recipe ships "controllers": [], which decodes to an array.
         $data->controllers = (object) ($data->controllers ?? []);
         $bundle            = $data->controllers->{self::PACKAGE} ??= new \stdClass();
-
-        // 1.x registered setups enabled the datatable_core controller, which is now a deprecated alias of datatable.
-        if (isset($bundle->datatable_core) && $bundle->datatable_core instanceof \stdClass) {
-            $bundle->datatable_core->enabled = false;
-        }
 
         $controller          = $bundle->datatable ??= new \stdClass();
         $controller->enabled = true;
