@@ -130,7 +130,7 @@ Custom actions (`Action::new(...)->asAjaxRequest($csrfTokenId)`) post to **your*
 - **Everything is granted with no security stack.** `Security\AuthorizationChecker` wraps `AuthorizationCheckerInterface` with `nullOnInvalid()`; with no firewall (CLI, unit tests, an app without `symfony/security-bundle` enabled) every check returns `true`. Don't read a green test suite as proof the voters run.
 - **`DuplicateActionNameException`.** Two action columns declaring the same action name (only reachable by hand-assembling two `ActionColumn::fromActions()` collections) now throw instead of silently overwriting the row's resolved action data.
 - **Renaming from pre-hardening code.** The old `EDIT` / `DELETE` / `VIEW` attributes are gone — a voter still supporting those grants nothing. Rename to the `Permission::DT_*` constants.
-- **Do not call the row services directly.** `EntityMutator::delete()` / `setProperty()`, `DetailRowService::handleView()` and `EditFormService::handleView()` / `handleSubmit()` are deprecated since 1.5; the Ajax controllers authorize every single-row action through an internal gate first.
+- **Do not call the row services directly.** The Ajax controllers authorize every single-row action through an internal gate first, and the services only act on a row the gate has authorized.
 
 ## Cross links
 

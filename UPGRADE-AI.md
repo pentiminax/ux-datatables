@@ -296,5 +296,24 @@ change, the application and its test suite must run with no call to a removed me
 13. Add a bare `foo()` method to every custom column or filter that accepts an attribute option
     only through its own `setFoo()` method: 2.0 calls only `foo()` and throws "is not supported
     by" otherwise.
+14. Rename the remaining model `setX()` calls to their bare method, with the same arguments:
+    `Action`: `setClassName()` → `className()`, `setEntityClass()` → `entityClass()`,
+    `setIdField()` → `idField()`, `setPermission()` → `permission()`; `BulkAction`: `setClassName()`
+    → `className()`, `setPermission()` → `permission()`; `Actions`: `setColumnLabel()` →
+    `columnLabel()`, `setColumnClassName()` → `columnClassName()`, `setColumnControl()` →
+    `columnControl()`; `BulkActions`: `setIdField()` → `idField()`; `DataTableOptions`:
+    `setLanguage()` → `language()`, `setSearch()` → `search()`; `DataTable`: `setAttributes()` →
+    `attributes()`, `setPermission()` → `permission()`, `setHighlightConfig()` →
+    `highlightConfig()`.
+15. Replace `Action::csrfTokenId($id)` with `Action::csrfToken($id)` (same arguments) and
+    `DataTable::setExtensions($extensions)` with `extensions([...])`.
+16. Delete application calls to `EntityMutator::delete()` and `setProperty()`,
+    `DetailRowService::handleView()` and `EditFormService::handleView()` / `handleSubmit()`: the
+    bundle's Ajax controllers are the supported entry points, and the services now take an
+    `AuthorizedRow` through `deleteRow()`, `toggleRow()`, `render()`, `renderForm()` and
+    `submitForm()`.
+17. Remove the fourth positional argument (`Filters`) of `new ArrayDataProvider(...)`, and the second
+    argument of `FilterTypeMapper::mapType()`. If an intent factory was passed fifth, pass it fourth
+    or as `intentFactory:`.
 
 </upgrade-prompt>

@@ -58,9 +58,7 @@ An export streams every filtered row, so the projector runs once per batch (250 
 A data source that cannot apply SearchBuilder criteria, ColumnControl searches, configured filter values or summaries is refused (HTTP 400, or `LogicException` for summaries/API Platform at render) instead of returning unfiltered rows. Custom providers opt in through `FeatureAwareDataProviderInterface` (`references/defining-a-datatable.md`).
 
 ## 1.3 deprecations (removed in 2.0)
-- `ArrayDataProvider` 4th `$filters` argument: drop it.
 - `Feature::SEARCH_BUILDER` in a layout without the extension: call `searchBuilder()`.
-- `FilterTypeMapper::mapType()` second argument (filter name) is ignored.
 - YAML `options.pageLength` not in `options.lengthMenu` (deprecation now, exception in 2.0).
 
 ## Sorting a computed column needs `orderExpression()`
