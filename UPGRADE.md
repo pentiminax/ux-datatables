@@ -37,7 +37,7 @@ php bin/console ux-datatables:install --style=tailwind buttons responsive select
   `assets/datatables_bootstrap_modal.js`.
 - **`datatable` is the core controller.** It imports only `@hotwired/stimulus`, and the base style,
   the `dt` CSS and the Tailwind theme are autoimported. `datatable_core` stays as a deprecated alias
-  until 3.0. The Stimulus identifier is `pentiminax--ux-datatables--datatable`; code that looks up
+  until 3.0; the install command leaves its `controllers.json` entry as it is. The Stimulus identifier is `pentiminax--ux-datatables--datatable`; code that looks up
   `pentiminax--ux-datatables--datatable-core` keeps working only while the alias is enabled. To
   drop the Tailwind theme, set its `autoimport` flag to `false`.
 - **`package_loading` is removed.** `registered` is accepted, ignored and deprecated, so remove it
@@ -50,6 +50,11 @@ php bin/console ux-datatables:install --style=tailwind buttons responsive select
 - **Peer dependencies.** Only `@hotwired/stimulus` is required; the DataTables packages are optional.
   Symfony Flex no longer adds import map entries for packages you do not use, so you can delete the
   ones the 1.x recipe added and the install command did not require.
+- **PHP symbols.** `DataTablesExtension::CORE_CONTROLLER_NAME` and `CORE_VIEW_ATTRIBUTE` and the
+  `$controllerName` constructor argument are removed, as is the `datatables.controller_name`
+  container parameter: the extension always renders `DataTablesExtension::CONTROLLER_NAME` and
+  `VIEW_ATTRIBUTE`. Read the table view with `DataTablesExtension::VIEW_ATTRIBUTE`, or with
+  `DataTableView` in tests.
 - **`--prune` is removed** from `ux-datatables:install`: remove it from scripts and Composer hooks.
 - **Styles.** The style comes from `data_tables.style_framework` (default `dt`) or `styleFramework()`
   on a table, never from the page stylesheets: autodetection is removed. A style with no registered
@@ -115,8 +120,8 @@ overwriting the first value. Rename or remove the duplicate.
 ### `DataTablesExtension` takes fewer constructor arguments
 
 If you build `DataTablesExtension` by hand, its arguments are now the Stimulus helper, the
-profiler, the authorization checker and the controller name: drop the column resolver, request
-stack, CSRF token manager and Ajax registry arguments. The bundle's service needs no change.
+profiler and the authorization checker: drop the column resolver, request stack, CSRF token manager,
+Ajax registry and controller name arguments. The bundle's service needs no change.
 `DataTableProfiler::collectRenderedTable()` now receives the prepared payload and the configured
 table.
 

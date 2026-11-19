@@ -49,8 +49,9 @@ data_tables:
   style_framework: dt
 ```
 
-Left unset, the browser detects the framework from the page stylesheets and logs a console warning.
-That detection is removed in 2.0, where the default becomes `dt`.
+Left unset, the frontend uses the style of the loaders your application registered (`dt` when they
+do not name one). The page stylesheets are never inspected. With loaders registered for several
+styles, set it, or call `styleFramework()` on the table.
 
 ## max_page_length
 

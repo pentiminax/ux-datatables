@@ -93,7 +93,8 @@ and the command cannot detect them.
   migrates the files written by the 1.5 and 1.6 installer.
 - A file you edited is shown as a diff and replaced only after you confirm. A non-interactive run
   never overwrites it and says which files it kept.
-- Without `--style`, the kit of the existing `assets/datatables.js` is kept.
+- Without `--style`, the kit is inferred from `assets/datatables.js`, `style_framework` and the `autoimport` flags of `controllers.json` (Tailwind on a fresh project). When they disagree the command stops and asks for `--style`.
+- When it keeps a file because you edited it and it runs non-interactively, it prints a warning naming the file and exits with a failure status.
 
 ### Two styles in one application
 
@@ -110,8 +111,9 @@ packageLoaders
     .register('dataTables', () => import('datatables.net-bs5'), 'bs5')
 ```
 
-A table that requests a style with no registered adapter fails with a message naming the missing
-registration.
+The command registers its loaders for the kit's framework, so a table that requests a style you did
+not install fails with `The "dataTables" package is not registered`, and one that requests a style
+with no adapter fails with a message naming the missing registration.
 
 ## Manual setup
 
@@ -217,7 +219,7 @@ its button and warns. Without Lucide, tables initialize without their icons and 
 `data_tables.package_loading: registered` is accepted, ignored and deprecated: remove it.
 `package_loading: builtin` fails, because the built-in loaders no longer exist; run
 `ux-datatables:install` instead. The `datatable_core` controller stays as a deprecated alias of
-`datatable` until 3.0.
+`datatable` until 3.0; the command leaves its `controllers.json` entry as it finds it.
 
 ## Third-party extensions
 
