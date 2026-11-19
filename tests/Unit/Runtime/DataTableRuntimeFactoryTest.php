@@ -17,7 +17,6 @@ use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
-use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ApiPlatformCollectionProvider;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
@@ -160,6 +159,16 @@ final class DataTableRuntimeFactoryTest extends TestCase
 
         yield 'manual provider supplied' => [
             new class implements DataProviderInterface {
+                public function supports(\Pentiminax\UX\DataTables\Enum\DataSourceFeature $feature): bool
+                {
+                    return true;
+                }
+
+                public function iterateRows(DataTableRequest $request): iterable
+                {
+                    return $this->fetchData($request)->data;
+                }
+
                 public function fetchData(DataTableRequest $request): DataTableResult
                 {
                     return new DataTableResult(recordsTotal: 0, recordsFiltered: 0, data: []);
@@ -222,6 +231,16 @@ final class DataTableRuntimeFactoryTest extends TestCase
             asDataTable: null,
             baseMapper: static fn (): array => [],
             manualDataProviderFactory: static fn (): DataProviderInterface => new class implements DataProviderInterface {
+                public function supports(\Pentiminax\UX\DataTables\Enum\DataSourceFeature $feature): bool
+                {
+                    return true;
+                }
+
+                public function iterateRows(DataTableRequest $request): iterable
+                {
+                    return $this->fetchData($request)->data;
+                }
+
                 public function fetchData(DataTableRequest $request): DataTableResult
                 {
                     return new DataTableResult(0, 0, []);
@@ -301,7 +320,7 @@ final class DataTableRuntimeFactoryTest extends TestCase
         );
 
         $provider = $runtime->getDataProvider();
-        $this->assertInstanceOf(StreamingDataProviderInterface::class, $provider);
+        $this->assertInstanceOf(DataProviderInterface::class, $provider);
 
         $rows = iterator_to_array($provider->iterateRows(new DataTableRequest(
             draw: 1,

@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\PentiminaxDataTablesBundle;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessActionsDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessClientSideDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessServerSideDataTable;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessUnscopedBulkDataTable;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Bundle\MercureBundle\MercureBundle;
@@ -45,6 +46,7 @@ class TestHarnessAppKernel extends Kernel
             'secret'               => '$ecret',
             'test'                 => true,
             'http_method_override' => false,
+            'session'              => ['storage_factory_id' => 'session.storage.factory.mock_file'],
             'router'               => ['utf8' => true],
         ]);
 
@@ -66,11 +68,13 @@ class TestHarnessAppKernel extends Kernel
             'strict_variables' => true,
         ]);
 
-        foreach ([HarnessServerSideDataTable::class, HarnessClientSideDataTable::class, HarnessActionsDataTable::class] as $dataTableClass) {
+        foreach ([HarnessServerSideDataTable::class, HarnessClientSideDataTable::class, HarnessActionsDataTable::class, HarnessUnscopedBulkDataTable::class] as $dataTableClass) {
             $builder->register($dataTableClass, $dataTableClass)
                 ->setAutoconfigured(true)
                 ->setPublic(true);
         }
+
+        $container->services()->alias('test.datatables.ajax_registry', 'datatables.ajax.registry')->public();
 
         $builder->register(HarnessController::class, HarnessController::class)
             ->setArguments([

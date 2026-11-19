@@ -8,11 +8,11 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
-use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\ColumnTranslator;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\TemplateAwareColumnInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
@@ -123,6 +123,24 @@ final class RenderingPreparer
     }
 
     /**
+     * @param \Closure():?DataProviderInterface $provider read only when the table has actions served by the bundle
+     *
+     * @throws \LogicException when the table's actions run on a data provider that cannot check the row scope
+     */
+    public function assertMutationsScoped(DataTable $table, \Closure $provider): void
+    {
+        if (!DataSourceFeatureGuard::hasRowActions($table) && !$table->hasBulkActions()) {
+            return;
+        }
+
+        $dataProvider = $provider();
+
+        if (null !== $dataProvider) {
+            $this->featureGuard->assertMutationsScoped($table, $dataProvider);
+        }
+    }
+
+    /**
      * Build the payload of one render. Nothing is written back to the table.
      *
      * @param list<array<string, mixed>>|null $rows rows read for this render, replacing the table's `data`
@@ -197,7 +215,7 @@ final class RenderingPreparer
             unset($extensions['select']);
         }
 
-        $hasRowActions = $this->hasRowActions($table);
+        $hasRowActions = $this->rendersActionUrls($table);
         $filters       = $this->translatedFilters($table->getFilters());
         $hasFilters    = null !== $filters && !$filters->isEmpty();
         $emptyState    = $table->getEmptyState();
@@ -493,7 +511,7 @@ final class RenderingPreparer
         return array_map(fn (string $key): string => $this->translator->trans($key, domain: FilterLabels::DOMAIN), $keys);
     }
 
-    private function hasRowActions(DataTable $table): bool
+    private function rendersActionUrls(DataTable $table): bool
     {
         foreach ($table->getColumns() as $column) {
             if ($column instanceof ActionsProvidingColumnInterface || ($column instanceof BooleanColumn && $column->isRenderedAsSwitch())) {

@@ -55,7 +55,7 @@ An export streams every filtered row, so the projector runs once per batch (250 
 `row` is the object passed to `mapRow()`; the array it returned is `payload`. A template reading a mapped key must use `{{ data }}` (this cell) or `{{ payload.someKey }}` (any other key) — `{{ row.someMappedKey }}` renders empty for computed keys with no DB counterpart. `entity` is a deprecated alias of `row` here only; the `entity` of detail rows and edit modals is unrelated. Never authorize on `payload`: on the API Platform render route it is the browser-posted row.
 
 ## Unsupported features are refused, not ignored
-A data source that cannot apply SearchBuilder criteria, ColumnControl searches, configured filter values or summaries is refused (HTTP 400, or `LogicException` for summaries/API Platform at render) instead of returning unfiltered rows. Custom providers opt in through `FeatureAwareDataProviderInterface` (`references/defining-a-datatable.md`).
+A data source that cannot apply SearchBuilder criteria, ColumnControl searches, configured filter values or summaries is refused (HTTP 400, or `LogicException` for summaries/API Platform at render) instead of returning unfiltered rows. Custom providers declare what they apply through `DataProviderInterface::supports()` (`references/defining-a-datatable.md`).
 
 ## 1.3 deprecations (removed in 2.0)
 - `Feature::SEARCH_BUILDER` in a layout without the extension: call `searchBuilder()`.

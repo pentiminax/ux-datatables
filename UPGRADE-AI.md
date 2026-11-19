@@ -238,9 +238,10 @@ must log no `pentiminax/ux-datatables` deprecation.
 
 Context: ux-datatables 2.0 removes what 1.x deprecated. This section covers rendering (rendering no
 longer writes to the table, and the option bag holds DataTables.net options only), columns
-(`AbstractColumn` is the only column implementation, and every column `setX()` method is gone) and
-the frontend distribution (built-in package loaders, `package_loading`, Bootstrap 3 and 4, style
-autodetection and `--prune` are removed). After this
+(`AbstractColumn` is the only column implementation, and every column `setX()` method is gone), data
+providers (`DataProviderInterface` is the only provider contract) and the frontend distribution
+(built-in package loaders, `package_loading`, Bootstrap 3 and 4, style autodetection and `--prune`
+are removed). After this
 change, the application and its test suite must run with no call to a removed method.
 
 ## Required changes
@@ -276,7 +277,7 @@ change, the application and its test suite must run with no call to a removed me
 7. Remove the import map entries or `package.json` dependencies for DataTables packages the
    command did not require.
 
-### Rendering and columns
+### Rendering, columns, data providers and row scope
 
 1. Replace `$table->getDataTable()` and `$table->prepareForRendering()` on an `AbstractDataTable`:
    read configuration with `$table->getConfiguredDataTable()`, render with `render_datatable()` in
@@ -350,5 +351,31 @@ change, the application and its test suite must run with no call to a removed me
 17. Remove the fourth positional argument (`Filters`) of `new ArrayDataProvider(...)`, and the second
     argument of `FilterTypeMapper::mapType()`. If an intent factory was passed fifth, pass it fourth
     or as `intentFactory:`.
+18. Fix every custom data provider (a class implementing `DataProviderInterface`). The built-in
+    providers need no change.
+    - Add `supports(DataSourceFeature $feature): bool` and `iterateRows(DataTableRequest $request):
+      iterable` to the class: both are now abstract on `DataProviderInterface`. Answer every
+      `DataSourceFeature` case in `supports()`, with `false` for features the provider does not
+      apply; an `\UnhandledMatchError` counts as unsupported.
+    - Remove `FeatureAwareDataProviderInterface` and `StreamingDataProviderInterface` from the
+      `implements` list and their `use` statements: they no longer exist.
+    - Replace `ScopedIdentifierProviderInterface` and `IdentifierCollectingDataProviderInterface`
+      with `IdentifierDataProviderInterface` (`collectIdentifiers()` and
+      `filterIdentifiersInScope()`, same signatures), and return `true` from `supports()` for
+      `DataSourceFeature::RowScope` and `DataSourceFeature::IdentifierCollection`: without that
+      answer the bundle ignores the interface. A provider answering `false` (or `default => false`,
+      or an `\UnhandledMatchError`) for `RowScope` cannot check the row scope: required change 19
+      refuses it for row actions and bulk actions unless the table calls `unscopedMutations()`.
+19. Fix every table with row actions (delete, boolean toggle, edit form, detail row) or bulk actions
+    whose data provider cannot check the row scope: an API Platform table, an `ArrayDataProvider`, or
+    a custom provider that does not return `true` from `supports()` for
+    `DataSourceFeature::RowScope`. Such a table now throws a `LogicException` naming
+    `unscopedMutations()` at render, and its Ajax endpoints answer `403`. Link-only and custom actions
+    do not count.
+    - When the scope is enforced elsewhere, add `unscopedMutations()` in `configureDataTable()`.
+    - Otherwise implement `IdentifierDataProviderInterface` on the provider and return `true` for
+      `DataSourceFeature::RowScope`.
+    - Give every table with a boolean toggle an entity class: `#[AsDataTable(entityClass: ...)]`. A
+      toggle on a table without one answers `403`.
 
 </upgrade-prompt>

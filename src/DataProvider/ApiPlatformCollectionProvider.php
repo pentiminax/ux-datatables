@@ -14,9 +14,7 @@ use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\VisibleColumns;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
-use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
-use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
@@ -40,7 +38,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * Authorization therefore lives on the operation, not on the collection's URL path: `access_control`
  * rules matching that path are not evaluated here, exactly as they are not for a Doctrine table.
  */
-class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingDataProviderInterface, FeatureAwareDataProviderInterface
+class ApiPlatformCollectionProvider implements DataProviderInterface
 {
     /**
      * An API Platform collection carries configured filters as its own query parameters; it has no

@@ -84,6 +84,16 @@ final class DataTableRuntimeTest extends TestCase
         yield 'request handled with a provider result' => [
             new Request(query: ['draw' => 3]),
             new class implements DataProviderInterface {
+                public function supports(\Pentiminax\UX\DataTables\Enum\DataSourceFeature $feature): bool
+                {
+                    return true;
+                }
+
+                public function iterateRows(DataTableRequest $request): iterable
+                {
+                    return $this->fetchData($request)->data;
+                }
+
                 public function fetchData(DataTableRequest $request): DataTableResult
                 {
                     return new DataTableResult(
@@ -143,6 +153,16 @@ final class DataTableRuntimeTest extends TestCase
         $runtime = new DataTableRuntime(
             table: $table,
             dataProviderFactory: static fn (): DataProviderInterface => new class implements DataProviderInterface {
+                public function supports(\Pentiminax\UX\DataTables\Enum\DataSourceFeature $feature): bool
+                {
+                    return true;
+                }
+
+                public function iterateRows(DataTableRequest $request): iterable
+                {
+                    return $this->fetchData($request)->data;
+                }
+
                 public function fetchData(DataTableRequest $request): DataTableResult
                 {
                     return new DataTableResult(1, 1, [['status' => 'draft']]);
@@ -169,6 +189,16 @@ final class DataTableRuntimeTest extends TestCase
     {
         $responseFor = function (?array $summaries): array {
             $runtime = $this->createRuntime(new class($summaries) implements DataProviderInterface {
+                public function supports(\Pentiminax\UX\DataTables\Enum\DataSourceFeature $feature): bool
+                {
+                    return true;
+                }
+
+                public function iterateRows(DataTableRequest $request): iterable
+                {
+                    return $this->fetchData($request)->data;
+                }
+
                 public function __construct(private readonly ?array $summaries)
                 {
                 }

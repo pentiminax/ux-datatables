@@ -172,6 +172,16 @@ final class RecordingHydrationTable extends HydrationTestTable
         $inner = parent::createDataProvider();
 
         return new class($inner, $this) implements DataProviderInterface {
+            public function supports(\Pentiminax\UX\DataTables\Enum\DataSourceFeature $feature): bool
+            {
+                return true;
+            }
+
+            public function iterateRows(DataTableRequest $request): iterable
+            {
+                return $this->fetchData($request)->data;
+            }
+
             public function __construct(private readonly DataProviderInterface $inner, private readonly RecordingHydrationTable $table)
             {
             }

@@ -90,7 +90,7 @@ Scaffold from an entity: `php bin/console make:datatable`.
 - `references/row-presentation.md` — `emptyState()`, `rowClass()`, `recordUrl()`.
 - `references/api-platform.md` — API Platform integration (opt-in).
 - `references/mercure.md` — Mercure real-time refresh: config, auto-resolution, hub protocol dialect (`topic=` vs `match=`/`match_urlpattern=`), publishing on mutations (opt-in).
-- `references/defining-a-datatable.md` also covers global defaults (`DataTableDefaultsConfiguratorInterface`), YAML validation, and `FeatureAwareDataProviderInterface`.
+- `references/defining-a-datatable.md` also covers global defaults (`DataTableDefaultsConfiguratorInterface`), YAML validation, and custom provider feature support (`DataProviderInterface::supports()`).
 - `references/gotchas.md` — common mistakes and fixes.
 
 ## Common mistakes (see gotchas.md)

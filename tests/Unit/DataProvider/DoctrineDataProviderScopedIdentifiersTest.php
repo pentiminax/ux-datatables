@@ -6,8 +6,8 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\DataProvider;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Contracts\IdentifierDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
-use Pentiminax\UX\DataTables\Contracts\ScopedIdentifierProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
@@ -45,9 +45,9 @@ final class DoctrineDataProviderScopedIdentifiersTest extends TestCase
     }
 
     #[Test]
-    public function it_is_a_scoped_identifier_provider(): void
+    public function it_is_an_identifier_data_provider(): void
     {
-        $this->assertInstanceOf(ScopedIdentifierProviderInterface::class, $this->provider());
+        $this->assertInstanceOf(IdentifierDataProviderInterface::class, $this->provider());
     }
 
     #[Test]

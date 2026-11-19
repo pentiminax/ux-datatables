@@ -11,8 +11,6 @@ use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
-use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
-use Pentiminax\UX\DataTables\Contracts\IdentifierCollectingDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\IdentifierDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
@@ -20,6 +18,7 @@ use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Exception\InvalidBulkSelectionException;
+use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
@@ -339,37 +338,18 @@ final class BulkActionRunnerTest extends TestCase
     }
 
     #[Test]
-    public function it_keeps_the_explicit_selection_when_the_provider_cannot_check_the_scope(): void
+    public function it_refuses_the_explicit_selection_when_the_provider_cannot_check_the_scope(): void
     {
-        $provider = new class implements DataProviderInterface {
-            public function fetchData(DataTableRequest $request): DataTableResult
-            {
-                return new DataTableResult(0, 0, []);
-            }
-        };
+        $action = BulkAction::new('touch')->handler(static fn () => $this->fail('The handler must not run.'));
 
-        $seen   = [];
-        $action = BulkAction::new('touch')->handler(function (BulkRecords $records) use (&$seen): void {
-            foreach ($records as $customer) {
-                $seen[] = $customer->name;
-            }
-        });
+        $this->expectException(MutationNotAllowedException::class);
 
-        $result       = null;
-        $deprecations = $this->scopeDeprecationsOf(function () use (&$result, $action, $provider): void {
-            $result = $this->runner()->run(
-                $this->resolved($action, provider: $provider),
-                $action,
-                new BulkSelection(ids: [1, 4]),
-                new Request(),
-            );
-        });
-
-        $this->assertCount(1, $deprecations);
-        $this->assertStringContainsString('does not support the "rowScope" feature: 2.0 refuses the request', $deprecations[0]);
-
-        $this->assertSame(['Alpha', 'Delta'], $seen);
-        $this->assertSame(0, $result->skipped);
+        $this->runner()->run(
+            $this->resolved($action, provider: new IdentifierlessProvider()),
+            $action,
+            new BulkSelection(ids: [1, 4]),
+            new Request(),
+        );
     }
 
     #[Test]
@@ -436,20 +416,59 @@ final class BulkActionRunnerTest extends TestCase
     }
 
     #[Test]
-    public function it_does_not_use_the_merged_interface_for_a_feature_the_provider_does_not_declare(): void
+    public function it_refuses_a_provider_that_does_not_declare_the_row_scope_even_when_it_implements_the_interface(): void
     {
-        $provider = new ScopingProvider(declared: []);
-        $action   = BulkAction::new('touch')->handler(static fn () => null);
+        $action = BulkAction::new('touch')->handler(static fn () => null);
 
-        $deprecations = $this->scopeDeprecationsOf(function () use ($action, $provider): void {
-            $this->runner()->run($this->resolved($action, provider: $provider), $action, new BulkSelection(ids: [1, 2]), new Request());
-        });
+        $this->expectException(MutationNotAllowedException::class);
 
-        $this->assertCount(1, $deprecations);
-        $this->assertStringContainsString('"rowScope" feature', $deprecations[0]);
+        $this->runner()->run($this->resolved($action, provider: new ScopingProvider(declared: [])), $action, new BulkSelection(ids: [1, 2]), new Request());
+    }
 
-        $this->expectException(InvalidBulkSelectionException::class);
-        $this->runner()->run($this->resolved($action, provider: $provider), $action, new BulkSelection(allMatching: true, query: $this->dataTablesQuery()), $this->postRequest());
+    #[Test]
+    #[DataProvider('selectAllQueries')]
+    public function it_refuses_a_select_all_on_a_provider_that_collects_identifiers_but_cannot_check_the_scope(array $query): void
+    {
+        $action   = BulkAction::new('touch')->handler(static fn () => $this->fail('The handler must not run.'));
+        $provider = new ScopingProvider(declared: [DataSourceFeature::IdentifierCollection]);
+
+        $this->expectException(MutationNotAllowedException::class);
+
+        $this->runner()->run($this->resolved($action, provider: $provider), $action, new BulkSelection(allMatching: true, query: $query), $this->postRequest());
+    }
+
+    #[Test]
+    public function it_refuses_an_explicit_selection_sent_with_a_real_data_tables_query(): void
+    {
+        $action = BulkAction::new('touch')->handler(static fn () => $this->fail('The handler must not run.'));
+
+        $this->expectException(MutationNotAllowedException::class);
+
+        $this->runner()->run(
+            $this->resolved($action, provider: new IdentifierlessProvider()),
+            $action,
+            new BulkSelection(ids: [1], query: $this->dataTablesQuery()),
+            $this->postRequest(),
+        );
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function selectAllQueries(): iterable
+    {
+        yield 'without draw' => [[]];
+        yield 'with draw' => [['draw' => '1', 'start' => '0', 'length' => '2']];
+    }
+
+    #[Test]
+    public function it_refuses_a_provider_whose_supports_throws_an_unhandled_match_error_for_the_row_scope(): void
+    {
+        $action = BulkAction::new('touch')->handler(static fn () => null);
+
+        $this->expectException(MutationNotAllowedException::class);
+
+        $this->runner()->run($this->resolved($action, provider: new ExhaustiveMatchScopingProvider()), $action, new BulkSelection(ids: [1, 2]), new Request());
     }
 
     #[Test]
@@ -576,7 +595,22 @@ final class BulkActionRunnerTest extends TestCase
     #[Test]
     public function it_forwards_the_displayed_request_to_the_provider_without_its_pagination(): void
     {
-        $provider = new class implements DataProviderInterface, IdentifierCollectingDataProviderInterface {
+        $provider = new class implements DataProviderInterface, IdentifierDataProviderInterface {
+            public function filterIdentifiersInScope(DataTableRequest $request, array $ids, string $field): array
+            {
+                return $ids;
+            }
+
+            public function supports(DataSourceFeature $feature): bool
+            {
+                return true;
+            }
+
+            public function iterateRows(DataTableRequest $request): iterable
+            {
+                return $this->fetchData($request)->data;
+            }
+
             public ?DataTableRequest $seen = null;
 
             public function fetchData(DataTableRequest $request): DataTableResult
@@ -617,7 +651,22 @@ final class BulkActionRunnerTest extends TestCase
     #[Test]
     public function it_collects_the_identifiers_of_the_field_the_selection_speaks_in(): void
     {
-        $provider = new class implements DataProviderInterface, IdentifierCollectingDataProviderInterface {
+        $provider = new class implements DataProviderInterface, IdentifierDataProviderInterface {
+            public function filterIdentifiersInScope(DataTableRequest $request, array $ids, string $field): array
+            {
+                return $ids;
+            }
+
+            public function supports(DataSourceFeature $feature): bool
+            {
+                return true;
+            }
+
+            public function iterateRows(DataTableRequest $request): iterable
+            {
+                return $this->fetchData($request)->data;
+            }
+
             public ?string $seenField = null;
 
             public function fetchData(DataTableRequest $request): DataTableResult
@@ -711,7 +760,22 @@ final class BulkActionRunnerTest extends TestCase
         $em->flush();
         $em->clear();
 
-        $provider = new class implements DataProviderInterface, IdentifierCollectingDataProviderInterface {
+        $provider = new class implements DataProviderInterface, IdentifierDataProviderInterface {
+            public function filterIdentifiersInScope(DataTableRequest $request, array $ids, string $field): array
+            {
+                return $ids;
+            }
+
+            public function supports(DataSourceFeature $feature): bool
+            {
+                return true;
+            }
+
+            public function iterateRows(DataTableRequest $request): iterable
+            {
+                return $this->fetchData($request)->data;
+            }
+
             public ?string $seenField = null;
 
             public function fetchData(DataTableRequest $request): DataTableResult
@@ -859,6 +923,7 @@ final class BulkActionRunnerTest extends TestCase
         });
         $table = new ConfigurableDataTable(
             columnsConfig: [TextColumn::new('name')],
+            configureTable: static fn (DataTable $table): DataTable => $table->unscopedMutations(),
             bulkActions: static fn (BulkActions $actions): BulkActions => $actions->add($action),
         );
 
@@ -940,7 +1005,7 @@ final class BulkActionRunnerTest extends TestCase
         $this->expectExceptionMessage('SearchBuilder criteria are not supported by ArrayDataProvider.');
 
         $this->runner()->run(
-            $this->resolved($action, provider: $provider),
+            $this->resolved($action, provider: $provider, unscopedMutations: true),
             $action,
             new BulkSelection(allMatching: true, query: $query),
             $this->postRequest(),
@@ -981,11 +1046,11 @@ final class BulkActionRunnerTest extends TestCase
         ?DataProviderInterface $provider = null,
         ?string $idField = null,
         ?callable $scope = null,
-        bool $unscopedMutations = false,
+        ?bool $unscopedMutations = null,
     ): ResolvedDataTable {
         $table = new ConfigurableDataTable(
             columnsConfig: [TextColumn::new('id'), TextColumn::new('name')],
-            configureTable: static fn (DataTable $table): DataTable => $table->serverSide()->unscopedMutations($unscopedMutations),
+            configureTable: static fn (DataTable $table): DataTable => $table->serverSide()->unscopedMutations($unscopedMutations ?? (null === $provider && !$withProvider && null === $scope)),
             dataProvider: $provider ?? ($withProvider || null !== $scope ? new DoctrineDataProvider(
                 em: $this->em,
                 entityClass: CountCustomer::class,
@@ -1077,8 +1142,13 @@ final class BulkActionRunnerTest extends TestCase
  *
  * @internal
  */
-final class ScopingProvider implements DataProviderInterface, FeatureAwareDataProviderInterface, IdentifierDataProviderInterface
+final class ScopingProvider implements DataProviderInterface, IdentifierDataProviderInterface
 {
+    public function iterateRows(DataTableRequest $request): iterable
+    {
+        return $this->fetchData($request)->data;
+    }
+
     /**
      * @param list<DataSourceFeature> $declared
      */
@@ -1108,10 +1178,55 @@ final class ScopingProvider implements DataProviderInterface, FeatureAwareDataPr
 }
 
 /**
+ * Answers through an exhaustive match that does not know the row scope.
+ *
+ * @internal
+ */
+final class ExhaustiveMatchScopingProvider implements DataProviderInterface, IdentifierDataProviderInterface
+{
+    public function supports(DataSourceFeature $feature): bool
+    {
+        return match ($feature) {
+            DataSourceFeature::SearchBuilder => true,
+        };
+    }
+
+    public function iterateRows(DataTableRequest $request): iterable
+    {
+        return [];
+    }
+
+    public function fetchData(DataTableRequest $request): DataTableResult
+    {
+        return new DataTableResult(0, 0, []);
+    }
+
+    public function collectIdentifiers(DataTableRequest $request, ?string $field = null): array
+    {
+        return [1, 2];
+    }
+
+    public function filterIdentifiersInScope(DataTableRequest $request, array $ids, string $field): array
+    {
+        return $ids;
+    }
+}
+
+/**
  * @internal
  */
 final class IdentifierlessProvider implements DataProviderInterface
 {
+    public function supports(DataSourceFeature $feature): bool
+    {
+        return true;
+    }
+
+    public function iterateRows(DataTableRequest $request): iterable
+    {
+        return $this->fetchData($request)->data;
+    }
+
     public function fetchData(DataTableRequest $request): DataTableResult
     {
         return new DataTableResult(0, 0, []);

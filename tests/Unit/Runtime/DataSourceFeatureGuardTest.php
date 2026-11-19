@@ -4,16 +4,22 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Runtime;
 
+use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
-use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
+use Pentiminax\UX\DataTables\Contracts\IdentifierDataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Filter\TextFilter;
+use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\Actions;
+use Pentiminax\UX\DataTables\Model\BulkAction;
+use Pentiminax\UX\DataTables\Model\BulkActions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
@@ -279,29 +285,14 @@ final class DataSourceFeatureGuardTest extends TestCase
     }
 
     #[Test]
-    public function it_assumes_a_provider_that_declares_nothing_supports_every_feature(): void
-    {
-        $provider = new class implements DataProviderInterface {
-            public function fetchData(DataTableRequest $request): DataTableResult
-            {
-                return new DataTableResult(recordsTotal: 0, recordsFiltered: 0, data: []);
-            }
-        };
-
-        $runtime = $this->runtime($provider);
-        $runtime->handleRequest(new Request(query: ['draw' => 1, 'filters' => ['status' => 'active']]));
-
-        $deprecations = $this->deprecationsOf(fn () => $this->assertSame($provider, $runtime->getDataProvider()));
-
-        $this->assertCount(1, $deprecations);
-        $this->assertStringContainsString('is not feature aware', $deprecations[0]);
-        $this->assertStringContainsString('2.0 requires supports()', $deprecations[0]);
-    }
-
-    #[Test]
     public function it_does_not_ask_an_exhaustive_supports_about_the_row_scope_features(): void
     {
-        $provider = new class implements DataProviderInterface, FeatureAwareDataProviderInterface {
+        $provider = new class implements DataProviderInterface {
+            public function iterateRows(DataTableRequest $request): iterable
+            {
+                return $this->fetchData($request)->data;
+            }
+
             public function supports(DataSourceFeature $feature): bool
             {
                 return match ($feature) {
@@ -324,7 +315,12 @@ final class DataSourceFeatureGuardTest extends TestCase
     #[Test]
     public function it_treats_a_feature_the_supports_match_does_not_know_as_unsupported(): void
     {
-        $provider = new class implements DataProviderInterface, FeatureAwareDataProviderInterface {
+        $provider = new class implements DataProviderInterface {
+            public function iterateRows(DataTableRequest $request): iterable
+            {
+                return $this->fetchData($request)->data;
+            }
+
             public function supports(DataSourceFeature $feature): bool
             {
                 return match ($feature) {
@@ -348,7 +344,7 @@ final class DataSourceFeatureGuardTest extends TestCase
     }
 
     #[Test]
-    public function it_raises_nothing_for_a_feature_aware_provider(): void
+    public function it_raises_nothing_for_a_provider_that_declares_every_feature(): void
     {
         $runtime = $this->runtime(new ArrayDataProvider([], new DefaultRowMapper([]), self::columns()));
         $runtime->handleRequest(new Request(query: ['draw' => 1]));
@@ -359,7 +355,12 @@ final class DataSourceFeatureGuardTest extends TestCase
     #[Test]
     public function it_refuses_summaries_the_provider_cannot_compute(): void
     {
-        $provider = new class implements DataProviderInterface, FeatureAwareDataProviderInterface {
+        $provider = new class implements DataProviderInterface {
+            public function iterateRows(DataTableRequest $request): iterable
+            {
+                return $this->fetchData($request)->data;
+            }
+
             public function supports(DataSourceFeature $feature): bool
             {
                 return DataSourceFeature::Summaries !== $feature;
@@ -378,6 +379,90 @@ final class DataSourceFeatureGuardTest extends TestCase
         $this->expectExceptionMessage('Column summaries are not supported by');
 
         $runtime->getDataProvider();
+    }
+
+    #[Test]
+    #[DataProvider('mutatingTables')]
+    public function it_refuses_actions_on_a_provider_that_cannot_check_the_row_scope(\Closure $configure): void
+    {
+        foreach ([self::unscopedProvider(), new ExhaustiveMatchScopedProvider(), new ScopedProvider(declared: [])] as $provider) {
+            try {
+                (new DataSourceFeatureGuard())->assertMutationsScoped($configure(new DataTable('people')), $provider);
+                $this->fail('The actions must be refused.');
+            } catch (\LogicException $exception) {
+                $this->assertStringContainsString('unscopedMutations()', $exception->getMessage());
+                $this->assertStringEndsWith('.', $exception->getMessage());
+            }
+        }
+    }
+
+    #[Test]
+    #[DataProvider('mutatingTables')]
+    public function it_accepts_actions_on_a_scoped_provider_or_an_opted_out_table(\Closure $configure): void
+    {
+        $guard = new DataSourceFeatureGuard();
+
+        $guard->assertMutationsScoped($configure(new DataTable('people')), new ScopedProvider(declared: [DataSourceFeature::RowScope]));
+        $guard->assertMutationsScoped($configure(new DataTable('people'))->unscopedMutations(), self::unscopedProvider());
+        $this->addToAssertionCount(1);
+    }
+
+    #[Test]
+    #[DataProvider('actionsServedByNoEndpoint')]
+    public function it_accepts_link_only_and_empty_actions_on_any_provider(\Closure $configure): void
+    {
+        (new DataSourceFeatureGuard())->assertMutationsScoped($configure(new DataTable('people')), self::unscopedProvider());
+        $this->addToAssertionCount(1);
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(DataTable): DataTable}>
+     */
+    public static function actionsServedByNoEndpoint(): iterable
+    {
+        yield 'empty actions' => [static fn (DataTable $table): DataTable => $table->columns([ActionColumn::fromActions('actions', 'Actions', new Actions())])];
+        yield 'link-only detail' => [static fn (DataTable $table): DataTable => $table->columns([ActionColumn::fromActions('actions', 'Actions', (new Actions())->add(Action::detail()->linkToUrl('/books')))])];
+        yield 'custom action' => [static fn (DataTable $table): DataTable => $table->columns([ActionColumn::fromActions('actions', 'Actions', (new Actions())->add(Action::new('open')->linkToUrl('/books')))])];
+    }
+
+    #[Test]
+    public function it_accepts_a_table_without_actions_on_any_provider(): void
+    {
+        (new DataSourceFeatureGuard())->assertMutationsScoped((new DataTable('people'))->columns(self::columns()), self::unscopedProvider());
+        $this->addToAssertionCount(1);
+    }
+
+    #[Test]
+    public function it_refuses_the_first_data_request_of_a_table_with_actions_on_an_unscoped_provider(): void
+    {
+        $columns = [BooleanColumn::new('active')->renderAsSwitch()];
+        $runtime = new DataTableRuntime(
+            table: (new DataTable('people'))->columns($columns),
+            dataProviderFactory: static fn (): DataProviderInterface => self::unscopedProvider(),
+            columns: $columns,
+        );
+        $runtime->handleRequest(new Request(query: ['draw' => 1]));
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('unscopedMutations()');
+
+        $runtime->getDataProvider();
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(DataTable): DataTable}>
+     */
+    public static function mutatingTables(): iterable
+    {
+        yield 'row action switch' => [static fn (DataTable $table): DataTable => $table->columns([BooleanColumn::new('active')->renderAsSwitch()])];
+        yield 'action column' => [static fn (DataTable $table): DataTable => $table->columns([ActionColumn::fromActions('actions', 'Actions', (new Actions())->add(Action::delete()))])];
+        yield 'collapsible detail' => [static fn (DataTable $table): DataTable => $table->columns([ActionColumn::fromActions('actions', 'Actions', (new Actions())->add(Action::detail()->collapsible('detail.html.twig')))])];
+        yield 'bulk action' => [static fn (DataTable $table): DataTable => $table->setBulkActions((new BulkActions())->add(BulkAction::new('touch')->handler(static fn () => null)))];
+    }
+
+    private static function unscopedProvider(): DataProviderInterface
+    {
+        return new ArrayDataProvider([], new DefaultRowMapper([]), self::columns());
     }
 
     /**
@@ -408,5 +493,63 @@ final class DataSourceFeatureGuardTest extends TestCase
     private static function optIns(DataSourceMode $mode, ?bool $apiPlatform = null): ResolvedOptIns
     {
         return new ResolvedOptIns(apiPlatform: $apiPlatform, dataSourceMode: $mode);
+    }
+}
+
+/**
+ * @internal
+ */
+class ScopedProvider implements DataProviderInterface, IdentifierDataProviderInterface
+{
+    /**
+     * @param list<DataSourceFeature> $declared
+     */
+    public function __construct(private readonly array $declared)
+    {
+    }
+
+    public function iterateRows(DataTableRequest $request): iterable
+    {
+        return [];
+    }
+
+    public function fetchData(DataTableRequest $request): DataTableResult
+    {
+        return new DataTableResult(recordsTotal: 0, recordsFiltered: 0, data: []);
+    }
+
+    public function supports(DataSourceFeature $feature): bool
+    {
+        return \in_array($feature, $this->declared, true);
+    }
+
+    public function collectIdentifiers(DataTableRequest $request, ?string $field = null): array
+    {
+        return [];
+    }
+
+    public function filterIdentifiersInScope(DataTableRequest $request, array $ids, string $field): array
+    {
+        return $ids;
+    }
+}
+
+/**
+ * Answers through an exhaustive match that does not know the row scope.
+ *
+ * @internal
+ */
+final class ExhaustiveMatchScopedProvider extends ScopedProvider
+{
+    public function __construct()
+    {
+        parent::__construct([]);
+    }
+
+    public function supports(DataSourceFeature $feature): bool
+    {
+        return match ($feature) {
+            DataSourceFeature::SearchBuilder => true,
+        };
     }
 }

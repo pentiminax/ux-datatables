@@ -28,6 +28,7 @@ use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
@@ -399,6 +400,11 @@ final class AjaxEditFormSubmitControllerFixture
 #[AsDataTable(entityClass: AjaxEditFormSubmitControllerFixture::class)]
 final class AjaxEditFormSubmitControllerDataTable extends AbstractDataTable
 {
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->unscopedMutations();
+    }
+
     public function __construct()
     {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
