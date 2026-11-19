@@ -17,7 +17,7 @@ use Psr\Log\LoggerInterface;
  */
 class ApiResourceMercureMetadataResolver
 {
-    private const ITEM_IRI_EXPRESSION = '@=iri(object)';
+    private const string ITEM_IRI_EXPRESSION = '@=iri(object)';
 
     public function __construct(
         private readonly ResourceMetadataCollectionFactoryInterface $resourceMetadataFactory,
