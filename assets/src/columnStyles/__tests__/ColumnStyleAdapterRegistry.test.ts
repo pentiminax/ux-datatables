@@ -34,8 +34,6 @@ describe('ColumnStyleAdapterRegistry', () => {
 
 describe('columnStyleAdapters', () => {
     it.each([
-        ['bs', BootstrapColumnStyleAdapter],
-        ['bs4', BootstrapColumnStyleAdapter],
         ['bs5', BootstrapColumnStyleAdapter],
         ['dt', TailwindColumnStyleAdapter],
         ['tailwind', TailwindThemeColumnStyleAdapter],

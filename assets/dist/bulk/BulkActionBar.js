@@ -4,7 +4,7 @@ import { createPopover } from '../functions/popover.js';
 import { runBulkAction } from '../functions/runBulkAction.js';
 import { confirmAction } from './confirmModal.js';
 import { SelectionStore } from './selectionStore.js';
-const BOOTSTRAP_FRAMEWORKS = ['bs', 'bs4', 'bs5'];
+const BOOTSTRAP_FRAMEWORKS = ['bs5'];
 const KEBAB_ICON = '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" class="dt-bulk-trigger__icon">' +
     '<circle cx="10" cy="4" r="1.6" /><circle cx="10" cy="10" r="1.6" />' +
     '<circle cx="10" cy="16" r="1.6" /></svg>';

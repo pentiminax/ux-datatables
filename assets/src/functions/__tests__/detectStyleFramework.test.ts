@@ -25,38 +25,6 @@ describe('detectStyleFramework', () => {
         document.head.innerHTML = ''
     })
 
-    it.each([
-        ['bs', '/css/dataTables.bootstrap.min.css'],
-        ['bs4', '/css/dataTables.bootstrap4.min.css'],
-    ])('warns once per page when autodetection resolves to %s', async (key, href) => {
-        const { detectStyleFramework } = await import('../detectStyleFramework.js')
-        loadStylesheet(href)
-
-        expect(detectStyleFramework()).toBe(key)
-        expect(detectStyleFramework()).toBe(key)
-
-        const deprecation = warn.mock.calls.filter(([m]) => String(m).includes('Bootstrap 3 and 4'))
-        expect(deprecation).toHaveLength(1)
-        expect(deprecation[0][0]).toContain('"bs5"')
-        expect(deprecation[0][0]).toContain('"dt"')
-    })
-
-    it.each([
-        ['bs5', '/css/dataTables.bootstrap5.min.css'],
-        ['dt', '/css/dataTables.dataTables.min.css'],
-    ])(
-        'does not warn about Bootstrap 3 and 4 when autodetection resolves to %s',
-        async (key, href) => {
-            const { detectStyleFramework } = await import('../detectStyleFramework.js')
-            loadStylesheet(href)
-
-            expect(detectStyleFramework()).toBe(key)
-            expect(warn.mock.calls.some(([m]) => String(m).includes('Bootstrap 3 and 4'))).toBe(
-                false
-            )
-        }
-    )
-
     it('warns once per page that autodetection is removed in 2.0', async () => {
         const { detectStyleFramework } = await import('../detectStyleFramework.js')
         loadStylesheet('/css/dataTables.dataTables.min.css')

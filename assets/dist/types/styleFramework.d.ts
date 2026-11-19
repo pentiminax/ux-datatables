@@ -1,4 +1,4 @@
-export type StyleFramework = 'dt' | 'bs' | 'bs4' | 'bs5';
+export type StyleFramework = 'dt' | 'bs5';
 export interface StyleFrameworkConfig {
     key: StyleFramework;
     cssPattern: string;

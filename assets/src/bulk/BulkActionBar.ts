@@ -47,7 +47,7 @@ interface IconSource {
     lucideIcon?: string
 }
 
-const BOOTSTRAP_FRAMEWORKS: StyleFramework[] = ['bs', 'bs4', 'bs5']
+const BOOTSTRAP_FRAMEWORKS: StyleFramework[] = ['bs5']
 
 const KEBAB_ICON =
     '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" class="dt-bulk-trigger__icon">' +

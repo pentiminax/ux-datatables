@@ -4,8 +4,6 @@ import { requiredExportPackages } from '../loadButtonsLibrary.js'
 
 const frameworks: Array<{ framework: StyleFramework; cssSuffix: string }> = [
     { framework: 'dt', cssSuffix: 'dataTables' },
-    { framework: 'bs', cssSuffix: 'bootstrap' },
-    { framework: 'bs4', cssSuffix: 'bootstrap4' },
     { framework: 'bs5', cssSuffix: 'bootstrap5' },
 ]
 

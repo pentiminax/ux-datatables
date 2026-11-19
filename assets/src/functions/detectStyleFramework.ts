@@ -1,6 +1,5 @@
 import { STYLE_FRAMEWORKS, type StyleFramework } from '../types/styleFramework.js'
 
-let warnedDeprecatedFramework = false
 let warnedAutodetection = false
 
 /**
@@ -20,8 +19,6 @@ export function detectStyleFramework(): StyleFramework {
         )
 
         if (matched) {
-            warnOnceAboutDeprecatedFramework(key)
-
             return key
         }
     }
@@ -44,16 +41,5 @@ function warnOnceAboutAutodetection(): void {
     warnedAutodetection = true
     console.warn(
         'The style framework was autodetected from the page stylesheets, which is removed in 2.0. Set "style_framework" under "data_tables" in the bundle config, or call styleFramework() on the table.'
-    )
-}
-
-function warnOnceAboutDeprecatedFramework(key: StyleFramework): void {
-    if ((key !== 'bs' && key !== 'bs4') || warnedDeprecatedFramework) {
-        return
-    }
-
-    warnedDeprecatedFramework = true
-    console.warn(
-        'Bootstrap 3 and 4 styling is deprecated and removed in 2.0. Load the Bootstrap 5 stylesheet ("bs5") or the DataTables stylesheet ("dt") instead.'
     )
 }

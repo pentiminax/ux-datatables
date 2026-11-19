@@ -4,7 +4,7 @@ import { loadDataTableLibrary } from '../src/functions/loadDataTableLibrary.js'
 import { type ExtensionName, packageLoaders } from '../src/functions/packageLoaders.js'
 import type { StyleFramework } from '../src/types/styleFramework.js'
 
-const frameworks: StyleFramework[] = ['dt', 'bs', 'bs4', 'bs5']
+const frameworks: StyleFramework[] = ['dt', 'bs5']
 const extensions: Array<{ name: ExtensionName; option: string; setting: string; value: unknown }> = [
     { name: 'colReorder', option: 'colReorder', setting: '_colReorder', value: true },
     { name: 'fixedHeader', option: 'fixedHeader', setting: '_fixedHeader', value: true },

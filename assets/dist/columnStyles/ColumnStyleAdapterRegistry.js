@@ -14,8 +14,6 @@ export class ColumnStyleAdapterRegistry {
     }
 }
 export const columnStyleAdapters = new ColumnStyleAdapterRegistry()
-    .register('bs', () => new BootstrapColumnStyleAdapter())
-    .register('bs4', () => new BootstrapColumnStyleAdapter())
     .register('bs5', () => new BootstrapColumnStyleAdapter())
     .register('dt', () => new TailwindColumnStyleAdapter())
     .register('tailwind', () => new TailwindThemeColumnStyleAdapter());

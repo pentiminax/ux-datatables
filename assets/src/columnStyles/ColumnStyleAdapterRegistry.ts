@@ -18,7 +18,7 @@ export class ColumnStyleAdapterRegistry {
 }
 
 /**
- * Keys are the `StyleFramework` values the PHP side serializes (`bs`, `bs4`, `bs5`, `dt`) plus the
+ * Keys are the `StyleFramework` values the PHP side serializes (`bs5`, `dt`) plus the
  * `DataTableTheme` values `detectTheme()` reports — today only `tailwind`, which wins over the
  * framework key in `resolveColumnStyleAdapter()`.
  *
@@ -29,8 +29,6 @@ export class ColumnStyleAdapterRegistry {
  * `dt-switch` classes the `tailwind` adapter emits.
  */
 export const columnStyleAdapters = new ColumnStyleAdapterRegistry()
-    .register('bs', () => new BootstrapColumnStyleAdapter())
-    .register('bs4', () => new BootstrapColumnStyleAdapter())
     .register('bs5', () => new BootstrapColumnStyleAdapter())
     .register('dt', () => new TailwindColumnStyleAdapter())
     .register('tailwind', () => new TailwindThemeColumnStyleAdapter())
