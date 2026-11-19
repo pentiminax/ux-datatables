@@ -236,13 +236,14 @@ must log no `pentiminax/ux-datatables` deprecation.
 
 <upgrade-prompt version="2.0">
 
-Context: ux-datatables 2.0 removes what 1.x deprecated. This section covers rendering (rendering no
-longer writes to the table, and the option bag holds DataTables.net options only), columns
-(`AbstractColumn` is the only column implementation, and every column `setX()` method is gone), data
-providers (`DataProviderInterface` is the only provider contract) and the frontend distribution
-(built-in package loaders, `package_loading`, Bootstrap 3 and 4, style autodetection and `--prune`
-are removed). After this
-change, the application and its test suite must run with no call to a removed method.
+Context: ux-datatables 2.0 removes what 1.x deprecated. This section covers the platform floor,
+hand-built services (an authorization checker is required), configuration that only warned in 1.x,
+rendering (rendering no longer writes to the table, and the option bag holds DataTables.net options
+only), columns (`AbstractColumn` is the only column implementation, and every column `setX()` method
+is gone), data providers (`DataProviderInterface` is the only provider contract) and the frontend
+distribution (built-in package loaders, `package_loading`, Bootstrap 3 and 4, style autodetection
+and `--prune` are removed). After this change, the application and its test suite must run with no
+call to a removed method.
 
 ## Required changes
 
@@ -376,6 +377,39 @@ change, the application and its test suite must run with no call to a removed me
     - Otherwise implement `IdentifierDataProviderInterface` on the provider and return `true` for
       `DataSourceFeature::RowScope`.
     - Give every table with a boolean toggle an entity class: `#[AsDataTable(entityClass: ...)]`. A
-      toggle on a table without one answers `403`.
+      toggle on a table without one answers `404`, like a row that does not exist.
+    - On an unscoped provider a bulk action handler receives every identifier the browser sent for
+      which a row exists. Add the ownership or tenant check to the handler: the bundle does not.
+20. When the application builds a bundle service by hand, pass an `AuthorizationChecker`: the
+    fallback to a checker without Symfony Security is removed. Search for `new ColumnResolver(`,
+    `new ActionRowDataResolver(`, `new DataTableRuntimeFactory(`, `new RenderingPreparer(`,
+    `new DataTablesExtension(`, `new AjaxDataTableRegistry(`, `new BooleanMutationContextResolver(`
+    and `new AjaxBulkController(`.
+    - The checker is the first argument of `ColumnResolver`, `ActionRowDataResolver`,
+      `DataTableRuntimeFactory` and `RenderingPreparer`, and the second of `DataTablesExtension`
+      (after the Stimulus helper, before the profiler). Move or name the arguments that follow it.
+    - `new ExportService($registry)` and `new EditFormService(...)` need a `ColumnResolver`:
+      `new ExportService($registry, new ColumnResolver($checker))`.
+    - `new RowProcessingPipeline($mapper, $columns)` needs `new ColumnResolver($checker)` and
+      `new ActionRowDataResolver($checker)` as the third and fourth arguments.
+    - Drop the locator, row scope guard and checker arguments from `new EntityMutator(...)`
+      (now `$accessor, $publisher, $topicResolver, $flusher`), `new DetailRowService($twig)` and
+      `new EditFormService(...)` (now `$builder, $renderer, $templateResolver, $publisher,
+      $topicResolver, $flusher, $columnResolver`).
+
+    ```php
+    new ColumnResolver($reader);                                       // before
+    new ColumnResolver(new AuthorizationChecker($security), $reader); // after
+    ```
+
+21. Fix the configuration that logged a deprecation in 1.x, it now throws: put
+    `data_tables.options.pageLength` in `data_tables.options.lengthMenu`, use only `ButtonType`
+    cases for `data_tables.extensions.buttons` and only `SelectStyle` cases for
+    `data_tables.extensions.select.style` (`InvalidConfigurationException`), and call
+    `searchBuilder()` or `addExtension(new SearchBuilderExtension())` on every table whose layout
+    declares `Feature::SEARCH_BUILDER` (`LogicException`).
+22. Check the platform: PHP 8.3 or later, Symfony 7.4 or 8.x, `api-platform/core` 4.0 or later and
+    `symfony/mercure` 0.8 or later when used. Update `composer.json` and run `composer update`;
+    Composer refuses older API Platform and Mercure versions through a `conflict` entry.
 
 </upgrade-prompt>

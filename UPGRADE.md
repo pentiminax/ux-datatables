@@ -349,8 +349,8 @@ the case for an API Platform table, `ArrayDataProvider` and a custom provider th
   and is refused the same way.
 - An entity without an identifier field answers `403` instead of skipping the scope check.
 - A mutation that runs without a data table request answers `403`.
-- A boolean toggle on a table without an entity class answers `403`. Give the table an entity class
-  with `#[AsDataTable(entityClass: ...)]`.
+- A boolean toggle on a table without an entity class answers `404`, like a row that does not exist.
+  Give the table an entity class with `#[AsDataTable(entityClass: ...)]`.
 
 If the scope is enforced elsewhere (an API Platform extension, a voter), say so on the table. Otherwise
 make the provider scoped.
@@ -381,6 +381,77 @@ final class TenantProvider implements DataProviderInterface, IdentifierDataProvi
 ```
 
 `unscopedMutations()` adds no check: the scope is yours to enforce. It is not deprecated.
+
+On an unscoped provider a bulk action callback receives the identifiers the browser sent, as long as
+a row with that identifier exists. The bundle cannot tell whether the current user may act on it, so
+validate the identifiers in the callback (ownership, tenant, state) before you act on them:
+
+```php
+BulkAction::new('archive')->handler(function (array $entities) use ($security): void {
+    foreach ($entities as $entity) {
+        if ($entity->getOwner() !== $security->getUser()) {
+            continue;
+        }
+
+        $entity->archive();
+    }
+});
+```
+
+### Platform requirements
+
+2.0 requires PHP 8.3 and Symfony 7.4 or 8.x. When you use API Platform it must be 4.0 or later, and
+when you use Mercure `symfony/mercure` must be 0.8 or later: Composer refuses older versions with a
+`conflict` entry. Check your platform before you upgrade.
+
+### Hand-built services need an authorization checker
+
+The bundle no longer falls back to a checker without Symfony Security when you build one of its
+services by hand. The services below take `Pentiminax\UX\DataTables\Security\AuthorizationChecker`
+as a required constructor argument, so a missing checker is an error at construction instead of a
+deprecation: `ColumnResolver`, `ActionRowDataResolver`, `BooleanMutationContextResolver`,
+`AjaxBulkController`, `AjaxDataTableRegistry`, `DataTablesExtension`, `DataTableRuntimeFactory` and
+`RenderingPreparer`. `ExportService` and `EditFormService` require a `ColumnResolver`, and
+`RowProcessingPipeline` requires a `ColumnResolver` and an `ActionRowDataResolver`. Services from the
+container already receive them: change nothing there.
+
+The checker comes first in `ColumnResolver`, `ActionRowDataResolver`, `DataTableRuntimeFactory`,
+`RenderingPreparer` and `DataTablesExtension` (second there, after the Stimulus helper), so pass
+it by name or move the arguments that follow it.
+
+```php
+// Before (1.x)
+$resolver = new ColumnResolver($attributeColumnReader);
+
+// After (2.0)
+$resolver = new ColumnResolver(new AuthorizationChecker($security), $attributeColumnReader);
+```
+
+`EntityMutator`, `EditFormService` and `DetailRowService` never read the locator, the row scope guard
+or the checker they declared, so those arguments are gone: `new EntityMutator($accessor, $publisher,
+$topicResolver, $flusher)`, `new DetailRowService($twig)`, and `EditFormService` ends with the
+`ColumnResolver`. Application code should not build these services: the Ajax controllers do.
+
+### Invalid configuration throws
+
+Four mistakes that logged a deprecation in 1.x now throw. Fix the configuration or the table.
+
+| Mistake | Exception |
+| --- | --- |
+| `data_tables.options.pageLength` is not one of `data_tables.options.lengthMenu` | `InvalidConfigurationException` when the container compiles |
+| A `data_tables.extensions.buttons` value is not a `ButtonType` case | `InvalidConfigurationException` when the container compiles |
+| `data_tables.extensions.select.style` is not a `SelectStyle` case | `InvalidConfigurationException` when the container compiles |
+| `Feature::SEARCH_BUILDER` is in the layout without the SearchBuilder extension | `LogicException` from `DataTable::getOptions()` |
+
+```php
+// Before (1.x): logged a deprecation
+$table->layout(['top1' => Feature::SEARCH_BUILDER]);
+
+// After (2.0)
+$table->searchBuilder();
+```
+
+Environment placeholders are still accepted, since they resolve after validation.
 
 ### Deprecations removed
 
