@@ -42,39 +42,27 @@ final class ConfigurationTest extends TestCase
         yield 'non-integer page length' => [['options' => ['pageLength' => 'many']], 'pageLength'];
     }
 
-    #[Test]
-    public function it_deprecates_a_page_length_outside_the_menu_and_keeps_the_options(): void
-    {
-        $deprecations = $this->collectDeprecations(fn () => $this->process(['options' => ['pageLength' => 20, 'lengthMenu' => [10, 25, 50]]]), $result);
-        $options      = $result['options'];
-
-        self::assertSame(20, $options['pageLength']);
-        self::assertSame([10, 25, 50], $options['lengthMenu']);
-        self::assertCount(1, $deprecations);
-        self::assertStringContainsString('throws in 2.0', $deprecations[0]);
-    }
-
     /**
      * @param array<string, mixed> $config
      */
     #[Test]
-    #[DataProvider('deprecatedConfigs')]
-    public function it_deprecates_unknown_extension_values_and_keeps_them(array $config, string $value): void
+    #[DataProvider('rejectedConfigs')]
+    public function it_rejects_a_page_length_outside_the_menu_and_unknown_extension_values(array $config, string $message): void
     {
-        $deprecations = $this->collectDeprecations(fn () => $this->process($config), $result);
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage($message);
 
-        self::assertCount(1, $deprecations);
-        self::assertStringContainsString($value, $deprecations[0]);
-        self::assertSame($config['extensions'], array_intersect_key($result['extensions'], $config['extensions']));
+        $this->process($config);
     }
 
     /**
      * @return iterable<string, array{array<string, mixed>, string}>
      */
-    public static function deprecatedConfigs(): iterable
+    public static function rejectedConfigs(): iterable
     {
-        yield 'unknown select style' => [['extensions' => ['select' => ['style' => 'bogus']]], "'bogus'"];
-        yield 'unknown button' => [['extensions' => ['buttons' => ['csv', 'bogus']]], "'bogus'"];
+        yield 'page length outside the menu' => [['options' => ['pageLength' => 20, 'lengthMenu' => [10, 25, 50]]], 'The "data_tables.options.pageLength" value 20 is not one of "data_tables.options.lengthMenu", add it to the menu or choose one of its entries.'];
+        yield 'unknown select style' => [['extensions' => ['select' => ['style' => 'bogus']]], "The \"data_tables.extensions.select.style\" value 'bogus' is not a"];
+        yield 'unknown button' => [['extensions' => ['buttons' => ['csv', 'bogus']]], "The \"data_tables.extensions.buttons\" value 'bogus' is not a"];
     }
 
     /**
@@ -82,9 +70,9 @@ final class ConfigurationTest extends TestCase
      */
     #[Test]
     #[DataProvider('silentConfigs')]
-    public function it_does_not_deprecate_consistent_configuration(array $config): void
+    public function it_accepts_consistent_configuration(array $config): void
     {
-        self::assertSame([], $this->collectDeprecations(fn () => $this->process($config)));
+        self::assertIsArray($this->process($config));
     }
 
     /**
@@ -98,14 +86,14 @@ final class ConfigurationTest extends TestCase
     }
 
     #[Test]
-    public function it_does_not_deprecate_env_placeholders_in_extensions(): void
+    public function it_accepts_env_placeholders_in_extensions(): void
     {
         $bag    = (new ContainerBuilder())->getParameterBag();
         $style  = $bag->get('env(SELECT_STYLE)');
         $button = $bag->get('env(BUTTON)');
         $config = ['extensions' => ['select' => ['style' => $style], 'buttons' => ['csv', $button]]];
 
-        self::assertSame([], $this->collectDeprecations(fn () => $this->process($config)));
+        self::assertIsArray($this->process($config));
     }
 
     /**
@@ -171,30 +159,6 @@ final class ConfigurationTest extends TestCase
         $this->collectNames($this->tree(), $names);
 
         self::assertSame([], preg_grep('/purpose|csrf|token|security/i', $names));
-    }
-
-    /**
-     * @param array<string, mixed>|null $result
-     *
-     * @return list<string>
-     */
-    private function collectDeprecations(callable $run, ?array &$result = null): array
-    {
-        $deprecations = [];
-
-        set_error_handler(static function (int $level, string $message) use (&$deprecations): bool {
-            $deprecations[] = $message;
-
-            return true;
-        }, \E_USER_DEPRECATED);
-
-        try {
-            $result = $run();
-        } finally {
-            restore_error_handler();
-        }
-
-        return $deprecations;
     }
 
     /**
