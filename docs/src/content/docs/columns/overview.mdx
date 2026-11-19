@@ -94,8 +94,8 @@ TextColumn::new('reference', 'Reference')
     ->searchNormalization(false);
 ```
 
-`AbstractColumn` carries the flag. Custom columns must extend a bundled column or `AbstractColumn`:
-a class that only implements `ColumnInterface` is deprecated since 1.6 and is always normalized.
+`AbstractColumn` carries the flag. It is the only column implementation, so custom columns extend a
+bundled column or `AbstractColumn`.
 
 #### Sorting on a custom expression
 
@@ -170,8 +170,8 @@ skip the column for that term.
 
 Overriding `buildSearchPredicate()` in a column subclass is the class-level equivalent. All three
 settings live on `AbstractColumn`, so every bundled column type and every subclass has them.
-Custom columns must extend a bundled column or `AbstractColumn`; implementing `ColumnInterface`
-directly is deprecated since 1.6.
+Custom columns extend a bundled column or `AbstractColumn`, the only `ColumnInterface`
+implementation.
 
 :::caution
 The predicate string is used verbatim in the DQL. Build it from your own code, never by

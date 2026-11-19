@@ -26,7 +26,7 @@ interface ExporterInterface
 | `isAvailable()` | whether the writer library is installed |
 | `createWriter(): WriterInterface` | the OpenSpout writer |
 | `headings(array $columns)` | header labels (default: column titles) |
-| `cellValue(ColumnInterface, array $row)` | one cell's scalar value |
+| `cellValue(AbstractColumn, array $row)` | one cell's scalar value |
 | `configureSheet(WriterInterface, array)` | post-write sheet config (XLSX freeze/filter) |
 
 Keep formula neutralization and markup stripping if overriding `cellValue()` — `AbstractExporter`'s default guards against spreadsheet formula injection and renders `TemplateColumn` HTML as plain text.

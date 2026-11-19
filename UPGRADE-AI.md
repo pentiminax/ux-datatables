@@ -236,8 +236,9 @@ must log no `pentiminax/ux-datatables` deprecation.
 
 <upgrade-prompt version="2.0">
 
-Context: ux-datatables 2.0 removes what 1.x deprecated. This section covers rendering: rendering no
-longer writes to the table, and the option bag holds DataTables.net options only. After this
+Context: ux-datatables 2.0 removes what 1.x deprecated. This section covers rendering (rendering no
+longer writes to the table, and the option bag holds DataTables.net options only) and columns
+(`AbstractColumn` is the only column implementation, and every column `setX()` method is gone). After this
 change, the application and its test suite must run with no call to a removed method.
 
 ## Required changes
@@ -273,5 +274,27 @@ change, the application and its test suite must run with no call to a removed me
 9. Purge HTTP and page caches that hold pages rendered before 1.5.1, and make sure the bundle's
    routes are imported: the browser refuses a row action (delete, toggle, detail, edit) whose URL
    is missing from the payload's `rowActionUrls` instead of falling back to a default path.
+10. Rename every remaining `setX()` call on a column to its bare `x()` method, with the same
+    arguments (see 1.6 required change 1 for the full list per column class): `setTitle()` →
+    `title()`, `setField()` → `field()`, `setVisible()` → `visible()`, `setImageWidth()` →
+    `imageWidth()`, `setChoices()` → `choices()`, `setDisplayValue()` → `displayValue()`,
+    `setDefaultProtocol()` → `defaultProtocol()`, `setFormat()` → `format()`, `setToggleAjax()` →
+    `toggleAjax()`, `setEntityClass()` → `entityClass()`, `setTemplate()` → `template()`, and so on.
+    Replace `ColumnResolver::removeDeniedColumnValues($row, $columns)` with
+    `removePaths($row, $resolver->deniedColumnPaths($columns))`.
+11. Make every custom column extend a bundled column or `AbstractColumn`: search for classes that
+    `implements ColumnInterface`, `SearchableColumnInterface` or `NormalizedSearchColumnInterface`
+    and rewrite them as subclasses of `AbstractColumn` (set the type through `createWithType()` or the
+    constructor, delete the members `AbstractColumn` already provides). Delete every `use` of
+    `SearchableColumnInterface` and `NormalizedSearchColumnInterface`. Keep `ColumnInterface` type
+    hints in search strategies, predicate builders and `SearchListOptionsProviderInterface`
+    implementations. Type hints on column lists passed to `DataTable::add()` or returned from
+    `configureColumns()` must be `AbstractColumn`.
+12. Replace the `#[Column(...)]` attribute (`Pentiminax\UX\DataTables\Attribute\Column`) with
+    `#[DataTableColumn(...)]`: keep `type`, `name` and `position` as named parameters and move every
+    other named parameter into `options: ['title' => ..., 'orderable' => ...]`.
+13. Add a bare `foo()` method to every custom column or filter that accepts an attribute option
+    only through its own `setFoo()` method: 2.0 calls only `foo()` and throws "is not supported
+    by" otherwise.
 
 </upgrade-prompt>

@@ -151,6 +151,85 @@ final class CountryTable extends AbstractDataTable
 - `data_tables.hydration_row_threshold` still logs a warning when a `serverSide(false)` table embeds
   more rows than the threshold.
 
+### Custom columns must extend `AbstractColumn`
+
+`AbstractColumn` is the only column implementation. `ColumnInterface` stays as the read-only view
+handed to extension points, and loses `setField()` and `setVisible()`. `DataTable::add()`,
+`DataTable::columns()` and `configureColumns()` accept `AbstractColumn` instances only, and the
+2.0 summaries, value formatting, ColumnControl search and export formatting no longer skip a
+column that is not one.
+
+- A class that implements `ColumnInterface` directly must extend a bundled column or `AbstractColumn`
+  instead. Set the type in the constructor and drop the members `AbstractColumn` already provides.
+- `SearchableColumnInterface` and `NormalizedSearchColumnInterface` are removed. `AbstractColumn`
+  carries `getSearchField()`, `getSearchJoins()`, `buildSearchPredicate()` and `isSearchNormalized()`.
+- Search strategies, search predicate builders and `SearchListOptionsProviderInterface`
+  implementations keep receiving a `ColumnInterface`: their signatures do not change.
+- `AbstractDataTable::getColumnByName()` and `DataTable::getColumnByName()` return `?AbstractColumn`.
+- `ColumnTranslator::applyTitle()` no longer falls back to a `setTitle()` method.
+
+```php
+// Before (1.x)
+final class RatingColumn implements ColumnInterface
+{
+    public function setField(string $field): static { /* ... */ }
+    // ... every other getter
+}
+
+// After (2.0)
+final class RatingColumn extends AbstractColumn
+{
+    public static function new(string $name, string $title = ''): static
+    {
+        return static::createWithType($name, $title, ColumnType::NUM);
+    }
+}
+```
+
+### The `#[Column]` attribute is removed
+
+Replace `#[Column(...)]` with `#[DataTableColumn(...)]`. Every named parameter of `#[Column]` is now an
+entry of the `options` array, except `type`, `name` and `position`, which stay parameters.
+
+```php
+// Before (1.x)
+#[Column(type: EmailColumn::class, title: 'Email', orderable: false)]
+private string $email;
+
+// After (2.0)
+#[DataTableColumn(type: EmailColumn::class, options: ['title' => 'Email', 'orderable' => false])]
+private string $email;
+```
+
+### Attribute options reach bare methods only
+
+`#[DataTableColumn]` and `#[DataTableFilter]` options are applied through the bare fluent method
+(`foo()`) only. A custom column or filter that answered an option through its own `setFoo()` method
+must declare `foo()`, otherwise the option throws "is not supported by".
+
+### Column deprecations removed
+
+Everything below was deprecated in 1.x and is removed. Each line names its replacement.
+
+- `setClassName()`, `setCellType()`, `setName()`, `setOrderable()`, `setSearchable()`,
+  `setSearchNormalization()`, `setColumnControl()`, `setType()`, `setWidth()`,
+  `setResponsivePriority()`, `setTitle()`, `setVisible()`, `setData()`, `setDefaultContent()`,
+  `setExportable()`, `setField()`, `setOrderExpression()`, `setSearchField()`,
+  `setSearchPredicate()`, `setCustomOption()` and `setPermission()` on columns: use the bare method
+  (`className()`, `cellType()`, ...).
+- `ImageColumn::setImageWidth()`, `setImageHeight()`, `setAlt()` and `setPlaceholder()`: use
+  `imageWidth()`, `imageHeight()`, `alt()` and `placeholder()`.
+- `ChoiceColumn::setChoices()`: use `choices()`.
+- `UrlColumn::setDisplayValue()` and `setDefaultProtocol()`, `EmailColumn::setDisplayValue()`: use
+  `displayValue()` and `defaultProtocol()`.
+- `DateColumn::setFormat()`: use `format()`.
+- `BooleanColumn::setToggleAjax()` and `setEntityClass()`: use `toggleAjax()` and `entityClass()`.
+- `TemplateColumn::setTemplate()`: use `template()`.
+- `ColumnResolver::removeDeniedColumnValues()`: use `deniedColumnPaths()` and `removePaths()`.
+- `ColumnInterface::setField()` and `setVisible()`: use `AbstractColumn::field()` and `visible()`.
+- `SearchableColumnInterface` and `NormalizedSearchColumnInterface`: extend `AbstractColumn`.
+- `Pentiminax\UX\DataTables\Attribute\Column`: use `DataTableColumn`.
+
 ## Upgrading to 1.7.0
 
 1.7 is the last 1.x minor. Everything in it is backward compatible: it deprecates what 2.0 removes,

@@ -24,11 +24,11 @@ new DataTable(
 <Table
   headers={['Method', 'Description']}
   rows={[
-    ['`add(ColumnInterface $column)`', 'Add a single column'],
+    ['`add(AbstractColumn $column)`', 'Add a single column'],
     ['`columns(array $columns)`', 'Replace the column list with the given array'],
-    ['`getColumns(): ColumnInterface[]`', 'Return configured column objects keyed by name'],
+    ['`getColumns(): AbstractColumn[]`', 'Return configured column objects keyed by name'],
     ['`getColumnDefinitions(): array`', 'Return the serialized DataTables column definitions'],
-    ['`getColumnByName(string $name): ?ColumnInterface`', 'Find a column by its name'],
+    ['`getColumnByName(string $name): ?AbstractColumn`', 'Find a column by its name'],
   ]}
 />
 
