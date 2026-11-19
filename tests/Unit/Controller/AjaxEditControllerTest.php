@@ -315,6 +315,7 @@ final class ToggleBooleanEntityFixtureDataTable extends AbstractDataTable
     {
         return $table
             ->serverSide()
+            ->unscopedMutations()
             ->mercure(topics: ['/manual/toggle-boolean-entity-fixtures']);
     }
 

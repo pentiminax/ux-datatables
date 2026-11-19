@@ -19,6 +19,7 @@ use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditRequestDto;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
+use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
@@ -117,16 +118,19 @@ final class AjaxEditRelatedEntityTest extends TestCase
     }
 
     #[Test]
-    public function it_toggles_a_switch_on_a_table_without_an_entity_class(): void
+    public function it_refuses_a_switch_on_a_table_without_an_entity_class(): void
     {
         $registry = $this->registry(new RelatedToggleManualDataTable(), RelatedToggleManualDataTable::class);
         $token    = $registry->getActionToken(RelatedToggleManualDataTable::class) ?? '';
 
         $controller = $this->controller($registry);
 
-        $controller($this->request(), new AjaxEditRequestDto($token, 30, 'vip', true));
-
-        $this->assertTrue($this->em->find(RelatedToggleCustomer::class, 30)->vip);
+        try {
+            $controller($this->request(), new AjaxEditRequestDto($token, 30, 'vip', true));
+            $this->fail('The toggle must be refused.');
+        } catch (MutationNotAllowedException) {
+            $this->assertFalse($this->em->find(RelatedToggleCustomer::class, 30)->vip);
+        }
     }
 
     private function assertRejected(int $customerId, ?int $rowId): void

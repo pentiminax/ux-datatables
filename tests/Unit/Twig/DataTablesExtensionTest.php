@@ -778,6 +778,8 @@ final class ProviderHydratedDataTable extends AbstractDataTable
 
     public function configureDataTable(DataTable $table): DataTable
     {
+        $table->unscopedMutations();
+
         return match ($this->mode) {
             'serverSide'  => $table->serverSide(),
             'ajax'        => $table->ajax('/books.json'),

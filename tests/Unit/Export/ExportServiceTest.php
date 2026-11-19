@@ -402,7 +402,7 @@ final class ExportServiceTest extends TestCase
                 ActionColumn::fromActions('actions', 'Actions', new Actions()),
                 TextColumn::new('name'),
             ],
-            configureTable: static fn (DataTable $table): DataTable => $table->buttons([
+            configureTable: static fn (DataTable $table): DataTable => $table->unscopedMutations()->buttons([
                 Button::csv(serverSide: true)->filename('users'),
             ]),
             dataProvider: $this->provider(),

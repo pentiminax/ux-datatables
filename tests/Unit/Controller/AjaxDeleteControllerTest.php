@@ -295,6 +295,7 @@ class DeletableEntityFixtureDataTable extends AbstractDataTable
     {
         return $table
             ->serverSide()
+            ->unscopedMutations()
             ->mercure(topics: ['/manual/deletable-entity-fixtures']);
     }
 
