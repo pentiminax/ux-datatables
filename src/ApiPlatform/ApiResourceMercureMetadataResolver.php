@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\ApiPlatform;
 
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\CollectionOperationInterface;
+use ApiPlatform\Metadata\Exception\ResourceClassNotFoundException;
 use ApiPlatform\Metadata\HttpOperation;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicUrlResolver;
@@ -67,10 +68,9 @@ class ApiResourceMercureMetadataResolver
     {
         try {
             $collection = $this->resourceMetadataFactory->create($entityClass);
-        } catch (\Throwable) {
+        } catch (ResourceClassNotFoundException) {
             // A class the factory cannot resolve is simply not private, and every entity-backed
-            // table reaches this through MercureConfigResolver. \Throwable because the concrete
-            // exception moved namespace between api-platform/core 3 and 4.
+            // table reaches this through MercureConfigResolver.
             return false;
         }
 

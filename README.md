@@ -92,8 +92,8 @@ That's it!
 
 ## Requirements
 
-- PHP 8.2 or higher
-- Symfony 7.x or 8.x
+- PHP 8.3 or higher
+- Symfony 7.4 or 8.x
 - Symfony StimulusBundle 2.x or 3.x
 
 ## Security

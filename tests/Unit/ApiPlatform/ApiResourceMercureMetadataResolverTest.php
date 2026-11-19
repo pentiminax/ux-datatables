@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\ApiPlatform;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Exception\ResourceClassNotFoundException;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\HttpOperation;
@@ -188,7 +189,7 @@ final class ApiResourceMercureMetadataResolverTest extends TestCase
         $factory = $this->createStub(ResourceMetadataCollectionFactoryInterface::class);
         $factory
             ->method('create')
-            ->willThrowException(new \RuntimeException('boom'));
+            ->willThrowException(new ResourceClassNotFoundException('boom'));
 
         $resolver = new ApiResourceMercureMetadataResolver($factory);
 
