@@ -272,7 +272,7 @@ scope covers:
     ],
     [
       'Bulk explicit selection, custom provider that does not declare DataSourceFeature::RowScope, or API Platform table',
-      'No: the handler receives every identifier that exists. Deprecated in 1.6, refused in 2.0 unless the table calls unscopedMutations()',
+      'Refused unless the table calls unscopedMutations(), in which case the handler receives every identifier that exists',
     ],
     [
       'Single-row delete, boolean toggle on the table entity, edit form, detail row, built-in Doctrine provider',
@@ -280,7 +280,7 @@ scope covers:
     ],
     [
       'Single-row delete, toggle, edit form, detail row, provider that does not declare DataSourceFeature::RowScope, or API Platform table',
-      'No: deprecated in 1.6, refused in 2.0 unless the table calls unscopedMutations()',
+      'Refused unless the table calls unscopedMutations(), in which case nothing checks the scope',
     ],
     [
       'Boolean toggle on a column of another entity (entityClass())',
@@ -293,8 +293,11 @@ scope covers:
   ]}
 />
 
-A data provider that cannot check the row scope leaves every row action and bulk action on an
-unscoped table. Since 1.6 this is deprecated and 2.0 refuses it. Implement
+A data provider that cannot check the row scope would leave every row action and bulk action
+unscoped, so the bundle refuses it: the table throws a `LogicException` when it renders or on its
+first data request, and the Ajax endpoints answer `403`. The same goes for a provider whose
+`supports()` throws an `\UnhandledMatchError` for `RowScope`, an entity without an identifier field,
+and a mutation that runs without a data table request. Implement
 `IdentifierDataProviderInterface` and declare `DataSourceFeature::RowScope` in `supports()`, or, when
 the scope is enforced elsewhere (an API Platform extension, a voter), say so on the table:
 
@@ -305,8 +308,8 @@ public function configureDataTable(DataTable $table): DataTable
 }
 ```
 
-`unscopedMutations()` silences the deprecation and keeps the mutations working in 2.0. It does not
-add any check: the scope is yours to enforce.
+`unscopedMutations()` is the explicit opt-out. It does not add any check: the scope is yours to
+enforce.
 
 Bulk actions never re-authorize rows on their own: a row is re-checked **only** when the action
 declares a per-row permission (`permission($attribute, $subjectResolver)`). See

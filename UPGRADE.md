@@ -273,9 +273,57 @@ A `supports()` that throws an `\UnhandledMatchError` for a feature it does not l
 unsupported, but no longer logs a deprecation. Row scope and identifier collection need
 `IdentifierDataProviderInterface` and a `true` answer from `supports()` for
 `DataSourceFeature::RowScope` and `DataSourceFeature::IdentifierCollection`; implementing the
-interface alone no longer declares them. Answering `false` (or `default => false`) for `RowScope`
-disables the row scope check: the provider is treated as unscoped for row actions and bulk
-identifiers, and for `IdentifierCollection` a bulk "select all matching" is rejected.
+interface alone no longer declares them. A provider that answers `false` (or `default => false`) for
+`RowScope` cannot check the row scope, and is refused for row actions and bulk actions unless the
+table calls `unscopedMutations()` (see "Row actions and bulk actions refuse an unscoped data
+provider"). For `IdentifierCollection`, a bulk "select all matching" is rejected.
+
+### Row actions and bulk actions refuse an unscoped data provider
+
+Row actions (delete, boolean toggle, edit form, detail row) and bulk actions now fail closed. 1.x let
+them run with a deprecation when the table's data provider could not check the row scope, which is
+the case for an API Platform table, `ArrayDataProvider` and a custom provider that does not declare
+`DataSourceFeature::RowScope`. 2.0 refuses them:
+
+- A table with row actions or bulk actions on such a provider throws a `LogicException` naming
+  `unscopedMutations()`, when it renders (client-side tables) or on its first data request
+  (server-side tables). Its Ajax endpoints answer `403`.
+- A provider whose `supports()` throws an `\UnhandledMatchError` for `RowScope` counts as unscoped,
+  and is refused the same way.
+- An entity without an identifier field answers `403` instead of skipping the scope check.
+- A mutation that runs without a data table request answers `403`.
+- A boolean toggle on a table without an entity class answers `403`. Give the table an entity class
+  with `#[AsDataTable(entityClass: ...)]`.
+
+If the scope is enforced elsewhere (an API Platform extension, a voter), say so on the table. Otherwise
+make the provider scoped.
+
+```php
+// Before (1.x): logged a deprecation, ran unscoped
+public function configureDataTable(DataTable $table): DataTable
+{
+    return $table->apiPlatform();
+}
+
+// After (2.0): opt out explicitly
+public function configureDataTable(DataTable $table): DataTable
+{
+    return $table->apiPlatform()->unscopedMutations();
+}
+
+// Or: scope a custom provider
+final class TenantProvider implements DataProviderInterface, IdentifierDataProviderInterface
+{
+    public function supports(DataSourceFeature $feature): bool
+    {
+        return \in_array($feature, [DataSourceFeature::RowScope, DataSourceFeature::IdentifierCollection], true);
+    }
+
+    // collectIdentifiers() and filterIdentifiersInScope() keep the ids of the tenant
+}
+```
+
+`unscopedMutations()` adds no check: the scope is yours to enforce. It is not deprecated.
 
 ### Deprecations removed
 

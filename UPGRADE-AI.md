@@ -328,8 +328,19 @@ change, the application and its test suite must run with no call to a removed me
       with `IdentifierDataProviderInterface` (`collectIdentifiers()` and
       `filterIdentifiersInScope()`, same signatures), and return `true` from `supports()` for
       `DataSourceFeature::RowScope` and `DataSourceFeature::IdentifierCollection`: without that
-      answer the bundle ignores the interface. Answering `false` (or `default => false`) for
-      `RowScope` means the provider is treated as unscoped: the row scope check is disabled for
-      row actions and bulk identifiers.
+      answer the bundle ignores the interface. A provider answering `false` (or `default => false`,
+      or an `\UnhandledMatchError`) for `RowScope` cannot check the row scope: required change 19
+      refuses it for row actions and bulk actions unless the table calls `unscopedMutations()`.
+19. Fix every table with row actions (delete, boolean toggle, edit form, detail row) or bulk actions
+    whose data provider cannot check the row scope: an API Platform table, an `ArrayDataProvider`, or
+    a custom provider that does not return `true` from `supports()` for
+    `DataSourceFeature::RowScope`. Such a table now throws a `LogicException` naming
+    `unscopedMutations()` (at render for client-side tables, on the first data request for
+    server-side ones), and its Ajax endpoints answer `403`.
+    - When the scope is enforced elsewhere, add `unscopedMutations()` in `configureDataTable()`.
+    - Otherwise implement `IdentifierDataProviderInterface` on the provider and return `true` for
+      `DataSourceFeature::RowScope`.
+    - Give every table with a boolean toggle an entity class: `#[AsDataTable(entityClass: ...)]`. A
+      toggle on a table without one answers `403`.
 
 </upgrade-prompt>
