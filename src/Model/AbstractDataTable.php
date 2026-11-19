@@ -323,6 +323,14 @@ abstract class AbstractDataTable
 
         $renderingPreparer->prepareBeforeDataHydration($this->table, $optIns);
 
+        if (DataSourceMode::ClientHydrated === $optIns->dataSourceMode) {
+            $provider = $this->getResolvedDataProvider();
+
+            if (null !== $provider) {
+                $renderingPreparer->assertMutationsScoped($this->table, $provider);
+            }
+        }
+
         $rows = DataSourceMode::ClientHydrated === $optIns->dataSourceMode
             ? $this->hydrateClientSideRows()
             : $this->mapExplicitInlineRows();

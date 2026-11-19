@@ -156,6 +156,7 @@ final class DataTableRuntime
         $dataProvider = ($this->dataProviderFactory)();
 
         if (null !== $dataProvider && $this->isRequestHandled()) {
+            $this->featureGuard->assertMutationsScoped($this->table, $dataProvider);
             $this->featureGuard->assertRequestSupported($this->request, $dataProvider, $this->table, $this->columns);
         }
 

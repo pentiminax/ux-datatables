@@ -8,11 +8,11 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
-use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\ColumnTranslator;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\TemplateAwareColumnInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
@@ -120,6 +120,14 @@ final class RenderingPreparer
         }
 
         $this->featureGuard->assertConfigurable($table, $optIns);
+    }
+
+    /**
+     * @throws \LogicException when the table's actions run on a data provider that cannot check the row scope
+     */
+    public function assertMutationsScoped(DataTable $table, DataProviderInterface $provider): void
+    {
+        $this->featureGuard->assertMutationsScoped($table, $provider);
     }
 
     /**
@@ -495,13 +503,7 @@ final class RenderingPreparer
 
     private function hasRowActions(DataTable $table): bool
     {
-        foreach ($table->getColumns() as $column) {
-            if ($column instanceof ActionsProvidingColumnInterface || ($column instanceof BooleanColumn && $column->isRenderedAsSwitch())) {
-                return true;
-            }
-        }
-
-        return false;
+        return DataSourceFeatureGuard::hasRowActions($table);
     }
 
     /**

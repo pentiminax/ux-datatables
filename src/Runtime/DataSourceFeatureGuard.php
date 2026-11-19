@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Runtime;
 
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
+use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ApiPlatformCollectionProvider;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
@@ -72,6 +74,21 @@ final class DataSourceFeatureGuard
     }
 
     /**
+     * Refuses row actions and bulk actions on a data provider that cannot check the row scope,
+     * unless the table opts out with unscopedMutations().
+     *
+     * @throws \LogicException when the provider cannot check the row scope and the table did not opt out
+     */
+    public function assertMutationsScoped(DataTable $table, DataProviderInterface $provider): void
+    {
+        if (!self::hasMutations($table) || null !== DataSourceCapability::rowScopeChecker($provider) || $table->allowsUnscopedMutations()) {
+            return;
+        }
+
+        throw new \LogicException(\sprintf('Table "%s" has row actions or bulk actions, but its data provider %s cannot check the row scope. Call unscopedMutations() on the table when the scope is enforced elsewhere, or implement IdentifierDataProviderInterface and declare DataSourceFeature::RowScope in supports().', $table->getDataTableClass() ?? $table->getId(), self::providerName($provider)));
+    }
+
+    /**
      * @param list<AbstractColumn> $columns the table's configured columns
      *
      * @throws BadRequestHttpException when the request carries criteria the provider cannot apply
@@ -102,6 +119,17 @@ final class DataSourceFeatureGuard
         }
     }
 
+    public static function hasRowActions(DataTable $table): bool
+    {
+        foreach ($table->getColumns() as $column) {
+            if ($column instanceof ActionsProvidingColumnInterface || ($column instanceof BooleanColumn && $column->isRenderedAsSwitch())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static function unsupported(DataSourceFeature $feature, DataProviderInterface $provider): BadRequestHttpException
     {
         return new BadRequestHttpException(\sprintf('%s are not supported by %s. Use a DoctrineDataProvider or a custom DataProviderInterface for this table.', $feature->label(), self::providerName($provider)));
@@ -111,6 +139,11 @@ final class DataSourceFeatureGuard
      * The browser aggregates the cell values it holds, which formatValueUsing() has already turned
      * into text: "1,234.50" is not a number.
      */
+    private static function hasMutations(DataTable $table): bool
+    {
+        return self::hasRowActions($table) || $table->hasBulkActions();
+    }
+
     private function assertBrowserCanSummarize(DataTable $table): void
     {
         foreach (ColumnResolver::filterSummarized($table->getColumns()) as $column) {

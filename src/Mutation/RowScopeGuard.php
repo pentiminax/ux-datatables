@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Mutation;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Column\Rendering\PropertyReader;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
+use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\RowMapper\RowIdNormalizer;
 use Pentiminax\UX\DataTables\Runtime\DataSourceCapability;
 use Symfony\Component\HttpFoundation\Request;
@@ -26,32 +27,33 @@ final class RowScopeGuard
     }
 
     /**
-     * The ids the table's permanent scope contains. A provider that cannot answer keeps them all,
-     * which 1.6 deprecates unless the table declares unscopedMutations().
+     * The ids the table's permanent scope contains. A provider that cannot answer is refused,
+     * unless the table declares unscopedMutations(), which keeps every id.
      *
      * @param list<int|string> $ids
      *
      * @return list<int|string>
+     *
+     * @throws MutationNotAllowedException when the scope cannot be checked
      */
     public static function keepInScope(ResolvedDataTable $table, Request $request, string $field, array $ids): array
     {
-        $table->table->handleDataTableRequest($request);
-
-        $dataTableRequest = $table->table->getDataTableRequest();
-        $provider         = $table->table->getResolvedDataProvider();
-
-        $checker = DataSourceCapability::rowScopeChecker($provider);
-
-        if (null === $checker) {
-            if (!$table->table->getConfiguredDataTable()->allowsUnscopedMutations()) {
-                trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Acting on rows of table "%s" skips the row scope check, because its data provider "%s" does not support the "rowScope" feature: 2.0 refuses the request. Implement IdentifierDataProviderInterface and declare DataSourceFeature::RowScope in supports(), or call unscopedMutations() on the table when its scope is enforced elsewhere.', $table->dataTableClass, get_debug_type($provider));
-            }
-
+        if ($table->table->getConfiguredDataTable()->allowsUnscopedMutations()) {
             return $ids;
         }
 
+        $table->table->handleDataTableRequest($request);
+
+        $checker = DataSourceCapability::rowScopeChecker($table->table->getResolvedDataProvider());
+
+        if (null === $checker) {
+            throw new MutationNotAllowedException();
+        }
+
+        $dataTableRequest = $table->table->getDataTableRequest();
+
         if (null === $dataTableRequest) {
-            return $ids;
+            throw new MutationNotAllowedException();
         }
 
         return $checker->filterIdentifiersInScope($dataTableRequest->withoutPagination(), $ids, $field);
@@ -74,7 +76,8 @@ final class RowScopeGuard
     }
 
     /**
-     * @throws EntityNotFoundException when the row is outside the table scope, whether or not it exists
+     * @throws EntityNotFoundException     when the row is outside the table scope, whether or not it exists
+     * @throws MutationNotAllowedException when the entity has no identifier field, or the scope cannot be checked
      */
     public function assertInScope(ResolvedDataTable $table, int|string $id): void
     {
@@ -82,7 +85,7 @@ final class RowScopeGuard
         $field       = $this->locator->manager($entityClass)->getClassMetadata($entityClass)->getIdentifier()[0] ?? null;
 
         if (null === $field) {
-            return;
+            throw new MutationNotAllowedException();
         }
 
         $request = $this->requestStack?->getCurrentRequest() ?? new Request();

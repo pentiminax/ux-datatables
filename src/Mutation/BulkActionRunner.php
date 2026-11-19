@@ -141,7 +141,7 @@ final class BulkActionRunner
 
     /**
      * Keeps only the ids the permanent scope contains, so a forged id never reaches the handler.
-     * A provider that cannot answer keeps the ids as they are, with a deprecation in 1.6.
+     * A provider that cannot answer is refused unless the table calls unscopedMutations().
      *
      * @param list<int|string> $ids
      *
