@@ -15,7 +15,7 @@
         "enabled": true,
         "autoimport": {
           "@pentiminax/ux-datatables/dist/styles/datatables-base-style.css": true,
-          "@pentiminax/ux-datatables/dist/styles/datatables-tailwind-theme.css": false,
+          "@pentiminax/ux-datatables/dist/styles/datatables-tailwind-theme.css": true,
           "datatables.net-dt/css/dataTables.dataTables.min.css": true,
           "datatables.net-bs5/css/dataTables.bootstrap5.min.css": false
         }
@@ -27,7 +27,7 @@
         "enabled": false,
         "autoimport": {
           "@pentiminax/ux-datatables/dist/styles/datatables-base-style.css": true,
-          "@pentiminax/ux-datatables/dist/styles/datatables-tailwind-theme.css": false,
+          "@pentiminax/ux-datatables/dist/styles/datatables-tailwind-theme.css": true,
           "datatables.net-dt/css/dataTables.dataTables.min.css": true,
           "datatables.net-bs5/css/dataTables.bootstrap5.min.css": false
         }
