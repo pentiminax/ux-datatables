@@ -20,7 +20,7 @@ final class UserDataTable extends AbstractDataTable { /* ... */ }
     mercure: false,                  // bool | array{topics?, withCredentials, debounceMs}
     apiPlatform: false,              // opt-in API Platform integration
     editModalTemplate: null,         // custom Twig template for the edit modal
-    editModalAdapter: null,          // custom modal adapter (dt, bs, bs4, bs5, or a registered name)
+    editModalAdapter: null,          // custom modal adapter (dt, bs5, or a registered name)
     entityClass: User::class,        // Doctrine entity the runtime queries and mutates
 )]
 ```

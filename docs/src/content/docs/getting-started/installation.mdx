@@ -25,7 +25,7 @@ order: 20
 
     <Tabs>
       <TabItem label="AssetMapper">
-        If you're using **AssetMapper** (recommended for Symfony 7+), no extra work is needed. The bundle ships DataTables assets automatically.
+        If you're using **AssetMapper** (recommended for Symfony 7+), the next step installs the packages you need.
       </TabItem>
       <TabItem label="Webpack Encore">
         If you're using **Webpack Encore**, install the JavaScript dependencies and rebuild your assets:
@@ -37,21 +37,21 @@ order: 20
       </TabItem>
     </Tabs>
 
-**Register the packages you use (recommended)**
+**Set up the frontend**
 
     ```bash
     php bin/console ux-datatables:install --style=tailwind buttons responsive select
     ```
 
-    The command registers only the DataTables packages your tables need, enables the
-    `datatable_core` controller, and sets `package_loading: registered` and `style_framework`. See
-    [Loading only the extensions you use](/guide/package-loading/). Skip this step to keep the 1.x
-    behavior, where the `datatable` controller bundles every package.
+    The command copies the package loaders for your kit (`tailwind`, `dt` or `bs5`) and extensions
+    into `assets/datatables.js`, enables the `datatable` controller, sets `style_framework`, and runs
+    `importmap:require` (AssetMapper) or prints the `npm install` line (bundlers). See
+    [Frontend packages](/guide/package-loading/).
 
 **Verify Installation**
 
-    The `@pentiminax/ux-datatables/datatable` Stimulus controller is available in your application,
-    or `@pentiminax/ux-datatables/datatable_core` if you ran the install command.
+    The `@pentiminax/ux-datatables/datatable` Stimulus controller is enabled in
+    `assets/controllers.json` and your loaders are imported from `assets/stimulus_bootstrap.js`.
 
 </Steps>
 
@@ -70,7 +70,6 @@ data_tables:
       bottomEnd: paging
     lengthMenu: [10, 25, 50]
     pageLength: 10
-  package_loading: registered
   style_framework: dt
   table_attributes:
     class: 'table'
@@ -85,8 +84,7 @@ data_tables:
 <Table
   headers={['Option', 'Description']}
   rows={[
-    ['package_loading', '`registered` loads only the packages you register (see the install command). Leaving it unset, or setting `builtin`, is deprecated: 2.0 removes the option and always loads the registered packages'],
-    ['style_framework', '`dt` (DataTables.net and Tailwind styles) or `bs5` (Bootstrap 5). Leaving it unset keeps stylesheet autodetection, which logs a console warning and is removed in 2.0, where the default becomes `dt`'],
+    ['style_framework', '`dt` (DataTables.net and Tailwind styles, the default) or `bs5` (Bootstrap 5)'],
     ['language', 'Default language locale (e.g., en-GB, fr-FR)'],
     ['layout', 'UI component positions (topStart, topEnd, bottomStart, bottomEnd)'],
     ['lengthMenu', 'Available page length options'],
@@ -116,7 +114,7 @@ The bundle ships with the DataTables default theme enabled. Check your `assets/c
 }
 ```
 
-The bundle supports 4 CSS frameworks (Bootstrap 5, Bootstrap 4, Bootstrap 3, and the default DataTables theme). Bootstrap 3 and 4 are deprecated since 1.5 and removed in 2.0. The Stimulus controller automatically detects which stylesheet is loaded and applies the matching integration.
+The bundle supports Bootstrap 5 and the default DataTables theme (which the Tailwind theme builds on). Declare yours with `style_framework`; Bootstrap 3 and 4 are not supported.
 
 See [Styling](/guide/styling/) for the full setup guide.
 
