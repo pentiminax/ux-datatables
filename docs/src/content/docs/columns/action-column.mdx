@@ -124,7 +124,7 @@ When `configureActions()` returns at least one action, `AbstractDataTable` autom
     ],
     [
       '`csrfToken(string|callable $csrfTokenId)`',
-      'Define a custom CSRF token id (static string or per-row callable). `csrfTokenId()` is a deprecated alias, removed in 2.0',
+      'Define a custom CSRF token id (static string or per-row callable)',
     ],
     [
       "`asAjaxRequest(string|callable|null $csrfTokenId = null, string $method = 'POST')`",
@@ -315,10 +315,10 @@ After a successful response the controller dispatches `datatables:action:success
 A failed request dispatches `datatables:action:error` and re-enables the button.
 
 <Aside type="caution">
-  `permission()` only decides whether the button is rendered. It replaces neither `#[IsGranted]`
-  nor `#[IsCsrfTokenValid]` on the endpoint — the route stays the security boundary. Ajax actions
-  are refused when their URL is not same-origin, and are not rendered at all when no CSRF token can
-  be issued (no session, no token manager).
+  `permission()` only decides whether the button is rendered. It replaces neither `#[IsGranted]` nor
+  `#[IsCsrfTokenValid]` on the endpoint — the route stays the security boundary. Ajax actions are
+  refused when their URL is not same-origin, and are not rendered at all when no CSRF token can be
+  issued (no session, no token manager).
 </Aside>
 
 Direct API Platform endpoints and custom controllers keep their own authorization and CSRF checks.

@@ -8,26 +8,23 @@ use Doctrine\DBAL\Driver\Exception as DriverException;
 use Doctrine\DBAL\Exception as DBALException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\OptimisticLockException;
-use Doctrine\Persistence\ManagerRegistry;
+use Pentiminax\UX\DataTables\Ajax\AuthorizedRow;
+use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
-use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\FieldNotToggleableException;
-use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Exception\MutationPersistenceException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
-use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
+use Pentiminax\UX\DataTables\Mutation\MutationContext;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
-use Pentiminax\UX\DataTables\Security\SecurityVoter;
-use Pentiminax\UX\DataTables\Tests\Fixtures\Security\RowContextDenyingAuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -35,13 +32,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
-use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
-use Symfony\Component\Security\Core\Authorization\AccessDecisionManager;
-use Symfony\Component\Security\Core\Authorization\AccessDecisionManagerInterface;
-use Symfony\Component\Security\Core\Authorization\AuthorizationChecker as SymfonyAuthorizationChecker;
-use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
-use Symfony\Component\Security\Core\Authorization\Strategy\AffirmativeStrategy;
 
 /**
  * Topic resolution itself is covered by MercureTopicResolverTest; here the
@@ -66,7 +56,7 @@ final class EntityMutatorTest extends TestCase
     {
         $entity = new EntityMutatorFixture();
 
-        $manager = $this->managerReturning($entity, 5);
+        $manager = $this->managerReturning();
         $manager->expects($this->once())->method('remove')->with($entity);
         $manager->expects($this->once())->method('flush');
 
@@ -84,39 +74,7 @@ final class EntityMutatorTest extends TestCase
             ->with(self::RESOLVED_TOPICS, ['type' => 'delete', 'id' => '5']);
 
         $this->mutator($manager, $publisher, topicResolver: $topicResolver)
-            ->delete(EntityMutatorFixture::class, 5, self::DATA_TABLE_CLASS, Action::delete());
-    }
-
-    #[Test]
-    public function it_deprecates_delete_in_favor_of_delete_row(): void
-    {
-        $manager = $this->managerReturning(new EntityMutatorFixture(), 5);
-        $mutator = $this->mutator($manager, $this->createStub(MercurePublisherInterface::class));
-
-        $deprecations = $this->deprecationsOf(
-            static fn () => $mutator->delete(EntityMutatorFixture::class, 5, self::DATA_TABLE_CLASS, Action::delete())
-        );
-
-        $this->assertCount(1, $deprecations);
-        $this->assertStringContainsString('deleteRow()', $deprecations[0]);
-    }
-
-    #[Test]
-    public function it_deprecates_set_property_in_favor_of_toggle_row(): void
-    {
-        $manager = $this->managerReturning(new EntityMutatorFixture(), 5);
-        $mutator = $this->mutator($manager, $this->createStub(MercurePublisherInterface::class), $this->createStub(PropertyAccessorInterface::class));
-
-        $deprecations = $this->deprecationsOf(static function () use ($mutator): void {
-            try {
-                $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true, self::DATA_TABLE_CLASS);
-            } catch (PropertyNotWritableException) {
-                // The accessor stub refuses the write; only the deprecation is under test.
-            }
-        });
-
-        $this->assertCount(1, $deprecations);
-        $this->assertStringContainsString('toggleRow()', $deprecations[0]);
+            ->deleteRow($this->row($manager, $entity, 5));
     }
 
     #[Test]
@@ -124,7 +82,7 @@ final class EntityMutatorTest extends TestCase
     {
         $entity = new EntityMutatorFixture();
 
-        $manager = $this->managerReturning($entity, 5);
+        $manager = $this->managerReturning();
         $manager->expects($this->never())->method('remove');
         $manager->expects($this->once())->method('flush');
 
@@ -144,7 +102,7 @@ final class EntityMutatorTest extends TestCase
             topicResolver: $this->topicResolverReturning(self::RESOLVED_TOPICS),
         );
 
-        $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true, self::DATA_TABLE_CLASS);
+        $mutator->toggleRow($this->row($manager, $entity, 5, 'enabled'), true);
     }
 
     #[Test]
@@ -152,7 +110,7 @@ final class EntityMutatorTest extends TestCase
     {
         $entity = new EntityMutatorFixture();
 
-        $manager = $this->managerReturning($entity, 5);
+        $manager = $this->managerReturning();
         $manager->expects($this->never())->method('flush');
 
         $accessor = $this->createMock(PropertyAccessorInterface::class);
@@ -165,7 +123,7 @@ final class EntityMutatorTest extends TestCase
         $mutator = $this->mutator($manager, $publisher, accessor: $accessor);
 
         $this->expectException(PropertyNotWritableException::class);
-        $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true, self::DATA_TABLE_CLASS);
+        $mutator->toggleRow($this->row($manager, $entity, 5, 'enabled'), true);
     }
 
     #[Test]
@@ -173,7 +131,7 @@ final class EntityMutatorTest extends TestCase
     {
         $entity = new EntityMutatorFixture();
 
-        $manager = $this->managerReturning($entity, 5);
+        $manager = $this->managerReturning();
         $manager->expects($this->never())->method('flush');
 
         $accessor = $this->createMock(PropertyAccessorInterface::class);
@@ -185,130 +143,7 @@ final class EntityMutatorTest extends TestCase
         $mutator = $this->mutator($manager, $publisher, accessor: $accessor);
 
         $this->expectException(FieldNotToggleableException::class);
-        $mutator->setProperty(EntityMutatorFixture::class, 5, 'admin', true, self::DATA_TABLE_CLASS);
-    }
-
-    #[Test]
-    public function it_denies_deletion_and_does_not_remove_or_flush_when_not_granted(): void
-    {
-        $entity = new EntityMutatorFixture();
-
-        $manager = $this->managerReturning($entity, 5);
-        $manager->expects($this->never())->method('remove');
-        $manager->expects($this->never())->method('flush');
-
-        $publisher = $this->createMock(MercurePublisherInterface::class);
-        $publisher->expects($this->never())->method('publish');
-
-        $mutator = $this->mutator($manager, $publisher, permissionChecker: $this->denyingChecker(Permission::DT_DELETE_ROW, $entity));
-
-        $this->expectException(MutationNotAllowedException::class);
-
-        try {
-            $mutator->delete(EntityMutatorFixture::class, 5, self::DATA_TABLE_CLASS, Action::delete());
-        } catch (MutationNotAllowedException $exception) {
-            $this->assertSame(403, $exception->getStatusCode());
-
-            throw $exception;
-        }
-    }
-
-    #[Test]
-    public function ordinary_delete_action_uses_row_context_after_entity_lookup(): void
-    {
-        $entity = new EntityMutatorFixture();
-
-        $manager = $this->managerReturning($entity, 5);
-        $manager->expects($this->never())->method('remove');
-        $manager->expects($this->never())->method('flush');
-
-        $publisher = $this->createMock(MercurePublisherInterface::class);
-        $publisher->expects($this->never())->method('publish');
-
-        $mutator = $this->mutator(
-            $manager,
-            $publisher,
-            permissionChecker: RowContextDenyingAuthorizationChecker::create(),
-        );
-
-        $this->expectException(MutationNotAllowedException::class);
-
-        $mutator->delete(EntityMutatorFixture::class, 5, self::DATA_TABLE_CLASS, Action::delete());
-    }
-
-    /**
-     * On the delete endpoint, the action's per-row permission resolver receives the entity the
-     * locator resolved from the request id -- not a raw row from the rendering pipeline.
-     */
-    #[Test]
-    public function delete_passes_the_located_entity_to_the_actions_per_row_permission_resolver(): void
-    {
-        $entity = new EntityMutatorFixture();
-
-        $manager = $this->managerReturning($entity, 5);
-        $manager->expects($this->once())->method('remove')->with($entity);
-        $manager->expects($this->once())->method('flush');
-
-        $publisher = $this->createStub(MercurePublisherInterface::class);
-
-        $capturedSubject = null;
-
-        $decisionManager = $this->createStub(AccessDecisionManagerInterface::class);
-        $decisionManager->method('decide')->willReturnCallback(
-            function (TokenInterface $token, array $attributes, mixed $subject = null) use (&$capturedSubject): bool {
-                $capturedSubject = $subject;
-
-                return true;
-            }
-        );
-
-        $checker = new AuthorizationChecker(new SymfonyAuthorizationChecker(
-            new TokenStorage(),
-            // allowIfAllAbstainDecisions: SecurityVoter abstains on DT_DELETE_ROW, which the
-            // application is otherwise responsible for voting on.
-            new AccessDecisionManager([new SecurityVoter($decisionManager)], new AffirmativeStrategy(true)),
-        ));
-
-        $action = Action::delete()->permission('DELETE_FIXTURE', static fn (mixed $subject): mixed => $subject);
-
-        $mutator = $this->mutator($manager, $publisher, permissionChecker: $checker);
-
-        $mutator->delete(EntityMutatorFixture::class, 5, self::DATA_TABLE_CLASS, $action);
-
-        $this->assertSame($entity, $capturedSubject);
-    }
-
-    #[Test]
-    public function it_denies_property_write_and_does_not_set_value_or_flush_when_not_granted(): void
-    {
-        $entity = new EntityMutatorFixture();
-
-        $manager = $this->managerReturning($entity, 5);
-        $manager->expects($this->never())->method('flush');
-
-        $accessor = $this->createMock(PropertyAccessorInterface::class);
-        $accessor->expects($this->never())->method('isWritable');
-        $accessor->expects($this->never())->method('setValue');
-
-        $publisher = $this->createMock(MercurePublisherInterface::class);
-        $publisher->expects($this->never())->method('publish');
-
-        $mutator = $this->mutator(
-            $manager,
-            $publisher,
-            accessor: $accessor,
-            permissionChecker: $this->denyingChecker(Permission::DT_EDIT_ROW, $entity),
-        );
-
-        $this->expectException(MutationNotAllowedException::class);
-
-        try {
-            $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true, self::DATA_TABLE_CLASS);
-        } catch (MutationNotAllowedException $exception) {
-            $this->assertSame(403, $exception->getStatusCode());
-
-            throw $exception;
-        }
+        $mutator->toggleRow($this->row($manager, $entity, 5, 'admin'), true);
     }
 
     #[Test]
@@ -317,7 +152,7 @@ final class EntityMutatorTest extends TestCase
     {
         $entity = new EntityMutatorFixture();
 
-        $manager = $this->managerReturning($entity, 5);
+        $manager = $this->managerReturning();
         $manager->expects($this->once())->method('remove')->with($entity);
         $manager->expects($this->once())->method('flush')->willThrowException($failure);
 
@@ -328,7 +163,7 @@ final class EntityMutatorTest extends TestCase
         $mutator = $this->mutator($manager, $publisher, topicResolver: $this->topicResolverReturning(self::RESOLVED_TOPICS));
 
         $this->assertMapsToPersistenceException(
-            fn () => $mutator->delete(EntityMutatorFixture::class, 5, self::DATA_TABLE_CLASS, Action::delete()),
+            fn () => $mutator->deleteRow($this->row($manager, $entity, 5)),
             $failure,
         );
     }
@@ -340,7 +175,7 @@ final class EntityMutatorTest extends TestCase
 
         $dbalException = self::dbalException();
 
-        $manager = $this->managerReturning($entity, 5);
+        $manager = $this->managerReturning();
         $manager->expects($this->once())->method('flush')->willThrowException($dbalException);
 
         $accessor = $this->createMock(PropertyAccessorInterface::class);
@@ -358,28 +193,9 @@ final class EntityMutatorTest extends TestCase
         );
 
         $this->assertMapsToPersistenceException(
-            fn () => $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true, self::DATA_TABLE_CLASS),
+            fn () => $mutator->toggleRow($this->row($manager, $entity, 5, 'enabled'), true),
             $dbalException,
         );
-    }
-
-    #[Test]
-    public function it_propagates_not_found_from_the_locator_on_delete(): void
-    {
-        $repository = $this->createStub(EntityRepository::class);
-        $repository->method('find')->willReturn(null);
-
-        $manager = $this->createMock(EntityManagerInterface::class);
-        $manager->method('getRepository')->willReturn($repository);
-        $manager->expects($this->never())->method('flush');
-
-        $publisher = $this->createMock(MercurePublisherInterface::class);
-        $publisher->expects($this->never())->method('publish');
-
-        $mutator = $this->mutator($manager, $publisher);
-
-        $this->expectException(EntityNotFoundException::class);
-        $mutator->delete(EntityMutatorFixture::class, 404, self::DATA_TABLE_CLASS, Action::delete());
     }
 
     /**
@@ -442,7 +258,7 @@ final class EntityMutatorTest extends TestCase
         ?MercureTopicResolver $topicResolver = null,
     ): EntityMutator {
         return new EntityMutator(
-            new EntityLocator($this->registry($manager)),
+            new EntityLocator(null),
             $accessor ?? $this->createStub(PropertyAccessorInterface::class),
             $publisher,
             $permissionChecker ?? new AuthorizationChecker(new TestAuthorizationChecker()),
@@ -462,13 +278,21 @@ final class EntityMutatorTest extends TestCase
         return $topicResolver;
     }
 
-    private function managerReturning(object $entity, int|string $id): EntityManagerInterface
+    private function row(EntityManagerInterface $manager, object $entity, int $id, ?string $field = null): AuthorizedRow
     {
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('find')->with($id)->willReturn($entity);
+        return new AuthorizedRow(
+            table: new ResolvedDataTable($this->createStub(AbstractDataTable::class), EntityMutatorFixture::class, self::DATA_TABLE_CLASS),
+            action: null,
+            context: new MutationContext($entity, $manager),
+            id: $id,
+            field: $field,
+            entityClass: null === $field ? null : EntityMutatorFixture::class,
+        );
+    }
 
+    private function managerReturning(): EntityManagerInterface
+    {
         $manager = $this->createMock(EntityManagerInterface::class);
-        $manager->method('getRepository')->with(EntityMutatorFixture::class)->willReturn($repository);
         $manager->method('getClassMetadata')->willReturn($this->booleanFieldMetadata('enabled'));
 
         return $manager;
@@ -481,22 +305,6 @@ final class EntityMutatorTest extends TestCase
         $metadata->method('getTypeOfField')->willReturnCallback(static fn (string $name): ?string => $name === $field ? 'boolean' : null);
 
         return $metadata;
-    }
-
-    private function registry(EntityManagerInterface $manager): ManagerRegistry
-    {
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->method('getManagerForClass')->with(EntityMutatorFixture::class)->willReturn($manager);
-
-        return $registry;
-    }
-
-    private function denyingChecker(string $attribute, object $subject): AuthorizationChecker
-    {
-        $checker = $this->createMock(AuthorizationCheckerInterface::class);
-        $checker->method('isGranted')->with($attribute, $subject)->willReturn(false);
-
-        return new AuthorizationChecker($checker);
     }
 }
 

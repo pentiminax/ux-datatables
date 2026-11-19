@@ -72,16 +72,6 @@ final class BulkActions implements \JsonSerializable
         return $this;
     }
 
-    /**
-     * @deprecated since 1.6, use idField() instead. Removed in 2.0.
-     */
-    public function setIdField(string $idField): self
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "idField()" instead.', __METHOD__);
-
-        return $this->idField($idField);
-    }
-
     public function getIdField(): string
     {
         return $this->idField;

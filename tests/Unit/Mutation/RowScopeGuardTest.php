@@ -20,7 +20,11 @@ use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\IdentifierDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
+use Pentiminax\UX\DataTables\Controller\AjaxDetailController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
+use Pentiminax\UX\DataTables\Controller\AjaxEditFormController;
+use Pentiminax\UX\DataTables\Controller\AjaxEditFormRequestDto;
+use Pentiminax\UX\DataTables\Controller\AjaxEditFormSubmitController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditRequestDto;
 use Pentiminax\UX\DataTables\Controller\AjaxEntityQueryDto;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
@@ -221,40 +225,7 @@ final class RowScopeGuardTest extends TestCase
     }
 
     #[Test]
-    public function it_hides_the_detail_of_a_row_outside_the_scope(): void
-    {
-        $twig    = new Environment(new ArrayLoader(['detail.html.twig' => '{{ entity.name }}']));
-        $service = new DetailRowService($this->locator(), $this->guard(), $twig, new AuthorizationChecker(new TestAuthorizationChecker()));
-
-        $this->assertSame(404, $service->handleView($this->resolved(), 3)->statusCode);
-        $this->assertSame('Alpha', $service->handleView($this->resolved(), 1)->html);
-    }
-
-    #[Test]
-    public function it_hides_the_edit_form_and_refuses_the_submit_of_a_row_outside_the_scope(): void
-    {
-        $renderer = $this->createMock(EditModalRenderer::class);
-        $renderer->expects($this->never())->method('render');
-        $renderer->expects($this->never())->method('renderBody');
-
-        $service = new EditFormService(
-            $this->locator(),
-            new EditFormBuilder($this->createStub(FormFactoryInterface::class), new ColumnToFormTypeMapper()),
-            $renderer,
-            $this->createStub(EditModalTemplateResolver::class),
-            new NullMercurePublisher(),
-            new MercureTopicResolver(),
-            new MutationFlusher(),
-            $this->guard(),
-            new AuthorizationChecker(new TestAuthorizationChecker()),
-        );
-
-        $this->assertSame(404, $service->handleView($this->resolved(), 3)->statusCode);
-        $this->assertSame(404, $service->handleSubmit($this->resolved(), 3, ['name' => 'pwned'])->statusCode);
-    }
-
-    #[Test]
-    public function it_replays_forwarded_query_parameters_on_delete_toggle_and_detail(): void
+    public function it_replays_forwarded_query_parameters_on_delete_and_toggle(): void
     {
         $stack = $this->forwardingRequestStack(['hidden' => 'hidden', 'search' => ['value' => 'ignored']]);
         $guard = new RowScopeGuard($this->locator(), $stack);
@@ -267,23 +238,42 @@ final class RowScopeGuardTest extends TestCase
         $toggle = new AjaxEditController($this->mutator(), $this->gate($this->forwardingRegistry(), $guard));
         $toggle($stack->getCurrentRequest(), new AjaxEditRequestDto($token, 2, 'active', false));
         $this->assertFalse($this->em->find(CountAccount::class, 2)->active);
+    }
+
+    #[Test]
+    public function it_replays_forwarded_query_parameters_on_detail(): void
+    {
+        $stack = $this->forwardingRequestStack(['hidden' => 'hidden']);
+        $guard = new RowScopeGuard($this->locator(), $stack);
+        $token = $this->forwardingToken();
 
         $twig    = new Environment(new ArrayLoader(['detail.html.twig' => '{{ entity.name }}']));
         $service = new DetailRowService($this->locator(), $guard, $twig, new AuthorizationChecker(new TestAuthorizationChecker()));
-        $this->assertSame('Beta', $service->handleView($this->forwardingRegistry()->resolveAction($token), 2)->html);
+        $detail  = new AjaxDetailController($service, $this->gate($this->forwardingRegistry(), $guard));
+
+        $this->assertSame('Beta', json_decode($detail($stack->getCurrentRequest(), new AjaxEntityQueryDto($token, 2))->getContent(), true)['html']);
+
+        $this->expectException(EntityNotFoundException::class);
+        $detail($stack->getCurrentRequest(), new AjaxEntityQueryDto($token, 3));
     }
 
     #[Test]
     public function it_replays_forwarded_query_parameters_on_the_edit_form_view_and_submit(): void
     {
         $stack   = $this->forwardingRequestStack(['hidden' => 'hidden']);
-        $service = $this->forwardingEditFormService(new RowScopeGuard($this->locator(), $stack));
-        $table   = $this->forwardingRegistry()->resolveAction($this->forwardingToken());
+        $guard   = new RowScopeGuard($this->locator(), $stack);
+        $service = $this->forwardingEditFormService($guard);
+        $token   = $this->forwardingToken();
+        $view    = new AjaxEditFormController($service, $this->gate($this->forwardingRegistry(), $guard));
+        $submit  = new AjaxEditFormSubmitController($service, $this->gate($this->forwardingRegistry(), $guard));
+        $request = $stack->getCurrentRequest();
 
-        $this->assertSame(200, $service->handleView($table, 1)->statusCode);
-        $this->assertSame(200, $service->handleSubmit($table, 1, ['name' => 'Renamed'])->statusCode);
-        $this->assertSame(404, $service->handleView($table, 3)->statusCode);
-        $this->assertSame(404, $service->handleSubmit($table, 3, ['name' => 'pwned'])->statusCode);
+        $this->assertSame(200, $view($request, new AjaxEntityQueryDto($token, 1))->getStatusCode());
+        $this->assertSame(200, $submit($request, new AjaxEditFormRequestDto($token, 1, ['name' => 'Renamed']))->getStatusCode());
+
+        $this->assertNotNull($this->em->find(CountAccount::class, 3));
+        $this->expectException(EntityNotFoundException::class);
+        $view($request, new AjaxEntityQueryDto($token, 3));
     }
 
     #[Test]

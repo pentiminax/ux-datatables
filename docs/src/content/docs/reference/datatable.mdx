@@ -117,7 +117,7 @@ new DataTable(
   rows={[
     [
       '`emptyState(string $heading, ?string $description = null, ?Icon $icon = null, ?array $action = null)`',
-      'Replace the empty-table message with a heading, description, icon, and an optional `[\'label\' => ..., \'url\' => ...]` action. The URL must be a path starting with `/` or an http(s) URL, otherwise an `InvalidArgumentException` is thrown',
+      "Replace the empty-table message with a heading, description, icon, and an optional `['label' => ..., 'url' => ...]` action. The URL must be a path starting with `/` or an http(s) URL, otherwise an `InvalidArgumentException` is thrown",
     ],
     [
       '`rowClass(callable $resolver)`',
@@ -198,7 +198,7 @@ See [Row Presentation](/features/row-presentation/) for behavior, accessibility,
   headers={['Method', 'Description']}
   rows={[
     ['`addExtension(ExtensionInterface $extension)`', 'Add one extension'],
-    ['`extensions(array $extensions)`', 'Set multiple extensions; replaces the deprecated `setExtensions()`'],
+    ['`extensions(array $extensions)`', 'Set multiple extensions'],
     ['`getExtensions(): array`', 'Return configured extensions'],
     [
       "`responsive(bool $auto = true, ?array $breakpoints = null, int|string $detailsTarget = 0, string|false $detailsType = 'inline', string $orthogonal = 'display')`",

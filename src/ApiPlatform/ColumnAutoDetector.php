@@ -68,7 +68,7 @@ class ColumnAutoDetector
 
             // Property-level API Platform security is evaluated per request by API Platform's normalizer;
             // an auto-detected column would read the value outside that check, so the property is skipped.
-            // Declare the column explicitly with setPermission() to expose it.
+            // Declare the column explicitly with permission() to expose it.
             if (null !== $propertyMetadata->getSecurity()) {
                 continue;
             }

@@ -225,7 +225,7 @@ final class RenderingPreparer
                 'actions'               => $bulkActions['actions'],
                 'selectCurrentPageOnly' => $bulkActions['selectCurrentPageOnly'],
                 // Client-side API Platform rows skip RowIdStage; the Stimulus adapter reads this
-                // to stamp DT_RowId from the same field setIdField() / Doctrine remapping chose.
+                // to stamp DT_RowId from the same field idField() / Doctrine remapping chose.
                 'idField'  => $bulkRowIdField ?? $bulkActions['idField'],
                 'url'      => $this->urlGenerator?->generate(self::AJAX_BULK_ROUTE),
                 'labels'   => $this->translateLabels(self::BULK_LABEL_KEYS) ?? [],

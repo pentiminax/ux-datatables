@@ -22,7 +22,7 @@ use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
  * ColumnControl search instead of only the latter.
  *
  * The strategy applies each column's declared search joins and its search field override, so
- * setSearchField(), addSearchJoin(), and setSearchPredicate() all take effect here.
+ * searchField(), addSearchJoin(), and searchPredicate() all take effect here.
  *
  * Distinct from ColumnControlSearchFilter which handles custom column control searches.
  */

@@ -51,7 +51,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * the security token, the session, or the locale. See the purity contract in
  * docs/src/content/docs/reference/abstract-datatable.mdx ("Configuration Methods Must Be Pure").
  *
- * Request-dependent behavior belongs at the request-scoped boundaries instead: setPermission() on
+ * Request-dependent behavior belongs at the request-scoped boundaries instead: permission() on
  * columns and actions, customizeQueryBuilder() for the query (getCurrentRequest() in other hooks), and rows() --
  * the sanctioned way to inject rows a controller has already resolved -- for inline data, which
  * runs them through the same row-processing pipeline a provider would use.
@@ -674,16 +674,6 @@ abstract class AbstractDataTable
         $this->rowsMapped = true;
         // The rows may change where the table reads from, so the opt-ins are resolved again.
         $this->optIns = $this->resolveOptIns();
-    }
-
-    /**
-     * @deprecated since 1.6, use rows() instead. Removed in 2.0.
-     */
-    public function setData(array $data): void
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "rows()" instead.', __METHOD__);
-
-        $this->rows($data);
     }
 
     /**

@@ -243,6 +243,35 @@ Everything below was deprecated in 1.x and is removed. Each line names its repla
 - `ColumnInterface::setField()` and `setVisible()`: use `AbstractColumn::field()` and `visible()`.
 - `SearchableColumnInterface` and `NormalizedSearchColumnInterface`: extend `AbstractColumn`.
 - `Pentiminax\UX\DataTables\Attribute\Column`: use `DataTableColumn`.
+- `setClassName()`, `setEntityClass()`, `setIdField()` and `setPermission()` on `Action`;
+  `setClassName()` and `setPermission()` on `BulkAction`; `setColumnLabel()`, `setColumnClassName()`
+  and `setColumnControl()` on `Actions`; `setIdField()` on `BulkActions`; `setLanguage()` and
+  `setSearch()` on `DataTableOptions`; `setAttributes()`, `setPermission()` and
+  `setHighlightConfig()` on `DataTable`: use the bare method (`className()`, `entityClass()`, ...).
+- `DataTable::setExtensions()`: declare extensions with `extensions([...])`.
+- `Action::csrfTokenId()`: use `csrfToken()`.
+- `AbstractDataTable::setData()`: use `rows()`.
+- `EntityMutator::delete()` and `setProperty()`, `DetailRowService::handleView()`,
+  `EditFormService::handleView()` and `handleSubmit()`: the bundle's Ajax controllers call
+  `deleteRow()`, `toggleRow()`, `render()`, `renderForm()` and `submitForm()` after the row gate has
+  authorized the row. Do not call the services from application code.
+- The `$filters` argument of `ArrayDataProvider` and the `$name` argument of
+  `FilterTypeMapper::mapType()`.
+
+### `ArrayDataProvider` loses its `$filters` argument
+
+The fourth constructor argument is removed, so `$intentFactory` moves from fifth to fourth position.
+The bundle rejects values for the table's configured filters on its own, so drop the argument:
+
+```php
+// Before (1.x)
+new ArrayDataProvider($rows, $mapper, $this->getResolvedColumns(), $filters);
+
+// After (2.0)
+new ArrayDataProvider($rows, $mapper, $this->getResolvedColumns());
+```
+
+If you pass an intent factory positionally, pass it by name: `intentFactory: $factory`.
 
 ## Upgrading to 1.7.0
 

@@ -68,16 +68,6 @@ final class BulkAction implements \JsonSerializable, ExecutableActionInterface
         return $this;
     }
 
-    /**
-     * @deprecated since 1.6, use className() instead. Removed in 2.0.
-     */
-    public function setClassName(string $className): self
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "className()" instead.', __METHOD__);
-
-        return $this->className($className);
-    }
-
     public function icon(string|Icon $icon): self
     {
         if ($icon instanceof Icon) {
@@ -182,16 +172,6 @@ final class BulkAction implements \JsonSerializable, ExecutableActionInterface
             : ($subjectResolver instanceof \Closure ? $subjectResolver : $subjectResolver(...));
 
         return $this;
-    }
-
-    /**
-     * @deprecated since 1.6, use permission() instead. Removed in 2.0.
-     */
-    public function setPermission(string|Expression $attribute, ?callable $subjectResolver = null): self
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "permission()" instead.', __METHOD__);
-
-        return $this->permission($attribute, $subjectResolver);
     }
 
     public function getPermission(): string|Expression|null

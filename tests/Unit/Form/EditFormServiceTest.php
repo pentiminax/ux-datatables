@@ -7,10 +7,9 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Form;
 use Doctrine\DBAL\Driver\Exception as DriverException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Mapping\ClassMetadata;
-use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxActionResult;
+use Pentiminax\UX\DataTables\Ajax\AuthorizedRow;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
@@ -30,18 +29,15 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
+use Pentiminax\UX\DataTables\Mutation\MutationContext;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
-use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
-use Pentiminax\UX\DataTables\Tests\Fixtures\Security\RowContextDenyingAuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
-use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\Constraint\Callback;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -52,7 +48,6 @@ use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Update;
-use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
  * Topic resolution itself is covered by MercureTopicResolverTest; here the
@@ -64,58 +59,17 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 final class EditFormServiceTest extends TestCase
 {
     use BuildsUnscopedRowScopeGuard;
-    use CollectsDeprecations;
     /**
      * The topics the injected topic resolver produces.
      */
     private const TOPICS = ['/topic/42'];
 
     #[Test]
-    public function it_deprecates_handle_view_in_favor_of_render_form(): void
-    {
-        $registry = $this->createStub(ManagerRegistry::class);
-
-        $deprecations = $this->withoutAuthorizationFallback($this->deprecationsOf(fn () => $this->handleWithoutFormCollaborators(handler: 'view', registry: $registry)));
-
-        $this->assertCount(1, $deprecations);
-        $this->assertStringContainsString('renderForm()', $deprecations[0]);
-    }
-
-    #[Test]
-    public function it_deprecates_handle_submit_in_favor_of_submit_form(): void
-    {
-        $registry = $this->createStub(ManagerRegistry::class);
-
-        $deprecations = $this->withoutAuthorizationFallback($this->deprecationsOf(fn () => $this->handleWithoutFormCollaborators(handler: 'submit', registry: $registry)));
-
-        $this->assertCount(1, $deprecations);
-        $this->assertStringContainsString('submitForm()', $deprecations[0]);
-    }
-
-    #[Test]
-    #[TestWith(['view'])]
-    #[TestWith(['submit'])]
-    public function it_returns_not_found_when_the_entity_cannot_be_resolved(string $handler): void
-    {
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->expects($this->once())
-            ->method('getManagerForClass')
-            ->with(EditFormServiceFixture::class)
-            ->willReturn(null);
-
-        $result = $this->handleWithoutFormCollaborators(handler: $handler, registry: $registry);
-
-        $this->assertFalse($result->success);
-        $this->assertSame(404, $result->statusCode);
-        $this->assertSame('Entity not found.', $result->message);
-        $this->assertNull($result->html);
-    }
-
-    #[Test]
     public function it_renders_the_form_for_a_resolved_entity_on_view(): void
     {
-        $entity = new EditFormServiceFixture();
-        $form   = $this->createStub(FormInterface::class);
+        $entity        = new EditFormServiceFixture();
+        $entityManager = $this->createEntityManagerWithEntity();
+        $form          = $this->createStub(FormInterface::class);
 
         $renderer = $this->createMock(EditModalRenderer::class);
         $renderer->expects($this->once())
@@ -125,7 +79,7 @@ final class EditFormServiceTest extends TestCase
         $renderer->expects($this->never())->method('renderBody');
 
         $service = new EditFormService(
-            new EntityLocator($this->createRegistry($this->createEntityManagerWithEntity($entity, '42'))),
+            new EntityLocator(null),
             new EditFormBuilder($this->createFormFactory($form, $entity), new ColumnToFormTypeMapper()),
             $renderer,
             $this->createRenderingTemplateResolver(EditFormServiceFixtureDataTable::class),
@@ -136,7 +90,7 @@ final class EditFormServiceTest extends TestCase
             new AuthorizationChecker(new TestAuthorizationChecker()),
         );
 
-        $result = $service->handleView($this->resolved(new EditFormServiceFixtureDataTable()), '42');
+        $result = $service->renderForm($this->row($entity, $entityManager));
 
         $this->assertTrue($result->success);
         $this->assertSame('<div>ok</div>', $result->html);
@@ -148,7 +102,7 @@ final class EditFormServiceTest extends TestCase
     public function it_returns_rendered_html_without_flushing_when_the_form_is_invalid_on_submit(): void
     {
         $entity        = new EditFormServiceFixture();
-        $entityManager = $this->createEntityManagerWithEntity($entity, 42);
+        $entityManager = $this->createEntityManagerWithEntity();
         $entityManager->expects($this->never())->method('flush');
 
         $form = $this->createMock(FormInterface::class);
@@ -163,7 +117,7 @@ final class EditFormServiceTest extends TestCase
         $renderer->expects($this->never())->method('render');
 
         $service = new EditFormService(
-            new EntityLocator($this->createRegistry($entityManager)),
+            new EntityLocator(null),
             new EditFormBuilder($this->createFormFactory($form, $entity), new ColumnToFormTypeMapper()),
             $renderer,
             $this->createRenderingTemplateResolver(EditFormServiceFixtureDataTable::class),
@@ -174,7 +128,7 @@ final class EditFormServiceTest extends TestCase
             new AuthorizationChecker(new TestAuthorizationChecker()),
         );
 
-        $result = $service->handleSubmit($this->resolved(new EditFormServiceFixtureDataTable()), 42, ['name' => 'Alice']);
+        $result = $service->submitForm($this->row($entity, $entityManager), ['name' => 'Alice']);
 
         $this->assertFalse($result->success);
         $this->assertSame('<form>invalid</form>', $result->html);
@@ -248,131 +202,16 @@ final class EditFormServiceTest extends TestCase
         $this->assertSame($previous, $caught->getPrevious());
     }
 
-    #[Test]
-    #[TestWith(['view'])]
-    #[TestWith(['submit'])]
-    public function it_rejects_when_edit_is_not_granted_on_the_entity(string $handler): void
+    private function row(object $entity, EntityManagerInterface $entityManager): AuthorizedRow
     {
-        $entity = new EditFormServiceFixture();
+        $dataTable = new EditFormServiceFixtureDataTable();
 
-        $checker = $this->createStub(AuthorizationCheckerInterface::class);
-        $checker->method('isGranted')->willReturnCallback(
-            static fn (string $attribute, mixed $subject = null): bool => Permission::DT_EDIT_ROW !== $attribute || $subject !== $entity
+        return new AuthorizedRow(
+            table: new ResolvedDataTable($dataTable, EditFormServiceFixture::class, $dataTable::class),
+            action: null,
+            context: new MutationContext($entity, $entityManager),
+            id: 42,
         );
-
-        $this->assertForbidden($this->handleWithoutFormCollaborators(
-            handler: $handler,
-            registry: $this->createRegistry($this->createEntityManagerThatFinds($entity, 42)),
-            permissionChecker: new AuthorizationChecker($checker),
-        ));
-    }
-
-    #[Test]
-    #[TestWith(['view'])]
-    #[TestWith(['submit'])]
-    public function it_rejects_missing_edit_action_before_entity_lookup(string $handler): void
-    {
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->expects($this->never())->method('getManagerForClass');
-
-        $this->assertForbidden($this->handleWithoutFormCollaborators(
-            handler: $handler,
-            registry: $registry,
-            dataTable: new EditActionMissingDataTable(),
-        ));
-    }
-
-    #[Test]
-    #[TestWith(['view'])]
-    #[TestWith(['submit'])]
-    public function it_rejects_static_edit_action_denial_before_entity_lookup(string $handler): void
-    {
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->expects($this->never())->method('getManagerForClass');
-
-        $checker = $this->createStub(AuthorizationCheckerInterface::class);
-        $checker->method('isGranted')->willReturnCallback(
-            static fn (string $attribute, mixed $subject = null): bool => Permission::DT_EXECUTE_ACTION !== $attribute
-                || !$subject instanceof ActionPermissionContext
-                || 'EDIT_BOOK' !== $subject->action->getPermission()
-        );
-
-        $this->assertForbidden($this->handleWithoutFormCollaborators(
-            handler: $handler,
-            registry: $registry,
-            permissionChecker: new AuthorizationChecker($checker),
-            dataTable: new StaticDeniedEditActionDataTable(),
-        ));
-    }
-
-    #[Test]
-    #[TestWith(['view'])]
-    #[TestWith(['submit'])]
-    public function ordinary_edit_action_uses_row_context_after_entity_lookup(string $handler): void
-    {
-        $entity = new EditFormServiceFixture();
-
-        $this->assertForbidden($this->handleWithoutFormCollaborators(
-            handler: $handler,
-            registry: $this->createRegistry($this->createEntityManagerThatFinds($entity, 42)),
-            permissionChecker: RowContextDenyingAuthorizationChecker::create(),
-        ));
-    }
-
-    private function assertForbidden(AjaxActionResult $result): void
-    {
-        $this->assertFalse($result->success);
-        $this->assertSame(403, $result->statusCode);
-        $this->assertSame('You are not allowed to perform this action.', $result->message);
-        $this->assertNull($result->html);
-    }
-
-    /**
-     * Runs the requested handler against a service whose form, render and template
-     * collaborators must never be reached.
-     */
-    private function handleWithoutFormCollaborators(
-        string $handler,
-        ManagerRegistry $registry,
-        ?AuthorizationChecker $permissionChecker = null,
-        ?AbstractDataTable $dataTable = null,
-    ): AjaxActionResult {
-        $formFactory = $this->createMock(FormFactoryInterface::class);
-        $formFactory->expects($this->never())->method('createBuilder');
-
-        $renderer = $this->createMock(EditModalRenderer::class);
-        $renderer->expects($this->never())->method('render');
-        $renderer->expects($this->never())->method('renderBody');
-
-        $templateResolver = $this->createMock(EditModalTemplateResolver::class);
-        $templateResolver->expects($this->never())->method('resolveColumns');
-        $templateResolver->expects($this->never())->method('resolveChromeTemplate');
-        $templateResolver->expects($this->never())->method('resolveBodyTemplate');
-
-        $service = new EditFormService(
-            new EntityLocator($registry),
-            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
-            $renderer,
-            $templateResolver,
-            new NullMercurePublisher(),
-            new MercureTopicResolver(),
-            new MutationFlusher(),
-            $this->unscopedRowScopeGuard(),
-            $permissionChecker ?? new AuthorizationChecker(new TestAuthorizationChecker()),
-        );
-
-        $dataTable = $this->resolved($dataTable ?? new EditFormServiceFixtureDataTable());
-
-        if ('view' === $handler) {
-            return $service->handleView($dataTable, 42);
-        }
-
-        return $service->handleSubmit($dataTable, 42, ['name' => 'Alice']);
-    }
-
-    private function resolved(AbstractDataTable $dataTable): ResolvedDataTable
-    {
-        return new ResolvedDataTable($dataTable, EditFormServiceFixture::class, $dataTable::class);
     }
 
     /**
@@ -410,7 +249,7 @@ final class EditFormServiceTest extends TestCase
         $templateResolver->expects($this->never())->method('resolveBodyTemplate');
 
         $service = new EditFormService(
-            new EntityLocator($this->createRegistry($entityManager)),
+            new EntityLocator(null),
             new EditFormBuilder($this->createFormFactory($form, $entity), new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
@@ -421,7 +260,7 @@ final class EditFormServiceTest extends TestCase
             new AuthorizationChecker(new TestAuthorizationChecker()),
         );
 
-        return $service->handleSubmit($this->resolved($dataTable), 42, ['name' => 'Alice']);
+        return $service->submitForm($this->row($entity, $entityManager), ['name' => 'Alice']);
     }
 
     private function renderRequestFor(FormInterface $form, object $entity): Callback
@@ -472,33 +311,8 @@ final class EditFormServiceTest extends TestCase
         return $templateResolver;
     }
 
-    private function createEntityManagerThatFinds(object $entity, int|string $id): EntityManagerInterface
+    private function createEntityManagerWithEntity(): EntityManagerInterface
     {
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->expects($this->once())
-            ->method('find')
-            ->with($id)
-            ->willReturn($entity);
-
-        $entityManager = $this->createMock(EntityManagerInterface::class);
-        $entityManager->expects($this->once())
-            ->method('getRepository')
-            ->with(EditFormServiceFixture::class)
-            ->willReturn($repository);
-        $entityManager->expects($this->never())->method('getClassMetadata');
-        $entityManager->expects($this->never())->method('flush');
-
-        return $entityManager;
-    }
-
-    private function createEntityManagerWithEntity(object $entity, int|string $id): EntityManagerInterface
-    {
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->expects($this->once())
-            ->method('find')
-            ->with($id)
-            ->willReturn($entity);
-
         $classMetadata = $this->createMock(ClassMetadata::class);
         $classMetadata->expects($this->once())
             ->method('getIdentifierFieldNames')
@@ -506,26 +320,11 @@ final class EditFormServiceTest extends TestCase
 
         $entityManager = $this->createMock(EntityManagerInterface::class);
         $entityManager->expects($this->once())
-            ->method('getRepository')
-            ->with(EditFormServiceFixture::class)
-            ->willReturn($repository);
-        $entityManager->expects($this->once())
             ->method('getClassMetadata')
             ->with(EditFormServiceFixture::class)
             ->willReturn($classMetadata);
 
         return $entityManager;
-    }
-
-    private function createRegistry(EntityManagerInterface $entityManager): ManagerRegistry
-    {
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->expects($this->once())
-            ->method('getManagerForClass')
-            ->with(EditFormServiceFixture::class)
-            ->willReturn($entityManager);
-
-        return $registry;
     }
 
     /**
@@ -543,22 +342,6 @@ final class EditFormServiceTest extends TestCase
 final class EditFormServiceFixture
 {
     public string $name = '';
-}
-
-final class EditActionMissingDataTable extends EditFormServiceFixtureDataTable
-{
-    public function configureActions(Actions $actions): Actions
-    {
-        return $actions;
-    }
-}
-
-final class StaticDeniedEditActionDataTable extends EditFormServiceFixtureDataTable
-{
-    public function configureActions(Actions $actions): Actions
-    {
-        return $actions->add(Action::edit()->permission('EDIT_BOOK'));
-    }
 }
 
 #[AsDataTable(entityClass: EditFormServiceFixture::class)]
