@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Form;
 
 use Pentiminax\UX\DataTables\Attribute\AsDataTableResolver;
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Psr\Container\ContainerInterface;
 
@@ -42,7 +42,7 @@ class EditModalTemplateResolver
     }
 
     /**
-     * @return ColumnInterface[]
+     * @return AbstractColumn[]
      */
     public function resolveColumns(string $dataTableClass): array
     {

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
-use Pentiminax\UX\DataTables\Attribute\Column;
+use Pentiminax\UX\DataTables\Attribute\DataTableColumn;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\ChoiceColumn;
@@ -153,40 +153,40 @@ final class AttributeColumnReaderTest extends TestCase
 
 final class ReaderEntityFixture
 {
-    #[Column]
+    #[DataTableColumn]
     public int $id = 0;
 
-    #[Column]
+    #[DataTableColumn]
     public string $firstName = '';
 
-    #[Column]
+    #[DataTableColumn]
     public bool $active = true;
 
-    #[Column(format: 'Y-m-d')]
+    #[DataTableColumn(options: ['format' => 'Y-m-d'])]
     public \DateTimeImmutable $createdAt;
 }
 
 final class ExplicitTypeFixture
 {
-    #[Column(type: TextColumn::class)]
+    #[DataTableColumn(type: TextColumn::class)]
     public int $code = 0;
 }
 
 final class CustomNameFixture
 {
-    #[Column(name: 'full_name')]
+    #[DataTableColumn(name: 'full_name')]
     public string $firstName = '';
 }
 
 final class ExplicitLabelFixture
 {
-    #[Column(title: 'Full Name')]
+    #[DataTableColumn(options: ['title' => 'Full Name'])]
     public string $firstName = '';
 }
 
 final class MixedAnnotationFixture
 {
-    #[Column]
+    #[DataTableColumn]
     public string $name = '';
 
     public string $secret = '';
@@ -194,54 +194,54 @@ final class MixedAnnotationFixture
 
 final class PositionFixture
 {
-    #[Column(position: 2)]
+    #[DataTableColumn(position: 2)]
     public string $third = '';
 
-    #[Column(position: 0)]
+    #[DataTableColumn(position: 0)]
     public string $first = '';
 
-    #[Column(position: 1)]
+    #[DataTableColumn(position: 1)]
     public string $second = '';
 }
 
 final class StableSortFixture
 {
-    #[Column]
+    #[DataTableColumn]
     public string $alpha = '';
 
-    #[Column]
+    #[DataTableColumn]
     public string $beta = '';
 
-    #[Column]
+    #[DataTableColumn]
     public string $gamma = '';
 }
 
 final class OptionsFixture
 {
-    #[Column(
-        orderable: false,
-        searchable: false,
-        visible: false,
-        exportable: false,
-        globalSearchable: false,
-        width: '120px',
-        responsivePriority: 2,
-        className: 'text-center',
-        cellType: 'th',
-        defaultContent: 'N/A',
-    )]
+    #[DataTableColumn(options: [
+        'orderable'          => false,
+        'searchable'         => false,
+        'visible'            => false,
+        'exportable'         => false,
+        'globalSearchable'   => false,
+        'width'              => '120px',
+        'responsivePriority' => 2,
+        'className'          => 'text-center',
+        'cellType'           => 'th',
+        'defaultContent'     => 'N/A',
+    ])]
     public string $value = '';
 }
 
 final class FieldFixture
 {
-    #[Column(field: 'author.name')]
+    #[DataTableColumn(options: ['field' => 'author.name'])]
     public string $authorName = '';
 }
 
 final class ChoiceOptionsFixture
 {
-    #[Column(type: ChoiceColumn::class, renderAsBadges: ['active' => 'success', 'inactive' => 'danger'])]
+    #[DataTableColumn(type: ChoiceColumn::class, options: ['renderAsBadges' => ['active' => 'success', 'inactive' => 'danger']])]
     public string $status = '';
 }
 
@@ -253,27 +253,27 @@ final class NoAttributeFixture
 
 abstract class MappedSuperclassFixture
 {
-    #[Column(position: 0)]
+    #[DataTableColumn(position: 0)]
     private int $id = 0;
 
-    #[Column(position: 1)]
+    #[DataTableColumn(position: 1)]
     protected string $label = '';
 }
 
 final class InheritedColumnsFixture extends MappedSuperclassFixture
 {
-    #[Column(position: 2)]
+    #[DataTableColumn(position: 2)]
     public string $reference = '';
 }
 
 abstract class RedeclaringParentFixture
 {
-    #[Column(title: 'Parent')]
+    #[DataTableColumn(options: ['title' => 'Parent'])]
     protected string $label = '';
 }
 
 final class RedeclaringChildFixture extends RedeclaringParentFixture
 {
-    #[Column(title: 'Child')]
+    #[DataTableColumn(options: ['title' => 'Child'])]
     protected string $label = '';
 }

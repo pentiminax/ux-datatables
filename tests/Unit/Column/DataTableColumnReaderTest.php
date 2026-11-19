@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
-use Pentiminax\UX\DataTables\Attribute\Column;
 use Pentiminax\UX\DataTables\Attribute\DataTableColumn;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
@@ -15,9 +14,6 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
- * The surface introduced by {@see DataTableColumn}; {@see AttributeColumnReaderTest} keeps covering
- * the deprecated {@see Column} spelling.
- *
  * @internal
  */
 #[CoversClass(AttributeColumnReader::class)]
@@ -42,10 +38,10 @@ final class DataTableColumnReaderTest extends TestCase
     }
 
     /**
-     * The eight properties the deprecated attribute had no parameter for are reachable now.
+     * Options are applied through the column's own fluent API.
      */
     #[Test]
-    public function it_reaches_options_the_deprecated_attribute_could_not_express(): void
+    public function it_reaches_every_option_the_column_exposes(): void
     {
         $column = $this->reader->readColumns(UnreachableOptionsFixture::class)[0];
 
@@ -62,18 +58,6 @@ final class DataTableColumnReaderTest extends TestCase
         $this->expectExceptionMessage('Option "wobble" is not supported by');
 
         $this->reader->readColumns(UnknownOptionFixture::class);
-    }
-
-    /**
-     * The deprecated attribute names every option whatever the column type is, so a date format on
-     * a text column has always been ignored rather than rejected.
-     */
-    #[Test]
-    public function it_still_ignores_an_inapplicable_option_on_the_deprecated_attribute(): void
-    {
-        $column = $this->reader->readColumns(DeprecatedInapplicableOptionFixture::class)[0];
-
-        $this->assertInstanceOf(TextColumn::class, $column);
     }
 
     #[Test]
@@ -152,12 +136,6 @@ final class UnreachableOptionsFixture
 final class UnknownOptionFixture
 {
     #[DataTableColumn(options: ['wobble' => true])]
-    public string $name = '';
-}
-
-final class DeprecatedInapplicableOptionFixture
-{
-    #[Column(format: 'Y-m-d')]
     public string $name = '';
 }
 

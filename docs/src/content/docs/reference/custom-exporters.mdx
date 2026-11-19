@@ -12,7 +12,7 @@ contract behind it and how to replace a writer.
 ## `ExporterInterface`
 
 ```php
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Enum\ExportFormat;
 
 interface ExporterInterface
@@ -22,7 +22,7 @@ interface ExporterInterface
     public function isAvailable(): bool;
 
     /**
-     * @param list<ColumnInterface>          $columns
+     * @param list<AbstractColumn>          $columns
      * @param iterable<array<string, mixed>> $rows
      */
     public function write(array $columns, iterable $rows): void;
@@ -60,7 +60,7 @@ buffer every 500 rows. A concrete exporter supplies only `format()`, `isAvailabl
 | `isAvailable()`                          | Whether the writer library is installed                          |
 | `createWriter()`                         | The OpenSpout `WriterInterface` to write with                    |
 | `headings(array $columns)`               | Header labels (defaults to column titles, falling back to names) |
-| `cellValue(ColumnInterface, array $row)` | One cell's scalar value                                          |
+| `cellValue(AbstractColumn, array $row)`  | One cell's scalar value                                          |
 | `configureSheet(WriterInterface, array)` | Post-write sheet configuration (XLSX uses it for freeze/filter)  |
 
 Two behaviors are worth keeping when you override `cellValue()`:

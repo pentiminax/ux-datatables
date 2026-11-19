@@ -23,7 +23,7 @@ final class SearchConditionBuilder
      * Both sides are lowercased by default, because a bare LIKE is case-sensitive on
      * PostgreSQL and on binary MySQL collations. $normalize = false keeps the raw column in the
      * condition so a prefix index stays usable; the comparison then follows the column's
-     * collation — see {@see \Pentiminax\UX\DataTables\Contracts\NormalizedSearchColumnInterface}.
+     * collation — see {@see \Pentiminax\UX\DataTables\Column\AbstractColumn::searchNormalization()}.
      */
     public static function text(QueryBuilder $qb, string $alias, string $fieldPath, string $value, string $paramName, bool $normalize = true): string
     {

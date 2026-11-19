@@ -96,10 +96,8 @@ Opting out restores a bare `LIKE`, which follows the column's collation: case-se
 PostgreSQL and on binary collations, still case-insensitive on a `_ci` MySQL collation. The flag
 trades the guaranteed behavior for index usage; it does not force case sensitivity.
 
-`AbstractColumn` exposes the choice as `searchNormalization()`. Custom columns must extend a bundled
-column or `AbstractColumn`; a class that only implements `ColumnInterface` is deprecated since 1.6
-and is always normalized. `searchPredicate()` stays the escape hatch for anything neither mode
-expresses.
+`AbstractColumn` exposes the choice as `searchNormalization()`. `searchPredicate()` stays the escape
+hatch for anything neither mode expresses.
 
 <Aside type="note">
   `ColumnControlLogic::In` has no dedicated strategy. ColumnControl list selections (`searchList`)
@@ -139,8 +137,7 @@ final class WordPrefixStartsSearchStrategy implements SearchStrategyInterface
     ): void {
         $value = trim($search->value);
         // Honors the column's searchField() override when it has one, and falls back to
-        // the displayed field otherwise -- including for a column that implements only
-        // ColumnInterface.
+        // the displayed field otherwise.
         $fieldPath = RelationFieldResolver::resolveSearchField($column);
 
         if ('' === $value || null === $fieldPath) {
@@ -250,8 +247,7 @@ type:
 `$field` is resolved by the caller through `RelationFieldResolver::resolveSearchField()` before the
 builder is reached, so a `searchField()` override and any `addSearchJoin()` are already in
 effect. A column returning `null` from `buildSearchPredicate()` has no opinion, not "skip me": the
-type dispatch runs. A deprecated direct `ColumnInterface` implementer is searched on `getField()` with
-no joins, exactly as before the contract existed.
+type dispatch runs.
 
 A mapped boolean, date, or UUID field is skipped on the numeric branch instead of falling
 through to `is_numeric()`. `BooleanColumn` uses the DataTables `num` type so 0/1 sort in the

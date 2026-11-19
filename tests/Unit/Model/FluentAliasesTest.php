@@ -4,15 +4,6 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
-use Pentiminax\UX\DataTables\Column\BooleanColumn;
-use Pentiminax\UX\DataTables\Column\ChoiceColumn;
-use Pentiminax\UX\DataTables\Column\DateColumn;
-use Pentiminax\UX\DataTables\Column\EmailColumn;
-use Pentiminax\UX\DataTables\Column\ImageColumn;
-use Pentiminax\UX\DataTables\Column\TemplateColumn;
-use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\Column\UrlColumn;
-use Pentiminax\UX\DataTables\Enum\ColumnType;
 use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
 use Pentiminax\UX\DataTables\Model\Action;
@@ -58,48 +49,6 @@ final class FluentAliasesTest extends TestCase
      */
     public static function provideAliases(): iterable
     {
-        $text = static fn (): TextColumn => TextColumn::new('name');
-
-        $columnCases = [
-            ['setClassName', 'className', ['cls']],
-            ['setCellType', 'cellType', ['th']],
-            ['setName', 'name', ['other']],
-            ['setOrderable', 'orderable', [false]],
-            ['setSearchable', 'searchable', [false]],
-            ['setSearchNormalization', 'searchNormalization', [false]],
-            ['setColumnControl', 'columnControl', [['colvisDropdown']]],
-            ['setType', 'type', [ColumnType::NUM]],
-            ['setWidth', 'width', ['10px']],
-            ['setResponsivePriority', 'responsivePriority', [2]],
-            ['setTitle', 'title', ['Title']],
-            ['setVisible', 'visible', [false]],
-            ['setData', 'data', ['a.b']],
-            ['setDefaultContent', 'defaultContent', ['-']],
-            ['setExportable', 'exportable', [false]],
-            ['setField', 'field', ['a.b']],
-            ['setOrderExpression', 'orderExpression', ['e.name']],
-            ['setSearchField', 'searchField', ['a.b']],
-            ['setCustomOption', 'customOption', ['foo', 'bar']],
-            ['setPermission', 'permission', ['ROLE_ADMIN']],
-        ];
-
-        foreach ($columnCases as [$setter, $bare, $arguments]) {
-            yield 'AbstractColumn::'.$setter => [$text, $setter, $bare, $arguments];
-        }
-
-        yield 'ImageColumn::setImageWidth' => [static fn () => ImageColumn::new('i'), 'setImageWidth', 'imageWidth', [10]];
-        yield 'ImageColumn::setImageHeight' => [static fn () => ImageColumn::new('i'), 'setImageHeight', 'imageHeight', [10]];
-        yield 'ImageColumn::setAlt' => [static fn () => ImageColumn::new('i'), 'setAlt', 'alt', ['alt']];
-        yield 'ImageColumn::setPlaceholder' => [static fn () => ImageColumn::new('i'), 'setPlaceholder', 'placeholder', ['/p.png']];
-        yield 'ChoiceColumn::setChoices' => [static fn () => ChoiceColumn::new('c'), 'setChoices', 'choices', [['a' => 'A']]];
-        yield 'UrlColumn::setDisplayValue' => [static fn () => UrlColumn::new('u'), 'setDisplayValue', 'displayValue', ['Open']];
-        yield 'UrlColumn::setDefaultProtocol' => [static fn () => UrlColumn::new('u'), 'setDefaultProtocol', 'defaultProtocol', ['https']];
-        yield 'EmailColumn::setDisplayValue' => [static fn () => EmailColumn::new('e'), 'setDisplayValue', 'displayValue', ['Mail']];
-        yield 'DateColumn::setFormat' => [static fn () => DateColumn::new('d'), 'setFormat', 'format', ['Y-m-d']];
-        yield 'BooleanColumn::setToggleAjax' => [static fn () => BooleanColumn::new('b'), 'setToggleAjax', 'toggleAjax', ['id', 'PUT']];
-        yield 'BooleanColumn::setEntityClass' => [static fn () => BooleanColumn::new('b'), 'setEntityClass', 'entityClass', [\stdClass::class]];
-        yield 'TemplateColumn::setTemplate' => [static fn () => TemplateColumn::new('t'), 'setTemplate', 'template', ['a.html.twig', ['x' => 1]]];
-
         yield 'Actions::setColumnLabel' => [static fn () => new Actions(), 'setColumnLabel', 'columnLabel', ['Ops']];
         yield 'Actions::setColumnClassName' => [static fn () => new Actions(), 'setColumnClassName', 'columnClassName', ['cls']];
         yield 'Actions::setColumnControl' => [static fn () => new Actions(), 'setColumnControl', 'columnControl', [['x']]];
@@ -116,20 +65,6 @@ final class FluentAliasesTest extends TestCase
         yield 'DataTable::setAttributes' => [static fn () => new DataTable('t'), 'setAttributes', 'attributes', [['class' => 'x']]];
         yield 'DataTable::setPermission' => [static fn () => new DataTable('t'), 'setPermission', 'permission', ['ROLE_ADMIN']];
         yield 'DataTable::setHighlightConfig' => [static fn () => new DataTable('t'), 'setHighlightConfig', 'highlightConfig', [new HighlightConfig()]];
-    }
-
-    #[Test]
-    public function set_search_predicate_deprecates_in_favor_of_search_predicate(): void
-    {
-        $viaBare = TextColumn::new('name')->searchPredicate(static fn (): string => '1 = 1');
-        $column  = TextColumn::new('name');
-
-        $deprecations = $this->deprecationsOf(static fn () => $column->setSearchPredicate(static fn (): string => '1 = 1'));
-
-        $this->assertTrue($viaBare->hasSearchPredicate());
-        $this->assertTrue($column->hasSearchPredicate());
-        $this->assertCount(1, $deprecations);
-        $this->assertStringContainsString('"searchPredicate()"', $deprecations[0]);
     }
 
     #[Test]

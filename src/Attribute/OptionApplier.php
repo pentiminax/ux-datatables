@@ -5,11 +5,8 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Attribute;
 
 /**
- * Applies an option map to a built object through whichever fluent method carries it.
- *
- * Every option resolves to its bare fluent method (`field()`) first, then to the legacy `setField()`
- * spelling, which raises a deprecation since 1.6 and is removed in 2.0: every bundle class declares
- * the bare method, so only a custom class reaches it. The alias table holds only what follows neither.
+ * Applies an option map to a built object through the bare fluent method carrying each option
+ * (`field()`). The alias table holds only what does not follow that convention.
  */
 final class OptionApplier
 {
@@ -34,39 +31,11 @@ final class OptionApplier
                 continue;
             }
 
-            $method = $this->resolveMethod($target, $option);
-
-            if (null === $method) {
+            if (!method_exists($target, $option)) {
                 throw new \InvalidArgumentException(\sprintf('Option "%s" is not supported by "%s".', $option, $target::class));
             }
 
-            if ($method !== $option) {
-                trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Applying option "%s" through "%s::%s()" is deprecated and removed in 2.0. Add a "%s()" method instead.', $option, $target::class, $method, $option);
-            }
-
-            $target->{$method}($value);
+            $target->{$option}($value);
         }
-    }
-
-    /**
-     * @param object|class-string $target
-     */
-    public function supports(object|string $target, string $option): bool
-    {
-        return isset($this->aliases[$option]) || null !== $this->resolveMethod($target, $option);
-    }
-
-    /**
-     * @param object|class-string $target
-     */
-    private function resolveMethod(object|string $target, string $option): ?string
-    {
-        foreach ([$option, 'set'.ucfirst($option)] as $method) {
-            if (method_exists($target, $method)) {
-                return $method;
-            }
-        }
-
-        return null;
     }
 }

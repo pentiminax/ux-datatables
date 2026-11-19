@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Query\Filter;
 
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\QueryFilterInterface;
-use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Query\BooleanSearchTerm;
 use Pentiminax\UX\DataTables\Query\DateSearchTerm;
@@ -35,13 +35,13 @@ use Pentiminax\UX\DataTables\Query\UuidSearchTerm;
  * match nothing. This mirrors ColumnControl's own client-side convention, where an
  * option with an empty label/value already renders as a distinct "Empty" entry.
  *
- * Per column, the joins declared with {@see \Pentiminax\UX\DataTables\Column\AbstractColumn::addSearchJoin()}
+ * Per column, the joins declared with {@see AbstractColumn::addSearchJoin()}
  * are applied before anything else, and the search field override from
- * {@see SearchableColumnInterface::getSearchField()} replaces the
+ * {@see AbstractColumn::getSearchField()} replaces the
  * intent's display field path -- including for the searchability guard below, so a column
  * whose display field is virtual is still searched through its override.
  *
- * {@see SearchableColumnInterface::buildSearchPredicate()} is not
+ * {@see AbstractColumn::buildSearchPredicate()} is not
  * consulted here: list, comparison, and nullness criteria each encode a predicate shape of
  * their own that a single open-ended condition string cannot express. Only the Contains logic
  * delegates to it, through {@see \Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface}.

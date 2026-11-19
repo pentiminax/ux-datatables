@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Query\Strategy;
 
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
-use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
@@ -18,7 +18,7 @@ use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
  *
  * Performs a case-insensitive substring search using SQL LIKE %value% (LOWER() on both sides),
  * unless the column opts out through
- * {@see \Pentiminax\UX\DataTables\Contracts\NormalizedSearchColumnInterface}.
+ * {@see AbstractColumn::searchNormalization()}.
  * For numeric columns, performs exact match if the value is numeric.
  *
  * Predicate construction is delegated to {@see SearchPredicateBuilderInterface} so the
@@ -27,7 +27,7 @@ use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
  * forces numeric handling.
  *
  * The column's declared search joins are applied first, and its
- * {@see SearchableColumnInterface::getSearchField()} override replaces getField() when set. A column
+ * {@see AbstractColumn::getSearchField()} override replaces getField() when set. A column
  * that builds its own predicate short-circuits the whole type dispatch -- see
  * {@see SearchPredicateBuilderInterface}.
  */

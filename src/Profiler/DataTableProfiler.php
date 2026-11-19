@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Profiler;
 
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\Column;
@@ -145,7 +146,7 @@ final class DataTableProfiler
     }
 
     /**
-     * @param list<ColumnInterface> $columns
+     * @param list<AbstractColumn> $columns
      *
      * @return list<array<string, mixed>>
      */

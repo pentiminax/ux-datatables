@@ -9,7 +9,6 @@ use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\ChoiceColumn;
 use Pentiminax\UX\DataTables\Column\MoneyColumn;
 use Pentiminax\UX\DataTables\Column\Rendering\ColumnKeyResolver;
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Model\FilterLabels;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -26,8 +25,8 @@ final class ExportValueFormatter
     }
 
     /**
-     * @param list<ColumnInterface> $columns
-     * @param array<string, mixed>  $row
+     * @param list<AbstractColumn> $columns
+     * @param array<string, mixed> $row
      *
      * @return array<string, mixed>
      */
@@ -48,7 +47,7 @@ final class ExportValueFormatter
     /**
      * The currency belongs to the heading, so the cell stays a number a spreadsheet can sum.
      */
-    public function heading(ColumnInterface $column, string $heading): string
+    public function heading(AbstractColumn $column, string $heading): string
     {
         if (!$column instanceof MoneyColumn || $this->isFormatted($column)) {
             return $heading;
@@ -57,7 +56,7 @@ final class ExportValueFormatter
         return \sprintf('%s (%s)', $heading, $column->getCustomOption(MoneyColumn::OPTION_CURRENCY));
     }
 
-    private function formatValue(ColumnInterface $column, mixed $value): mixed
+    private function formatValue(AbstractColumn $column, mixed $value): mixed
     {
         if ($column instanceof BooleanColumn && $column->isRenderedAsSwitch()) {
             return $this->booleanLabel($this->switchState($column, $value));
@@ -125,8 +124,8 @@ final class ExportValueFormatter
         return $this->translator?->trans($key, domain: FilterLabels::DOMAIN) ?? ($state ? 'Yes' : 'No');
     }
 
-    private function isFormatted(ColumnInterface $column): bool
+    private function isFormatted(AbstractColumn $column): bool
     {
-        return $column instanceof AbstractColumn && null !== $column->getValueFormatter();
+        return null !== $column->getValueFormatter();
     }
 }

@@ -9,7 +9,6 @@ use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\Mapping\MappingException;
 use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsTypedFieldQueryBuilder;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -283,21 +282,9 @@ final class RelationFieldResolverTest extends TestCase
     }
 
     #[Test]
-    public function it_falls_back_to_the_display_field_for_a_column_without_the_search_contract(): void
+    public function it_falls_back_to_the_display_field_for_a_column_without_a_search_field(): void
     {
-        $column = $this->createStub(ColumnInterface::class);
-        $column->method('getField')->willReturn('name');
-
-        $this->assertSame('name', RelationFieldResolver::resolveSearchField($column));
-    }
-
-    #[Test]
-    public function it_declares_no_search_join_for_a_column_without_the_search_contract(): void
-    {
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->expects($this->never())->method('leftJoin');
-
-        RelationFieldResolver::applySearchJoins($qb, $this->createStub(ColumnInterface::class));
+        $this->assertSame('name', RelationFieldResolver::resolveSearchField(TextColumn::new('name')->field('name')));
     }
 
     #[Test]
@@ -313,8 +300,12 @@ final class RelationFieldResolverTest extends TestCase
     #[Test]
     public function it_reports_no_search_field_when_the_column_has_none(): void
     {
-        $column = $this->createStub(ColumnInterface::class);
-        $column->method('getField')->willReturn(null);
+        $column = new class extends TextColumn {
+            public function getField(): ?string
+            {
+                return null;
+            }
+        };
 
         $this->assertNull(RelationFieldResolver::resolveSearchField($column));
     }

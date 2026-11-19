@@ -56,16 +56,6 @@ class EmailColumn extends AbstractColumn
     }
 
     /**
-     * @deprecated since 1.6, use displayValue() instead. Removed in 2.0.
-     */
-    public function setDisplayValue(string $displayValue): static
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "displayValue()" instead.', __METHOD__);
-
-        return $this->displayValue($displayValue);
-    }
-
-    /**
      * Renders the email as plain text instead of a mailto link.
      */
     public function renderAsText(bool $renderAsText = true): static

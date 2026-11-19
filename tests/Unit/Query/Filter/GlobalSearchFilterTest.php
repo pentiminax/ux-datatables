@@ -17,7 +17,6 @@ use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
-use Pentiminax\UX\DataTables\Enum\ColumnType;
 use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
 use Pentiminax\UX\DataTables\Query\Filter\GlobalSearchFilter;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
@@ -383,12 +382,7 @@ final class GlobalSearchFilterTest extends TestCase
         $qb->expects($this->once())->method('andWhere')->willReturn($qb);
         $qb->expects($this->once())->method('setParameter')->with('search_param_0', '%ali%');
 
-        $column = $this->createStub(ColumnInterface::class);
-        $column->method('getName')->willReturn('name');
-        $column->method('getField')->willReturn('name');
-        $column->method('getType')->willReturn(ColumnType::STRING);
-        $column->method('isGlobalSearchable')->willReturn(true);
-        $column->method('isSearchable')->willReturn(true);
+        $column = TextColumn::new('name')->field('name');
 
         $this->filter()->apply($qb, $this->globalSearchContext($column, 'ali'));
     }

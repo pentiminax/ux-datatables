@@ -236,8 +236,7 @@ Arguments:
 ### Options
 
 An option key is resolved against the column that ends up carrying it: the applier checks
-the alias table first, then tries `option()` and the deprecated `setOption()`
-fallback. Fluent methods of your column class are reachable, including on a column type you wrote
+the alias table first, then tries the bare fluent method `option()`. Fluent methods of your column class are reachable, including on a column type you wrote
 yourself.
 
 ```php
@@ -330,7 +329,7 @@ Both classes are registered as container resources, so editing either one rebuil
 Target: property, method, or class. Repeatable.
 
 Its signature matches `#[DataTableColumn]` character for character, and its options resolve through
-the same three-step convention. Whoever knows one knows the other.
+the same two-step convention. Whoever knows one knows the other.
 
 ```php
 use App\Enum\Status;
@@ -347,34 +346,6 @@ a `DateRangeFilter`, an `int` or a `float` a `NumberRangeFilter`, and anything e
 Filters resolve down their own chain, `configureFilters()` first, then the table class, then the
 data class. The full reference, including the guessed types and the `values` alias, lives on the
 [filters page](/reference/filters/#declaring-filters-with-an-attribute).
-
-## `#[Column]`
-
-<Aside type="caution" title="Deprecated since 1.1">
-  Use [`#[DataTableColumn]`](#datatablecolumn) instead. `#[Column]` is removed in 2.0.
-</Aside>
-
-Its named parameters each became an option, so migration is mechanical:
-
-```php
-use Pentiminax\UX\DataTables\Column\EmailColumn;
-
-// Before
-#[Column(type: EmailColumn::class, title: 'Email', orderable: false, width: '120px')]
-private string $email;
-
-// After
-#[DataTableColumn(EmailColumn::class, ['title' => 'Email', 'orderable' => false, 'width' => '120px'])]
-private string $email;
-```
-
-`type`, `name` and `position` keep their place as named arguments. Everything else moves into
-`options`, and the eight column settings the old signature had no parameter for — `data`,
-`orderExpression`, `searchField`, `columnControl`, `permission`, `searchNormalized`, `searchJoins`,
-`customOptions` — become reachable in the process.
-
-The attribute also collides with `Doctrine\ORM\Mapping\Column` on the very class it has to be
-placed on, which the new name resolves.
 
 ## Cross Links
 

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Column;
 
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
-
 /**
  * The columns the current user may see on one request, and the row paths of those they may not.
  *
@@ -18,8 +16,8 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 final class VisibleColumns
 {
     /**
-     * @param list<ColumnInterface> $columns     the granted columns, action columns cloned with their actions filtered
-     * @param list<string>          $deniedPaths row keys and read paths of the denied columns
+     * @param list<AbstractColumn> $columns     the granted columns, action columns cloned with their actions filtered
+     * @param list<string>         $deniedPaths row keys and read paths of the denied columns
      */
     public function __construct(
         public readonly array $columns,

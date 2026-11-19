@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Runtime;
 
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 
@@ -20,8 +20,8 @@ final readonly class PreparedDataTable
      * @param array<string, mixed>       $attributes        HTML attributes of the table element
      * @param array<string, mixed>       $options           DataTables.net options, with the permitted columns, the rows and the data URL
      * @param array<string, mixed>       $extensions        serialized extensions, keyed by option name
-     * @param list<ColumnInterface>      $columns           the columns the current user may see
-     * @param list<ColumnInterface>      $configuredColumns
+     * @param list<AbstractColumn>       $columns           the columns the current user may see
+     * @param list<AbstractColumn>       $configuredColumns
      * @param array<string, mixed>       $bundleOptions     bundle keys the table set through the fluent API (`pollInterval`, `urlState`, ...)
      * @param array<string, mixed>|null  $bulkActions       the bulk actions bar the current user may use, as serialized
      * @param array<string, string>|null $rowActionUrls

@@ -31,21 +31,11 @@ class DateColumn extends AbstractColumn
     }
 
     /**
-     * @deprecated since 1.6, use format() instead. Removed in 2.0.
-     */
-    public function setFormat(?string $format): static
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "format()" instead.', __METHOD__);
-
-        return $this->format($format);
-    }
-
-    /**
      * Render the cell as a localized relative label ("3 minutes ago") in the browser, through
      * `Intl.RelativeTimeFormat`.
      *
      * The serialized value switches to ISO 8601 so the client can compute the offset, which makes
-     * the format set through setFormat() irrelevant while this is enabled. Ordering still happens
+     * the format set through format() irrelevant while this is enabled. Ordering still happens
      * on the underlying field, and defaultContent covers null values.
      */
     public function relative(bool $relative = true): static

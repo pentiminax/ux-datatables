@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Column\Rendering;
 
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Exception\DuplicateActionNameException;
 use Pentiminax\UX\DataTables\Model\Action;
@@ -39,7 +39,7 @@ final class ActionRowDataResolver
     }
 
     /**
-     * @param iterable<ColumnInterface> $columns
+     * @param iterable<AbstractColumn> $columns
      */
     public function resolveRow(array $row, mixed $sourceRow, iterable $columns, ?string $dataTableClass = null): array
     {

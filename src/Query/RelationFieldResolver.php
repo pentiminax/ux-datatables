@@ -7,8 +7,8 @@ namespace Pentiminax\UX\DataTables\Query;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\Mapping\MappingException;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
-use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
 
 /**
  * Resolves dot-notation field paths into valid DQL expressions.
@@ -226,12 +226,12 @@ final class RelationFieldResolver
      * customizeQueryBuilder(), an earlier filter in the chain, or another column declaring the
      * same join -- is skipped, so every search filter can call this before resolving a field.
      *
-     * A column that does not implement {@see SearchableColumnInterface} declares no joins, so
+     * A column that is not an {@see AbstractColumn} declares no joins, so
      * this is a no-op for it.
      */
     public static function applySearchJoins(QueryBuilder $qb, ColumnInterface $column): void
     {
-        $joins = $column instanceof SearchableColumnInterface ? $column->getSearchJoins() : [];
+        $joins = $column instanceof AbstractColumn ? $column->getSearchJoins() : [];
 
         if ([] === $joins) {
             return;
@@ -255,14 +255,14 @@ final class RelationFieldResolver
     }
 
     /**
-     * The field path a column wants searched: its {@see SearchableColumnInterface::getSearchField()}
+     * The field path a column wants searched: its {@see AbstractColumn::getSearchField()}
      * override when it declares one, otherwise the field it displays.
      *
      * Null when neither yields a path, which every search boundary reads as "skip this column".
      */
     public static function resolveSearchField(ColumnInterface $column): ?string
     {
-        $searchField = $column instanceof SearchableColumnInterface ? $column->getSearchField() : null;
+        $searchField = $column instanceof AbstractColumn ? $column->getSearchField() : null;
         $field       = $searchField ?? $column->getField();
 
         return null !== $field && '' !== $field ? $field : null;

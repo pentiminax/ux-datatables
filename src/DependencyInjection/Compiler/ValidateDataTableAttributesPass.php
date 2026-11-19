@@ -9,8 +9,6 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTableResolver;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
-use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
 use Pentiminax\UX\DataTables\Filter\AbstractFilter;
 use Pentiminax\UX\DataTables\Filter\AttributeFilterReader;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
@@ -96,9 +94,9 @@ final class ValidateDataTableAttributesPass implements CompilerPassInterface
      * the same tolerance {@see \Pentiminax\UX\DataTables\Query\RelationFieldResolver::supportsSearchFiltering()}
      * applies at runtime.
      *
-     * @param class-string          $dataTableClass
-     * @param list<ColumnInterface> $columns
-     * @param list<AbstractFilter>  $filters
+     * @param class-string         $dataTableClass
+     * @param list<AbstractColumn> $columns
+     * @param list<AbstractFilter> $filters
      */
     private function assertFieldsResolveOnTheEntity(ContainerBuilder $container, string $dataTableClass, AsDataTable $asDataTable, array $columns, array $filters): void
     {
@@ -135,7 +133,7 @@ final class ValidateDataTableAttributesPass implements CompilerPassInterface
      *
      * @return array<string, bool>
      */
-    private function queriedColumnFields(ColumnInterface $column): array
+    private function queriedColumnFields(AbstractColumn $column): array
     {
         if ($column instanceof ActionsProvidingColumnInterface) {
             return [];
@@ -152,7 +150,7 @@ final class ValidateDataTableAttributesPass implements CompilerPassInterface
         }
 
         if ($column->isSearchable() || $column->isGlobalSearchable()) {
-            $field = ($column instanceof SearchableColumnInterface ? $column->getSearchField() : null) ?? $column->getField();
+            $field = $column->getSearchField() ?? $column->getField();
 
             if (null !== $field && '' !== $field) {
                 $fields[$field] ??= !self::buildsItsOwnSearchPredicate($column);
@@ -166,13 +164,9 @@ final class ValidateDataTableAttributesPass implements CompilerPassInterface
      * Whether the column builds its own search condition, through a subclass overriding
      * buildSearchPredicate() or through a searchPredicate() closure.
      */
-    private static function buildsItsOwnSearchPredicate(ColumnInterface $column): bool
+    private static function buildsItsOwnSearchPredicate(AbstractColumn $column): bool
     {
-        if (!$column instanceof SearchableColumnInterface) {
-            return false;
-        }
-
-        if ($column instanceof AbstractColumn && $column->hasSearchPredicate()) {
+        if ($column->hasSearchPredicate()) {
             return true;
         }
 

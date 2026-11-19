@@ -7,8 +7,8 @@ namespace Pentiminax\UX\DataTables\DataProvider;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\VisibleColumns;
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
@@ -24,7 +24,7 @@ final class AutoDataProviderFactory
     /**
      * @param callable(QueryBuilder, DataTableRequest):QueryBuilder      $configureQueryBuilder
      * @param callable(QueryBuilder, DataTableRequest):QueryBuilder|null $configureBaseQueryBuilder
-     * @param list<ColumnInterface>                                      $columns
+     * @param list<AbstractColumn>                                       $columns
      */
     public function create(
         ?AsDataTable $asDataTable,

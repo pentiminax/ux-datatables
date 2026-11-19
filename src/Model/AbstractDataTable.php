@@ -6,8 +6,8 @@ namespace Pentiminax\UX\DataTables\Model;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
@@ -61,7 +61,7 @@ abstract class AbstractDataTable
     protected DataTable $table;
 
     /**
-     * @var ColumnInterface[]
+     * @var AbstractColumn[]
      */
     private array $columns;
 
@@ -363,7 +363,7 @@ abstract class AbstractDataTable
     }
 
     /**
-     * @return iterable<ColumnInterface>
+     * @return iterable<AbstractColumn>
      */
     public function configureColumns(): iterable
     {
@@ -585,7 +585,7 @@ abstract class AbstractDataTable
         return new DefaultSearchPredicateBuilder();
     }
 
-    public function getColumnByName(string $name): ?ColumnInterface
+    public function getColumnByName(string $name): ?AbstractColumn
     {
         $this->initialize();
 
@@ -637,7 +637,7 @@ abstract class AbstractDataTable
      * {@see self::createDataProvider()} so in-memory ordering and search honor the table's
      * column configuration, permissions included.
      *
-     * @return list<ColumnInterface>
+     * @return list<AbstractColumn>
      */
     final protected function getResolvedColumns(): array
     {

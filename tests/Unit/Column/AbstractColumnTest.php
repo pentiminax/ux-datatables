@@ -218,8 +218,8 @@ final class AbstractColumnTest extends TestCase
     }
 
     /**
-     * setField(), setColumnControl(), setClassName(), setCustomOption(), setVisible(),
-     * setResponsivePriority(), and disableGlobalSearch() are documented public API
+     * field(), columnControl(), className(), customOption(), visible(),
+     * responsivePriority(), and disableGlobalSearch() are documented public API
      * (see columns/overview.mdx) inherited
      * unchanged by every concrete column type. A class-level @internal here previously made
      * static analysis tools such as Psalm flag every one of those calls from application code

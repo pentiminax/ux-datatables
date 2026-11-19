@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\RowMapper;
 
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\Rendering\ColumnKeyResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\PropertyReader;
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
@@ -12,7 +13,7 @@ use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 final class DefaultRowMapper implements RowMapperInterface
 {
     /**
-     * @param ColumnInterface[] $columns
+     * @param AbstractColumn[] $columns
      */
     public function __construct(
         private readonly array $columns,

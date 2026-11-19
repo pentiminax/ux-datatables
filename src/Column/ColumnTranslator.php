@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Column;
 
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -15,7 +14,7 @@ final class ColumnTranslator
     /**
      * Translates the titles and the translatable enum choices of the given columns in place.
      *
-     * @param iterable<ColumnInterface> $columns
+     * @param iterable<AbstractColumn> $columns
      */
     public static function translate(iterable $columns, TranslatorInterface $translator): void
     {
@@ -32,16 +31,8 @@ final class ColumnTranslator
     }
 
     /** @internal */
-    public static function applyTitle(ColumnInterface $column, string $title): void
+    public static function applyTitle(AbstractColumn $column, string $title): void
     {
-        if ($column instanceof AbstractColumn) {
-            $column->title($title);
-
-            return;
-        }
-
-        if (method_exists($column, 'setTitle')) {
-            $column->setTitle($title);
-        }
+        $column->title($title);
     }
 }

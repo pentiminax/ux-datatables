@@ -5,15 +5,14 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Query;
 
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
-use Pentiminax\UX\DataTables\Contracts\NormalizedSearchColumnInterface;
-use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
 
 /**
  * Default {@see SearchPredicateBuilderInterface}, dispatching on the column type.
  *
- * A {@see SearchableColumnInterface} column's own buildSearchPredicate() wins over every branch below:
+ * An {@see AbstractColumn}'s own buildSearchPredicate() wins over every branch below:
  * a column that builds its condition itself has said the type-based predicates cannot express
  * what it needs. It is consulted first and its result returned verbatim; returning null there
  * means "no opinion", not "skip", and falls through to the type dispatch.
@@ -36,7 +35,7 @@ use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
  * that field's type, null otherwise.
  * For other columns: LIKE %value% when the field supports search filtering, null otherwise. That
  * LIKE is case-insensitive unless the column opts out through
- * {@see NormalizedSearchColumnInterface}.
+ * {@see AbstractColumn::searchNormalization()}.
  *
  * A column is treated as numeric when {@see ColumnInterface::isNumber()} is true or when
  * the caller forces numeric handling via $forceNumeric (e.g. based on an external type hint).
@@ -52,7 +51,7 @@ final class DefaultSearchPredicateBuilder implements SearchPredicateBuilderInter
         string $paramName,
         bool $forceNumeric = false,
     ): ?string {
-        if ($column instanceof SearchableColumnInterface) {
+        if ($column instanceof AbstractColumn) {
             $custom = $column->buildSearchPredicate($qb, $alias, $value, $paramName);
 
             if (null !== $custom) {
@@ -84,7 +83,7 @@ final class DefaultSearchPredicateBuilder implements SearchPredicateBuilderInter
             return null;
         }
 
-        return SearchConditionBuilder::text($qb, $alias, $field, $value, $paramName, !$column instanceof NormalizedSearchColumnInterface || $column->isSearchNormalized());
+        return SearchConditionBuilder::text($qb, $alias, $field, $value, $paramName, !$column instanceof AbstractColumn || $column->isSearchNormalized());
     }
 
     /**

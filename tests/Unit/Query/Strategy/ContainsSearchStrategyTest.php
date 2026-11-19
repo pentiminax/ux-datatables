@@ -184,11 +184,13 @@ final class ContainsSearchStrategyTest extends TestCase
         (new ContainsSearchStrategy())->apply($qb, NumberColumn::new('age')->field('age'), $search, 0, 'e');
     }
 
-    private function columnWithoutField(): ColumnInterface
+    private function columnWithoutField(): TextColumn
     {
-        $column = $this->createStub(ColumnInterface::class);
-        $column->method('getField')->willReturn(null);
-
-        return $column;
+        return new class extends TextColumn {
+            public function getField(): ?string
+            {
+                return null;
+            }
+        };
     }
 }

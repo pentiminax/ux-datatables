@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Export;
 
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Contracts\ExporterInterface;
 
 /**
@@ -19,7 +19,7 @@ use Pentiminax\UX\DataTables\Contracts\ExporterInterface;
 final readonly class ExportStream
 {
     /**
-     * @param list<ColumnInterface>          $columns
+     * @param list<AbstractColumn>           $columns
      * @param iterable<array<string, mixed>> $rows
      */
     public function __construct(

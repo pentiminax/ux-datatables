@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Runtime;
 
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\VisibleColumns;
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTable;
@@ -27,7 +27,7 @@ final class DataTableRuntime
         private readonly DataTable $table,
         private readonly \Closure $dataProviderFactory,
         private readonly int $maxPageLength = 1000,
-        /** @var list<ColumnInterface> */
+        /** @var list<AbstractColumn> */
         private readonly array $columns = [],
         private readonly SearchListOptionsResolver $searchListOptionsResolver = new SearchListOptionsResolver(),
         private readonly DataSourceFeatureGuard $featureGuard = new DataSourceFeatureGuard(),

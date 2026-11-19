@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Query\Builder;
 
 use Doctrine\ORM\QueryBuilder;
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\Filters;
@@ -32,8 +32,8 @@ final class QueryFilterPipeline
     }
 
     /**
-     * @param array<ColumnInterface> $columns Configured, permission-filtered columns in display order;
-     *                                        may be name-keyed — normalized to a list internally
+     * @param array<AbstractColumn> $columns Configured, permission-filtered columns in display order;
+     *                                       may be name-keyed — normalized to a list internally
      */
     public function apply(
         QueryBuilder $qb,

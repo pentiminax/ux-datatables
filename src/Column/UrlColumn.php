@@ -45,31 +45,11 @@ class UrlColumn extends AbstractColumn
         return $this;
     }
 
-    /**
-     * @deprecated since 1.6, use displayValue() instead. Removed in 2.0.
-     */
-    public function setDisplayValue(string $displayValue): static
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "displayValue()" instead.', __METHOD__);
-
-        return $this->displayValue($displayValue);
-    }
-
     public function defaultProtocol(string $protocol): static
     {
         $this->customOption(self::OPTION_DEFAULT_PROTOCOL, $this->normalizeProtocol($protocol));
 
         return $this;
-    }
-
-    /**
-     * @deprecated since 1.6, use defaultProtocol() instead. Removed in 2.0.
-     */
-    public function setDefaultProtocol(string $protocol): static
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "defaultProtocol()" instead.', __METHOD__);
-
-        return $this->defaultProtocol($protocol);
     }
 
     /**

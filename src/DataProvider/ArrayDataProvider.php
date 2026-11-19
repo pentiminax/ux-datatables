@@ -6,7 +6,6 @@ namespace Pentiminax\UX\DataTables\DataProvider;
 
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\Rendering\PropertyReader;
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
@@ -38,7 +37,7 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
 {
     /**
      * @param iterable<object|array> $items
-     * @param list<ColumnInterface>  $columns configured, permission-filtered columns -- the list
+     * @param list<AbstractColumn>   $columns configured, permission-filtered columns -- the list
      *                                        {@see \Pentiminax\UX\DataTables\Model\AbstractDataTable::getResolvedColumns()}
      *                                        returns. Left empty, nothing is orderable, and a
      *                                        request carrying a search term raises.
@@ -117,10 +116,6 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
         $summaries = [];
 
         foreach ($this->columns as $column) {
-            if (!$column instanceof AbstractColumn) {
-                continue;
-            }
-
             $values = [] === $column->getSummarizers() ? [] : array_map(
                 static fn (object $item): mixed => PropertyReader::readPath($item, $column->getField() ?? $column->getName()),
                 $items,

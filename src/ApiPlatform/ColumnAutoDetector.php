@@ -8,8 +8,8 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Property\Factory\PropertyMetadataFactoryInterface;
 use ApiPlatform\Metadata\Property\Factory\PropertyNameCollectionFactoryInterface;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\PropertyNameHumanizer;
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Symfony\Component\PropertyInfo\PropertyInfoExtractorInterface;
 use Symfony\Component\TypeInfo\Type;
 
@@ -50,7 +50,7 @@ class ColumnAutoDetector
      * @param string   $entityClass The FQCN of the entity
      * @param string[] $groups      Serialization groups to filter exposed properties
      *
-     * @return ColumnInterface[]
+     * @return AbstractColumn[]
      */
     public function detectColumns(string $entityClass, array $groups = []): array
     {

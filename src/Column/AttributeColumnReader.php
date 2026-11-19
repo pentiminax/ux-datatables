@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Column;
 
 use Pentiminax\UX\DataTables\Attribute\AttributeTarget;
-use Pentiminax\UX\DataTables\Attribute\Column;
 use Pentiminax\UX\DataTables\Attribute\DataTableColumn;
 use Pentiminax\UX\DataTables\Attribute\MemberAttributeReader;
 use Pentiminax\UX\DataTables\Attribute\OptionApplier;
@@ -136,31 +135,8 @@ final class AttributeColumnReader
         /** @var AbstractColumn $column */
         $column = $columnClass::new($name, $title);
 
-        $this->optionApplier->apply($column, $this->applicableOptions($attribute, $column, $options));
+        $this->optionApplier->apply($column, $options);
 
         return $column;
-    }
-
-    /**
-     * The deprecated attribute names every option it knows, whatever the column type ends up being,
-     * so `format` on a text column has always been ignored rather than rejected. An option spelled
-     * out by hand on the current attribute is a different matter and reaches the applier, which
-     * says so when nothing answers it.
-     *
-     * @param array<string, mixed> $options
-     *
-     * @return array<string, mixed>
-     */
-    private function applicableOptions(DataTableColumn $attribute, AbstractColumn $column, array $options): array
-    {
-        if (!$attribute instanceof Column) {
-            return $options;
-        }
-
-        return array_filter(
-            $options,
-            fn (string $option): bool => $this->optionApplier->supports($column, $option),
-            \ARRAY_FILTER_USE_KEY,
-        );
     }
 }

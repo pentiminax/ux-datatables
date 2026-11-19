@@ -17,9 +17,8 @@ use Symfony\Component\ExpressionLanguage\Expression;
  * getPermission() only names the required security attribute or expression; ColumnResolver
  * evaluates it per request at the serialization and query boundaries.
  *
- * Custom columns must extend a bundled column or {@see \Pentiminax\UX\DataTables\Column\AbstractColumn}:
- * summaries, value formatting, and search features read AbstractColumn, and a table deprecates any
- * other column since 1.6. This interface stays as the read-only view handed to extension points such
+ * Only {@see \Pentiminax\UX\DataTables\Column\AbstractColumn} implements this interface: custom columns extend
+ * a bundled column or AbstractColumn. It stays as the read-only view handed to extension points such
  * as search strategies. Add {@see TemplateAwareColumnInterface} or {@see ActionsProvidingColumnInterface}
  * on top of AbstractColumn when the column renders Twig or contributes row actions.
  */
@@ -29,17 +28,7 @@ interface ColumnInterface extends \JsonSerializable
 
     public function getField(): ?string;
 
-    /**
-     * @deprecated since 1.6, use AbstractColumn::field() instead. Removed in 2.0.
-     */
-    public function setField(string $field): static;
-
     public function getOrderExpression(): ?string;
-
-    /**
-     * @deprecated since 1.6, use AbstractColumn::visible() instead. Removed in 2.0.
-     */
-    public function setVisible(bool $visible): static;
 
     public function isSearchable(): bool;
 
