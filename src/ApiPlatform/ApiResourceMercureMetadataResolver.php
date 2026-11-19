@@ -33,7 +33,7 @@ class ApiResourceMercureMetadataResolver
     {
         try {
             $collection = $this->resourceMetadataFactory->create($entityClass);
-        } catch (\Throwable) {
+        } catch (ResourceClassNotFoundException) {
             return [];
         }
 

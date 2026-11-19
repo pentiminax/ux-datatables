@@ -60,7 +60,7 @@ final class AsDataTableTest extends TestCase
         $table = new TestDataTableWithAttribute();
         $em    = $this->createStub(EntityManagerInterface::class);
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(new AuthorizationChecker(), urlResolver: $resolver),
+            renderingPreparer: new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), urlResolver: $resolver),
             runtimeFactory: new DataTableRuntimeFactory(
                 new AuthorizationChecker(),
                 autoDataProviderFactory: new AutoDataProviderFactory($em)

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Enum\Icon;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
@@ -64,7 +65,7 @@ final class DataTableEmptyStateTest extends TestCase
             'noResults'     => 'EMPTY.NORESULTS',
             'noResultsHint' => 'EMPTY.NORESULTSHINT',
             'resetFilters'  => 'EMPTY.RESETFILTERS',
-        ], self::payloadOf($table, new RenderingPreparer(new AuthorizationChecker(), translator: $translator))['emptyState']['labels']);
+        ], self::payloadOf($table, new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), translator: $translator))['emptyState']['labels']);
     }
 
     /**

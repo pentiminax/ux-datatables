@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Mercure;
 
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
@@ -205,7 +206,7 @@ final class TopicResolverServerSideFixtureDataTable extends AbstractDataTable
     ) {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             renderingPreparer: new RenderingPreparer(
-                new AuthorizationChecker(),
+                new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()),
                 mercureHubUrlResolver: $this->mercureHubUrlResolver,
             )
         ));
@@ -241,7 +242,7 @@ final class TopicResolverMismatchedFixtureDataTable extends AbstractDataTable
     ) {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             renderingPreparer: new RenderingPreparer(
-                new AuthorizationChecker(),
+                new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()),
                 mercureHubUrlResolver: $this->mercureHubUrlResolver,
             )
         ));
@@ -274,7 +275,7 @@ final class TopicResolverClientSideFixtureDataTable extends AbstractDataTable
     ) {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             renderingPreparer: new RenderingPreparer(
-                new AuthorizationChecker(),
+                new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()),
                 mercureHubUrlResolver: $this->mercureHubUrlResolver,
             )
         ));

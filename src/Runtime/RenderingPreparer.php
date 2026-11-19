@@ -93,6 +93,7 @@ final class RenderingPreparer
 
     public function __construct(
         private readonly AuthorizationChecker $permissionChecker,
+        private readonly ColumnResolver $columnResolver,
         private readonly ?ApiResourceCollectionUrlResolver $urlResolver = null,
         private readonly ?MercureConfigResolver $mercureResolver = null,
         private readonly ?TranslatorInterface $translator = null,
@@ -102,7 +103,6 @@ final class RenderingPreparer
         private readonly ?RequestStack $requestStack = null,
         private readonly ?SearchListOptionsResolver $searchListOptionsResolver = null,
         private readonly ?FilterEntityOptionsResolver $filterEntityOptionsResolver = null,
-        private readonly ?ColumnResolver $columnResolver = null,
         private readonly DataSourceFeatureGuard $featureGuard = new DataSourceFeatureGuard(),
         private readonly ?CsrfTokenManagerInterface $csrfTokenManager = null,
     ) {
@@ -151,7 +151,7 @@ final class RenderingPreparer
     {
         $dataTableClass    = $table->getDataTableClass();
         $configuredColumns = $this->translatedColumns($table->getColumns());
-        $columns           = array_values($this->columnResolver?->filterStaticPermissions($configuredColumns, $dataTableClass) ?? $configuredColumns);
+        $columns           = array_values($this->columnResolver->filterStaticPermissions($configuredColumns, $dataTableClass));
 
         $options = $table->getOptions();
         if (null !== $rows) {

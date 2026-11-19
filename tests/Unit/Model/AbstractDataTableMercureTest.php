@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
@@ -64,7 +65,7 @@ final class AbstractDataTableMercureClientSideFixture extends AbstractDataTable
         private readonly ?DataProviderInterface $dataProviderSpy = null,
     ) {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(new AuthorizationChecker()),
+            renderingPreparer: new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker())),
         ));
     }
 
@@ -91,7 +92,7 @@ final class AbstractDataTableMercureServerSideFixture extends AbstractDataTable
     ) {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             renderingPreparer: new RenderingPreparer(
-                new AuthorizationChecker(),
+                new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()),
                 mercureHubUrlResolver: $this->mercureHubUrlResolver,
             ),
         ));

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Profiler;
 
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\DataTableRequest\Column;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControl;
@@ -69,7 +70,7 @@ final class DataTableProfilerTest extends TestCase
     public function it_reports_the_edit_modal_template_declared_on_the_attribute(): void
     {
         $table    = new DataTable('products');
-        $preparer = new RenderingPreparer(new AuthorizationChecker());
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()));
         $prepared = self::prepareWith($preparer, $table, $preparer->resolveOptIns($table, new AsDataTable(\stdClass::class, editModalTemplate: 'admin/edit_modal.html.twig')));
 
         $profiler = new DataTableProfiler();

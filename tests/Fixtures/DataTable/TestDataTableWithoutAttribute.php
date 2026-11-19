@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Fixtures\DataTable;
 
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
@@ -19,7 +20,7 @@ class TestDataTableWithoutAttribute extends AbstractDataTable
         private readonly ?MercureConfigResolver $mercureConfigResolver = null,
     ) {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(new AuthorizationChecker(), $this->apiResourceCollectionUrlResolver, $this->mercureConfigResolver)
+            renderingPreparer: new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), $this->apiResourceCollectionUrlResolver, $this->mercureConfigResolver)
         ));
     }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Support;
 
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
@@ -17,7 +18,7 @@ trait PreparesPayload
     /**
      * @return array<string, mixed>
      */
-    private static function payloadOf(DataTable $table, RenderingPreparer $preparer = new RenderingPreparer(new AuthorizationChecker())): array
+    private static function payloadOf(DataTable $table, RenderingPreparer $preparer = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()))): array
     {
         return self::prepareWith($preparer, $table, $preparer->resolveOptIns($table, null))->getView();
     }

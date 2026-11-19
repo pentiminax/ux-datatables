@@ -132,6 +132,7 @@ final class DataTableRuntimeTest extends TestCase
 
                 return $provider;
             },
+            searchListOptionsResolver: new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())),
         );
 
         $this->assertSame($provider, $runtime->getDataProvider());
@@ -230,6 +231,7 @@ final class DataTableRuntimeTest extends TestCase
             table: $table,
             dataProviderFactory: static fn (): ?DataProviderInterface => null,
             maxPageLength: 100,
+            searchListOptionsResolver: new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())),
         );
 
         $runtime->handleRequest(new Request(query: ['draw' => 1, 'start' => -5, 'length' => -1]));
@@ -260,6 +262,7 @@ final class DataTableRuntimeTest extends TestCase
             table: (new DataTable('movies'))->lengthMenu($lengthMenu),
             dataProviderFactory: static fn (): ?DataProviderInterface => null,
             maxPageLength: 100,
+            searchListOptionsResolver: new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())),
         );
 
         $runtime->handleRequest(new Request(query: ['draw' => 1, 'length' => -1]));
@@ -287,6 +290,7 @@ final class DataTableRuntimeTest extends TestCase
             table: $table,
             dataProviderFactory: static fn (): ?DataProviderInterface => null,
             maxPageLength: 100,
+            searchListOptionsResolver: new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())),
         );
 
         $runtime->handleRequest(new Request(query: ['draw' => 1, 'length' => $length]));
@@ -302,6 +306,7 @@ final class DataTableRuntimeTest extends TestCase
             table: $table,
             dataProviderFactory: static fn (): ?DataProviderInterface => null,
             maxPageLength: 100,
+            searchListOptionsResolver: new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())),
         );
 
         $runtime->handleRequest(new Request(query: ['draw' => 1, 'length' => $length]));
@@ -367,6 +372,7 @@ final class DataTableRuntimeTest extends TestCase
         return new DataTableRuntime(
             table: new DataTable('movies'),
             dataProviderFactory: static fn (): ?DataProviderInterface => $provider,
+            searchListOptionsResolver: new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())),
         );
     }
 }

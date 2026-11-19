@@ -207,7 +207,7 @@ abstract class OptInFixture extends AbstractDataTable
     {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             columnResolver: new ColumnResolver(new AuthorizationChecker(), columnAutoDetector: $detector),
-            renderingPreparer: new RenderingPreparer(new AuthorizationChecker(), urlResolver: $urlResolver),
+            renderingPreparer: new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), urlResolver: $urlResolver),
         ));
     }
 

@@ -127,6 +127,7 @@ final class ConfigurationTest extends TestCase
 
         self::assertFalse($check->invoke(null, ['pageLength' => '%env(int:PAGE_LENGTH)%', 'lengthMenu' => [10, 25]]));
         self::assertFalse($check->invoke(null, ['pageLength' => 30, 'lengthMenu' => '%env(json:LENGTH_MENU)%']));
+        self::assertFalse($check->invoke(null, ['pageLength' => 30, 'lengthMenu' => [10, (new ContainerBuilder())->getParameterBag()->get('env(MENU_ENTRY)')]]));
         self::assertTrue($check->invoke(null, ['pageLength' => 30, 'lengthMenu' => [10, 25]]));
     }
 

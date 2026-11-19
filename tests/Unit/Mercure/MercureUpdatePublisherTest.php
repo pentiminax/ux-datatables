@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Mercure;
 
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Model\DataTable;
@@ -193,7 +194,7 @@ final class MercureUpdatePublisherTest extends TestCase
 
         $table = new ConfigurableDataTable([], configureTable: static fn (DataTable $table): DataTable => $table->serverSide()->mercure(topics: ['/api/products/{id}']));
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(new AuthorizationChecker(), mercureHubUrlResolver: $hubUrlResolver),
+            renderingPreparer: new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), mercureHubUrlResolver: $hubUrlResolver),
         ));
 
         $deprecations = $this->deprecationsOf(static fn () => $publisher->publishForDataTable($table, ['action' => 'updated']));
@@ -211,7 +212,7 @@ final class MercureUpdatePublisherTest extends TestCase
 
         $table = new ConfigurableDataTable([], configureTable: static fn (DataTable $table): DataTable => $configure($table->serverSide()));
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(new AuthorizationChecker(), mercureHubUrlResolver: $hubUrlResolver),
+            renderingPreparer: new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), mercureHubUrlResolver: $hubUrlResolver),
         ));
 
         return $table;

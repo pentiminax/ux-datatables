@@ -50,12 +50,13 @@ final class DataTableInfrastructure
         int $hydrationRowThreshold = 0,
     ): self {
         $permissionChecker = new AuthorizationChecker();
+        $columnResolver ??= new ColumnResolver($permissionChecker);
 
         $queryFilterPipeline ??= new QueryFilterPipeline($queryIntentFactory ?? new DefaultDataTableQueryIntentFactory());
 
         return new self(
-            columnResolver: $columnResolver       ?? new ColumnResolver($permissionChecker),
-            renderingPreparer: $renderingPreparer ?? new RenderingPreparer($permissionChecker),
+            columnResolver: $columnResolver,
+            renderingPreparer: $renderingPreparer ?? new RenderingPreparer($permissionChecker, $columnResolver),
             runtimeFactory: $runtimeFactory       ?? new DataTableRuntimeFactory($permissionChecker),
             queryFilterPipeline: $queryFilterPipeline,
             options: $options,

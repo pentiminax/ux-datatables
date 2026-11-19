@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
@@ -301,7 +302,7 @@ final class ToggleBooleanEntityFixtureDataTable extends AbstractDataTable
     ) {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             renderingPreparer: new RenderingPreparer(
-                new AuthorizationChecker(),
+                new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()),
                 mercureHubUrlResolver: $this->mercureHubUrlResolver,
             )
         ));

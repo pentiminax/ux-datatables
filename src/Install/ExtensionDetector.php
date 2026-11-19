@@ -10,7 +10,7 @@ use Symfony\Contracts\Service\ServiceProviderInterface;
 
 /**
  * Finds the extensions the declared tables use. It reads the built table instead of calling
- * getOptions(), which can trigger deprecations.
+ * getOptions(), which throws when the layout is inconsistent.
  *
  * @internal
  */

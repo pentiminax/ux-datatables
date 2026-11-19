@@ -267,6 +267,12 @@ class PentiminaxDataTablesBundle extends AbstractBundle
             return false;
         }
 
+        foreach ($menu as $entry) {
+            if (self::isEnvPlaceholder($entry)) {
+                return false;
+            }
+        }
+
         return !\in_array($options['pageLength'], $menu, false);
     }
 

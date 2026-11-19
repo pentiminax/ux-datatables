@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Fixtures\DataTable;
 
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
@@ -25,7 +26,7 @@ class TestDataTableWithManualMercure extends AbstractDataTable
     ) {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             renderingPreparer: new RenderingPreparer(
-                new AuthorizationChecker(),
+                new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()),
                 $this->apiResourceCollectionUrlResolver,
                 $this->mercureConfigResolver,
                 null,
