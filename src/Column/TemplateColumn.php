@@ -52,16 +52,6 @@ class TemplateColumn extends AbstractColumn implements TemplateAwareColumnInterf
         return $this;
     }
 
-    /**
-     * @deprecated since 1.6, use template() instead. Removed in 2.0.
-     */
-    public function setTemplate(string $template, array $parameters = []): static
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "template()" instead.', __METHOD__);
-
-        return $this->template($template, $parameters);
-    }
-
     public function getTemplate(): string
     {
         $template = $this->getCustomOption(self::OPTION_TEMPLATE_PATH);

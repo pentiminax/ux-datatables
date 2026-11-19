@@ -9,7 +9,6 @@ use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
-use Pentiminax\UX\DataTables\Contracts\NormalizedSearchColumnInterface;
 use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsTypedFieldQueryBuilder;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -365,26 +364,6 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         $result = (new DefaultSearchPredicateBuilder())->build($qb, $column, 'e', $field, $value, 'p_0', $forceNumeric);
 
         $this->assertSame($expectedCondition, $result);
-    }
-
-    /**
-     * A column implementing ColumnInterface directly is not an AbstractColumn, so the opt-out has
-     * to be readable through the contract for third-party columns to keep an index-usable LIKE.
-     */
-    #[Test]
-    public function it_lets_a_direct_column_implementation_opt_out_through_the_contract(): void
-    {
-        $column = $this->createStub(NormalizedSearchColumnInterface::class);
-        $column->method('getField')->willReturn('name');
-        $column->method('isNumber')->willReturn(false);
-        $column->method('isSearchNormalized')->willReturn(false);
-
-        $qb = $this->queryBuilderWithFieldType('name', null);
-        $qb->expects($this->once())->method('setParameter')->with('p_0', '%Hello%');
-
-        $result = (new DefaultSearchPredicateBuilder())->build($qb, $column, 'e', 'name', 'Hello', 'p_0', false);
-
-        $this->assertSame("e.name LIKE :p_0 ESCAPE '!'", $result);
     }
 
     #[Test]

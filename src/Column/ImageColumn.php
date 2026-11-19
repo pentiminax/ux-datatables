@@ -33,31 +33,11 @@ class ImageColumn extends AbstractColumn
         return $this;
     }
 
-    /**
-     * @deprecated since 1.6, use imageWidth() instead. Removed in 2.0.
-     */
-    public function setImageWidth(int $px): static
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "imageWidth()" instead.', __METHOD__);
-
-        return $this->imageWidth($px);
-    }
-
     public function imageHeight(int $px): static
     {
         $this->customOption(self::OPTION_IMAGE_HEIGHT, $px);
 
         return $this;
-    }
-
-    /**
-     * @deprecated since 1.6, use imageHeight() instead. Removed in 2.0.
-     */
-    public function setImageHeight(int $px): static
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "imageHeight()" instead.', __METHOD__);
-
-        return $this->imageHeight($px);
     }
 
     public function alt(string $alt): static
@@ -67,31 +47,11 @@ class ImageColumn extends AbstractColumn
         return $this;
     }
 
-    /**
-     * @deprecated since 1.6, use alt() instead. Removed in 2.0.
-     */
-    public function setAlt(string $alt): static
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "alt()" instead.', __METHOD__);
-
-        return $this->alt($alt);
-    }
-
     public function placeholder(string $url): static
     {
         $this->customOption(self::OPTION_PLACEHOLDER, $url);
 
         return $this;
-    }
-
-    /**
-     * @deprecated since 1.6, use placeholder() instead. Removed in 2.0.
-     */
-    public function setPlaceholder(string $url): static
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "placeholder()" instead.', __METHOD__);
-
-        return $this->placeholder($url);
     }
 
     public function rounded(bool $rounded = true): static

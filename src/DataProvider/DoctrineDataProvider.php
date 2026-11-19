@@ -13,6 +13,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\ColumnKeyResolver;
@@ -69,7 +70,7 @@ class DoctrineDataProvider implements DataProviderInterface, FeatureAwareDataPro
          * The columns the table displays: their to-one relation paths are fetch-joined with the
          * page, and their summarizers feed {@see DataTableResult::$summaries}.
          *
-         * @var list<ColumnInterface>
+         * @var list<AbstractColumn>
          */
         private readonly array $columns = [],
         private readonly bool $summarize = true,

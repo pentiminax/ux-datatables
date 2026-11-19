@@ -6,8 +6,8 @@ namespace Pentiminax\UX\DataTables\Export;
 
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\WriterInterface;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\Rendering\ColumnKeyResolver;
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\ExporterInterface;
 use Pentiminax\UX\DataTables\Enum\ExportFormat;
 
@@ -64,7 +64,7 @@ abstract class AbstractExporter implements ExporterInterface
     abstract protected function createWriter(): WriterInterface;
 
     /**
-     * @param list<ColumnInterface> $columns
+     * @param list<AbstractColumn> $columns
      */
     protected function createHeader(array $columns): Row
     {
@@ -72,7 +72,7 @@ abstract class AbstractExporter implements ExporterInterface
     }
 
     /**
-     * @param list<ColumnInterface> $columns
+     * @param list<AbstractColumn> $columns
      *
      * @return list<string>
      */
@@ -87,8 +87,8 @@ abstract class AbstractExporter implements ExporterInterface
     }
 
     /**
-     * @param list<ColumnInterface> $columns
-     * @param array<string, mixed>  $row
+     * @param list<AbstractColumn> $columns
+     * @param array<string, mixed> $row
      *
      * @return list<float|int|string>
      */
@@ -105,7 +105,7 @@ abstract class AbstractExporter implements ExporterInterface
     /**
      * Runs once after the last row, while the sheet is still open.
      *
-     * @param list<ColumnInterface> $columns
+     * @param list<AbstractColumn> $columns
      */
     protected function configureSheet(WriterInterface $writer, array $columns): void
     {
@@ -114,7 +114,7 @@ abstract class AbstractExporter implements ExporterInterface
     /**
      * @param array<string, mixed> $row
      */
-    protected function cellValue(ColumnInterface $column, array $row): float|int|string
+    protected function cellValue(AbstractColumn $column, array $row): float|int|string
     {
         $key = ColumnKeyResolver::rowKey($column);
         if (null === $key) {

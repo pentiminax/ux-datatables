@@ -7,12 +7,12 @@ namespace Pentiminax\UX\DataTables\Runtime;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\ColumnTranslator;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\TemplateAwareColumnInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
@@ -187,7 +187,7 @@ final class RenderingPreparer
         }
 
         $searchLists        = $this->searchListOptionsResolver ?? new SearchListOptionsResolver($this->translator);
-        $options['columns'] = $searchLists->serialize(array_map(static fn (ColumnInterface $column): array => $column->jsonSerialize(), $columns));
+        $options['columns'] = $searchLists->serialize(array_map(static fn (AbstractColumn $column): array => $column->jsonSerialize(), $columns));
 
         $extensions  = $searchLists->serialize($table->getExtensions());
         $bulkActions = $this->allowedBulkActions($table->getBulkActions(), $dataTableClass);
@@ -297,13 +297,13 @@ final class RenderingPreparer
     /**
      * Translated copies of the columns, so the configured titles keep their translation keys.
      *
-     * @param array<ColumnInterface> $columns
+     * @param array<AbstractColumn> $columns
      *
-     * @return list<ColumnInterface>
+     * @return list<AbstractColumn>
      */
     private function translatedColumns(array $columns): array
     {
-        $columns = array_map(static fn (ColumnInterface $column): ColumnInterface => clone $column, array_values($columns));
+        $columns = array_map(static fn (AbstractColumn $column): AbstractColumn => clone $column, array_values($columns));
 
         if (null !== $this->translator) {
             ColumnTranslator::translate($columns, $this->translator);
@@ -449,7 +449,7 @@ final class RenderingPreparer
     }
 
     /**
-     * @param list<ColumnInterface> $columns
+     * @param list<AbstractColumn> $columns
      *
      * @return array<string, string>|null
      */

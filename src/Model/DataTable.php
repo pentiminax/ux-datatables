@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Model;
 
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Enum\Feature;
@@ -55,7 +54,7 @@ class DataTable
         'bottomEnd'   => Feature::PAGING,
     ];
 
-    /** @var ColumnInterface[] */
+    /** @var AbstractColumn[] */
     private array $columns = [];
 
     private DataTableOptions $options;
@@ -275,13 +274,11 @@ class DataTable
         return $this;
     }
 
-    public function add(ColumnInterface $column): static
+    public function add(AbstractColumn $column): static
     {
         if (!$this->options->has('columns')) {
             $this->options->set('columns', []);
         }
-
-        $this->guardColumnType($column);
 
         $this->columns[$column->getName()] = $column;
 
@@ -289,7 +286,7 @@ class DataTable
     }
 
     /**
-     * @param ColumnInterface[] $columns
+     * @param AbstractColumn[] $columns
      */
     public function columns(array $columns): static
     {
@@ -297,21 +294,16 @@ class DataTable
             $this->options->set('columns', []);
         }
 
-        $previous      = $this->columns;
         $this->columns = [];
 
         foreach ($columns as $column) {
-            if (($previous[$column->getName()] ?? null) !== $column) {
-                $this->guardColumnType($column);
-            }
-
             $this->columns[$column->getName()] = $column;
         }
 
         return $this;
     }
 
-    public function getColumnByName(string $name): ?ColumnInterface
+    public function getColumnByName(string $name): ?AbstractColumn
     {
         return $this->columns[$name] ?? null;
     }
@@ -1329,7 +1321,7 @@ class DataTable
     public function getColumnDefinitions(): array
     {
         return array_values(array_map(
-            static fn (ColumnInterface $column): array => $column->jsonSerialize(),
+            static fn (AbstractColumn $column): array => $column->jsonSerialize(),
             $this->columns,
         ));
     }
@@ -1532,14 +1524,5 @@ class DataTable
         }
 
         return (int) $matches[1] * ['' => 1, 's' => 1, 'm' => 60, 'h' => 3600][$matches[2]];
-    }
-
-    private function guardColumnType(ColumnInterface $column): void
-    {
-        if ($column instanceof AbstractColumn) {
-            return;
-        }
-
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Passing a column that does not extend "%s" is deprecated, extend a bundled column or AbstractColumn instead (got "%s").', AbstractColumn::class, $column::class);
     }
 }

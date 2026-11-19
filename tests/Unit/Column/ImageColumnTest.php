@@ -39,10 +39,10 @@ final class ImageColumnTest extends DataTableTestCase
      */
     public static function provideCustomOptions(): iterable
     {
-        yield 'image width' => ['setImageWidth', 50, 'imageWidth', 50];
-        yield 'image height' => ['setImageHeight', 50, 'imageHeight', 50];
-        yield 'alt text' => ['setAlt', 'User avatar', 'alt', 'User avatar'];
-        yield 'placeholder' => ['setPlaceholder', '/images/default.png', 'placeholder', '/images/default.png'];
+        yield 'image width' => ['imageWidth', 50, 'imageWidth', 50];
+        yield 'image height' => ['imageHeight', 50, 'imageHeight', 50];
+        yield 'alt text' => ['alt', 'User avatar', 'alt', 'User avatar'];
+        yield 'placeholder' => ['placeholder', '/images/default.png', 'placeholder', '/images/default.png'];
         yield 'rounded enabled' => ['rounded', true, 'rounded', true];
         yield 'rounded disabled' => ['rounded', false, 'rounded', false];
         yield 'lazy disabled' => ['lazy', false, 'lazy', false];

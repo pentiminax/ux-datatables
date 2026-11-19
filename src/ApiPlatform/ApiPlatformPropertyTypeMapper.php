@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\ApiPlatform;
 
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
@@ -19,7 +20,7 @@ final class ApiPlatformPropertyTypeMapper
      * A null type means PropertyInfo could not resolve the property, which a text column renders
      * as well as anything else.
      *
-     * @return class-string<ColumnInterface>
+     * @return class-string<AbstractColumn>
      */
     public function mapType(?Type $type): string
     {

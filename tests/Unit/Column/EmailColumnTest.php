@@ -45,7 +45,7 @@ final class EmailColumnTest extends DataTableTestCase
         yield 'mask disabled' => ['mask', false, 'mask', false];
         yield 'render as text enabled' => ['renderAsText', true, 'renderAsText', true];
         yield 'render as text disabled' => ['renderAsText', false, 'renderAsText', false];
-        yield 'display value' => ['setDisplayValue', 'Contact us', 'displayValue', 'Contact us'];
+        yield 'display value' => ['displayValue', 'Contact us', 'displayValue', 'Contact us'];
     }
 
     #[Test]

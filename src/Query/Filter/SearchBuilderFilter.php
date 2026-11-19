@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Query\Filter;
 
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
-use Pentiminax\UX\DataTables\Contracts\NormalizedSearchColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\QueryFilterInterface;
 use Pentiminax\UX\DataTables\Query\DateSearchTerm;
 use Pentiminax\UX\DataTables\Query\LikeValueEscaper;
@@ -42,8 +42,8 @@ final class SearchBuilderFilter implements QueryFilterInterface
     /**
      * Also run before a response starts, so a streamed export is refused instead of truncated.
      *
-     * @param array<string, mixed>  $group
-     * @param list<ColumnInterface> $columns
+     * @param array<string, mixed> $group
+     * @param list<AbstractColumn> $columns
      *
      * @throws BadRequestHttpException
      */
@@ -153,7 +153,7 @@ final class SearchBuilderFilter implements QueryFilterInterface
             return null;
         }
 
-        $normalize = !$column instanceof NormalizedSearchColumnInterface || $column->isSearchNormalized();
+        $normalize = !$column instanceof AbstractColumn || $column->isSearchNormalized();
         $needle    = LikeValueEscaper::escape($normalize ? mb_strtolower($values[0]) : $values[0]);
         $pattern   = match ($base) {
             'starts' => $needle.'%',
@@ -234,7 +234,7 @@ final class SearchBuilderFilter implements QueryFilterInterface
     /**
      * SearchBuilder reports the column's `data` key as `origData`.
      *
-     * @param list<ColumnInterface> $columns
+     * @param list<AbstractColumn> $columns
      */
     private static function findColumn(array $columns, string $key): ?ColumnInterface
     {

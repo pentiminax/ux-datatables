@@ -7,9 +7,9 @@ namespace Pentiminax\UX\DataTables\DataProvider;
 use ApiPlatform\State\ProviderInterface;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiPlatformQueryParameterFactory;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\VisibleColumns;
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -34,7 +34,7 @@ final class ApiPlatformCollectionProviderFactory
      * Null when the entity exposes no collection operation, so a table that declares the
      * integration for an entity API Platform does not serve keeps the provider it had.
      *
-     * @param list<ColumnInterface> $columns
+     * @param list<AbstractColumn> $columns
      */
     public function create(
         string $entityClass,

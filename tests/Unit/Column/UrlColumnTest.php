@@ -42,9 +42,9 @@ final class UrlColumnTest extends DataTableTestCase
     public static function provideCustomOptions(): iterable
     {
         yield 'new tab' => ['openInNewTab', true, 'target', '_blank'];
-        yield 'display value' => ['setDisplayValue', 'Visit', 'displayValue', 'Visit'];
-        yield 'default protocol' => ['setDefaultProtocol', 'https', 'defaultProtocol', 'https'];
-        yield 'default protocol is normalized' => ['setDefaultProtocol', '  HTTPS:  ', 'defaultProtocol', 'https'];
+        yield 'display value' => ['displayValue', 'Visit', 'displayValue', 'Visit'];
+        yield 'default protocol' => ['defaultProtocol', 'https', 'defaultProtocol', 'https'];
+        yield 'default protocol is normalized' => ['defaultProtocol', '  HTTPS:  ', 'defaultProtocol', 'https'];
         yield 'allowed protocols' => ['allowedProtocols', ['http', 'https'], 'allowedProtocols', ['http', 'https']];
         yield 'allowed protocols are normalized and deduplicated' => ['allowedProtocols', ['HTTP', 'http', ' https: '], 'allowedProtocols', ['http', 'https']];
         yield 'external icon shown' => ['showExternalIcon', true, 'showExternalIcon', true];
@@ -76,9 +76,9 @@ final class UrlColumnTest extends DataTableTestCase
      */
     public static function provideInvalidProtocols(): iterable
     {
-        yield 'empty default protocol' => ['setDefaultProtocol', '   ', 'Protocol cannot be empty.'];
-        yield 'malformed default protocol' => ['setDefaultProtocol', 'http://', 'Invalid protocol format: "http://".'];
-        yield 'unsafe default protocol' => ['setDefaultProtocol', 'JavaScript', 'Unsafe protocol "javascript" is not allowed.'];
+        yield 'empty default protocol' => ['defaultProtocol', '   ', 'Protocol cannot be empty.'];
+        yield 'malformed default protocol' => ['defaultProtocol', 'http://', 'Invalid protocol format: "http://".'];
+        yield 'unsafe default protocol' => ['defaultProtocol', 'JavaScript', 'Unsafe protocol "javascript" is not allowed.'];
         yield 'unsafe allowed protocol' => ['allowedProtocols', ['https', 'data'], 'Unsafe protocol "data" is not allowed.'];
     }
 

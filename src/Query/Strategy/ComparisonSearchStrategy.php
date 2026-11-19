@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Query\Strategy;
 
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
-use Pentiminax\UX\DataTables\Contracts\NormalizedSearchColumnInterface;
-use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
@@ -25,8 +24,8 @@ use Pentiminax\UX\DataTables\Query\UuidSearchTerm;
  * that differ only in their SQL operator and parameter wrapping format.
  *
  * The column's declared search joins are applied first, and its
- * {@see SearchableColumnInterface::getSearchField()} override replaces getField() when set.
- * {@see SearchableColumnInterface::buildSearchPredicate()} is deliberately not consulted: each logic
+ * {@see AbstractColumn::getSearchField()} override replaces getField() when set.
+ * {@see AbstractColumn::buildSearchPredicate()} is deliberately not consulted: each logic
  * here fixes its own comparison shape and parameter format, which an open-ended condition
  * string cannot substitute for.
  *
@@ -34,7 +33,7 @@ use Pentiminax\UX\DataTables\Query\UuidSearchTerm;
  * that builds its own predicate stays searchable on the Contains logic.
  *
  * The LIKE logics (StartsWith, EndsWith, NotContains) lowercase both the column and the term
- * unless the column opts out through {@see NormalizedSearchColumnInterface}.
+ * unless the column opts out through {@see AbstractColumn::searchNormalization()}.
  */
 final class ComparisonSearchStrategy implements SearchStrategyInterface
 {
@@ -78,7 +77,7 @@ final class ComparisonSearchStrategy implements SearchStrategyInterface
         $field     = RelationFieldResolver::resolve($qb, $alias, $fieldPath);
         $paramName = \sprintf('column_control_param_%d', $paramIndex);
 
-        $normalize = !$column instanceof NormalizedSearchColumnInterface || $column->isSearchNormalized();
+        $normalize = !$column instanceof AbstractColumn || $column->isSearchNormalized();
 
         if ($usesLike && $normalize && \is_string($bindValue)) {
             $field     = \sprintf('LOWER(%s)', $field);

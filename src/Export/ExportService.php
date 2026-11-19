@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Export;
 
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\ColumnTranslator;
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\RequestInputBag;
 use Pentiminax\UX\DataTables\Enum\ExportFormat;
@@ -50,7 +50,7 @@ final class ExportService
         $formatter = new ExportValueFormatter($this->translator);
 
         if (!$button->usesRawValues()) {
-            $columns = array_map(static fn (ColumnInterface $column): ColumnInterface => clone $column, $columns);
+            $columns = array_map(static fn (AbstractColumn $column): AbstractColumn => clone $column, $columns);
             if (null !== $this->translator) {
                 ColumnTranslator::translate($columns, $this->translator);
             }
@@ -81,7 +81,7 @@ final class ExportService
     }
 
     /**
-     * @param list<ColumnInterface> $columns
+     * @param list<AbstractColumn> $columns
      */
     private function applyExportHeadings(ExportValueFormatter $formatter, array $columns): void
     {
@@ -91,7 +91,7 @@ final class ExportService
     }
 
     /**
-     * @param list<ColumnInterface>          $columns
+     * @param list<AbstractColumn>           $columns
      * @param iterable<array<string, mixed>> $rows
      *
      * @return \Generator<array<string, mixed>>
@@ -119,7 +119,7 @@ final class ExportService
     }
 
     /**
-     * @return list<ColumnInterface>
+     * @return list<AbstractColumn>
      */
     private function exportableColumns(AbstractDataTable $table): array
     {

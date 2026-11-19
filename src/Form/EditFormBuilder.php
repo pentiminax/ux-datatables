@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Form;
 
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Symfony\Component\Form\Extension\Core\Type\FormType;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
@@ -18,8 +18,8 @@ final class EditFormBuilder
     }
 
     /**
-     * @param ColumnInterface[] $columns
-     * @param string[]          $identifierFields Field names of the entity's primary key (auto-disabled)
+     * @param AbstractColumn[] $columns
+     * @param string[]         $identifierFields Field names of the entity's primary key (auto-disabled)
      */
     public function buildForm(object $entity, array $columns, array $identifierFields = []): FormInterface
     {

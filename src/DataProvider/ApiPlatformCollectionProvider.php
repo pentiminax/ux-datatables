@@ -10,9 +10,9 @@ use ApiPlatform\State\ProviderInterface;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiPlatformQueryParameterFactory;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\ApiPlatform\ResolvedCollectionOperation;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\VisibleColumns;
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
@@ -51,7 +51,7 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
     public const SUPPORTED_FEATURES = [DataSourceFeature::ConfiguredFilters];
 
     /**
-     * @param list<ColumnInterface> $columns configured columns in display order, before permission filtering
+     * @param list<AbstractColumn> $columns configured columns in display order, before permission filtering
      */
     public function __construct(
         private readonly ProviderInterface $stateProvider,

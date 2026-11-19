@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Query\Strategy;
 
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
-use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
@@ -21,8 +21,8 @@ use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
  * reject `uuid = ''` the same way they reject `uuid LIKE`.
  *
  * The column's declared search joins are applied first, and its
- * {@see SearchableColumnInterface::getSearchField()} override replaces getField() when set.
- * {@see SearchableColumnInterface::buildSearchPredicate()} is deliberately not consulted: a nullness
+ * {@see AbstractColumn::getSearchField()} override replaces getField() when set.
+ * {@see AbstractColumn::buildSearchPredicate()} is deliberately not consulted: a nullness
  * check is a property of the field itself, which an open-ended condition string built for a
  * search term cannot stand in for.
  *

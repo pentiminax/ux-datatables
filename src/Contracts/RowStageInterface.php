@@ -20,7 +20,7 @@ interface RowStageInterface
 {
     /**
      * @param array<string, mixed> $mappedRow
-     * @param ColumnInterface[]    $columns
+     * @param AbstractColumn[]     $columns
      *
      * @return array<string, mixed>
      */

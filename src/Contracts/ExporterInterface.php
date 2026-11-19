@@ -32,7 +32,7 @@ interface ExporterInterface
     /**
      * Writes the whole export to php://output.
      *
-     * @param list<ColumnInterface>          $columns
+     * @param list<AbstractColumn>           $columns
      * @param iterable<array<string, mixed>> $rows
      */
     public function write(array $columns, iterable $rows): void;

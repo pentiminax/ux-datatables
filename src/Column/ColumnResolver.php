@@ -133,9 +133,9 @@ final class ColumnResolver
      * cloned before their action collections are filtered, so a container-shared
      * table can be re-filtered on every request.
      *
-     * @param ColumnInterface[] $columns
+     * @param AbstractColumn[] $columns
      *
-     * @return ColumnInterface[]
+     * @return AbstractColumn[]
      */
     public function filterStaticPermissions(array $columns, ?string $dataTableClass = null): array
     {
@@ -148,7 +148,7 @@ final class ColumnResolver
      *
      * @internal
      *
-     * @param ColumnInterface[] $columns
+     * @param AbstractColumn[] $columns
      */
     public function visibleColumns(array $columns, ?string $dataTableClass): VisibleColumns
     {
@@ -156,7 +156,7 @@ final class ColumnResolver
     }
 
     /**
-     * @param ColumnInterface[] $columns
+     * @param AbstractColumn[] $columns
      */
     private function compute(array $columns, ?string $dataTableClass): VisibleColumns
     {
@@ -213,9 +213,9 @@ final class ColumnResolver
      * A hidden column is not part of what the user sees, and a TemplateColumn or an ActionColumn
      * carries markup rather than data, so both stay out unless setExportable(true) opts them back in.
      *
-     * @param iterable<ColumnInterface> $columns
+     * @param iterable<AbstractColumn> $columns
      *
-     * @return list<ColumnInterface>
+     * @return list<AbstractColumn>
      */
     public function filterExportable(iterable $columns): array
     {
@@ -233,7 +233,7 @@ final class ColumnResolver
     /**
      * @internal
      *
-     * @param iterable<mixed> $columns
+     * @param iterable<AbstractColumn> $columns
      *
      * @return list<AbstractColumn>
      */
@@ -242,7 +242,7 @@ final class ColumnResolver
         $summarized = [];
 
         foreach ($columns as $column) {
-            if ($column instanceof AbstractColumn && [] !== $column->getSummarizers()) {
+            if ([] !== $column->getSummarizers()) {
                 $summarized[] = $column;
             }
         }
@@ -253,28 +253,13 @@ final class ColumnResolver
     /**
      * Row keys and read paths of the columns the current user may not see.
      *
-     * @param ColumnInterface[] $columns
+     * @param AbstractColumn[] $columns
      *
      * @return list<string>
      */
     public function deniedColumnPaths(array $columns, ?string $dataTableClass = null): array
     {
         return $this->compute($columns, $dataTableClass)->deniedPaths;
-    }
-
-    /**
-     * @param array<string, mixed> $row
-     * @param ColumnInterface[]    $columns
-     *
-     * @return array<string, mixed>
-     *
-     * @deprecated since 1.2, use deniedColumnPaths() and removePaths() instead. Removed in 2.0.
-     */
-    public function removeDeniedColumnValues(array $row, array $columns): array
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.2', 'The "%s()" method is deprecated, use "deniedColumnPaths()" and "removePaths()" instead.', __METHOD__);
-
-        return $this->removePaths($row, $this->deniedColumnPaths($columns));
     }
 
     /**

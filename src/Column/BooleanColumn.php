@@ -42,31 +42,11 @@ class BooleanColumn extends AbstractColumn
         return $this;
     }
 
-    /**
-     * @deprecated since 1.6, use toggleAjax() instead. Removed in 2.0.
-     */
-    public function setToggleAjax(string $idField = 'id', string $method = 'PATCH'): static
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "toggleAjax()" instead.', __METHOD__);
-
-        return $this->toggleAjax($idField, $method);
-    }
-
     public function entityClass(string $entityClass): static
     {
         $this->customOption(self::OPTION_ENTITY_CLASS, ltrim($entityClass, '\\'));
 
         return $this;
-    }
-
-    /**
-     * @deprecated since 1.6, use entityClass() instead. Removed in 2.0.
-     */
-    public function setEntityClass(string $entityClass): static
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "entityClass()" instead.', __METHOD__);
-
-        return $this->entityClass($entityClass);
     }
 
     public function getEntityClass(): ?string

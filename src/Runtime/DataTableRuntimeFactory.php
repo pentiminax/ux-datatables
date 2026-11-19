@@ -7,12 +7,12 @@ namespace Pentiminax\UX\DataTables\Runtime;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\Mapping\ClassMetadata;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\Rendering\UrlColumnDataResolver;
 use Pentiminax\UX\DataTables\Column\VisibleColumns;
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
@@ -45,7 +45,7 @@ final class DataTableRuntimeFactory
     }
 
     /**
-     * @param ColumnInterface[]                $columns
+     * @param AbstractColumn[]                 $columns
      * @param \Closure(mixed):array            $baseMapper
      * @param (\Closure():VisibleColumns)|null $visibleColumns resolved on the first row, once permissions can be checked
      */
@@ -99,7 +99,7 @@ final class DataTableRuntimeFactory
     }
 
     /**
-     * @param ColumnInterface[] $columns
+     * @param AbstractColumn[] $columns
      */
     public function createRuntime(
         DataTable $table,

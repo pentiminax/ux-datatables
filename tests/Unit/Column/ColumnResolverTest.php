@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 use Pentiminax\UX\DataTables\ApiPlatform\ColumnAutoDetector;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Attribute\DataTableColumn;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
@@ -22,7 +23,6 @@ use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
@@ -301,16 +301,6 @@ final class ColumnResolverTest extends TestCase
         $this->assertSame(SilentTableFixture::class, $visible->dataTableClass);
     }
 
-    #[Test]
-    #[IgnoreDeprecations]
-    public function the_deprecated_denied_value_removal_still_delegates_to_the_path_helpers(): void
-    {
-        $resolver = $this->createResolverWithPermissions([['ROLE_HR', null, false]]);
-        $columns  = [TextColumn::new('salary', 'Salary')->permission('ROLE_HR'), TextColumn::new('name', 'Name')];
-
-        $this->assertSame(['name' => 'Ada'], $resolver->removeDeniedColumnValues(['salary' => 1, 'name' => 'Ada'], $columns));
-    }
-
     /**
      * @return iterable<string, array{array<string, mixed>, list<ColumnInterface>, array<string, mixed>}>
      */
@@ -435,17 +425,17 @@ final class ColumnResolverTest extends TestCase
 
     #[Test]
     #[DataProvider('provideColumnsKeptWithoutPermissionCheck')]
-    public function filter_static_permissions_keeps_columns_it_cannot_deny(ColumnInterface $column): void
+    public function filter_static_permissions_keeps_columns_it_cannot_deny(AbstractColumn $column): void
     {
         $this->assertSame([$column], (new ColumnResolver())->filterStaticPermissions([$column]));
     }
 
     /**
-     * @return iterable<string, array{ColumnInterface}>
+     * @return iterable<string, array{AbstractColumn}>
      */
     public static function provideColumnsKeptWithoutPermissionCheck(): iterable
     {
-        yield 'custom column implementing ColumnInterface with no permission' => [self::createStub(ColumnInterface::class)];
+        yield 'column with no permission' => [TextColumn::new('name', 'Name')];
     }
 
     #[Test]

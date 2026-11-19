@@ -6,7 +6,6 @@ namespace Pentiminax\UX\DataTables\Runtime;
 
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ApiPlatformCollectionProvider;
@@ -74,7 +73,7 @@ final class DataSourceFeatureGuard
     }
 
     /**
-     * @param list<ColumnInterface> $columns the table's configured columns
+     * @param list<AbstractColumn> $columns the table's configured columns
      *
      * @throws BadRequestHttpException when the request carries criteria the provider cannot apply
      * @throws \LogicException         when the table declares summaries the provider cannot compute
@@ -147,7 +146,7 @@ final class DataSourceFeatureGuard
     }
 
     /**
-     * @param list<ColumnInterface> $columns
+     * @param list<AbstractColumn> $columns
      */
     private function requests(DataTableRequest $request, DataSourceFeature $feature, DataTable $table, array $columns): bool
     {
@@ -187,7 +186,7 @@ final class DataSourceFeatureGuard
         }
 
         foreach ($columns as $column) {
-            if ($column instanceof AbstractColumn && $this->containsSearchControl($column->getColumnControl())) {
+            if ($this->containsSearchControl($column->getColumnControl())) {
                 return true;
             }
         }

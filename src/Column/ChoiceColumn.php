@@ -70,16 +70,6 @@ class ChoiceColumn extends AbstractColumn
     }
 
     /**
-     * @deprecated since 1.6, use choices() instead. Removed in 2.0.
-     */
-    public function setChoices(array|string $choices): static
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "choices()" instead.', __METHOD__);
-
-        return $this->choices($choices);
-    }
-
-    /**
      * Replace the labels of translatable enum cases with their translation.
      *
      * Called by the RenderingPreparer when a translator is available, so the label is resolved
