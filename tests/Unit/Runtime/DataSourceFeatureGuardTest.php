@@ -337,7 +337,7 @@ final class DataSourceFeatureGuardTest extends TestCase
     }
 
     #[Test]
-    public function it_raises_nothing_for_a_feature_aware_provider(): void
+    public function it_raises_nothing_for_a_provider_that_declares_every_feature(): void
     {
         $runtime = $this->runtime(new ArrayDataProvider([], new DefaultRowMapper([]), self::columns()));
         $runtime->handleRequest(new Request(query: ['draw' => 1]));

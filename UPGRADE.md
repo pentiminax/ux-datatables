@@ -239,20 +239,43 @@ final class WarehouseStockProvider implements DataProviderInterface, FeatureAwar
 }
 
 // After (2.0)
+use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
+use Pentiminax\UX\DataTables\Model\DataTableResult;
+
 final class WarehouseStockProvider implements DataProviderInterface
 {
-    // fetchData(), supports() and iterateRows(): same signatures
+    public function fetchData(DataTableRequest $request): DataTableResult
+    {
+        // ...
+    }
+
+    public function supports(DataSourceFeature $feature): bool
+    {
+        return match ($feature) {
+            DataSourceFeature::ConfiguredFilters => true,
+            default                              => false,
+        };
+    }
+
+    public function iterateRows(DataTableRequest $request): iterable
+    {
+        return $this->fetchData($request->withoutPagination())->data;
+    }
 }
 ```
 
-A provider that has no streaming implementation can return `$this->fetchData($request->withoutPagination())->data`
-from `iterateRows()`, at the cost of loading every row in memory during an export.
+The `iterateRows()` above loads every row in memory during an export; yield rows in batches instead
+when the table is large.
 
 A `supports()` that throws an `\UnhandledMatchError` for a feature it does not list still means
 unsupported, but no longer logs a deprecation. Row scope and identifier collection need
 `IdentifierDataProviderInterface` and a `true` answer from `supports()` for
 `DataSourceFeature::RowScope` and `DataSourceFeature::IdentifierCollection`; implementing the
-interface alone no longer declares them.
+interface alone no longer declares them. Answering `false` (or `default => false`) for `RowScope`
+disables the row scope check: the provider is treated as unscoped for row actions and bulk
+identifiers, and for `IdentifierCollection` a bulk "select all matching" is rejected.
 
 ### Deprecations removed
 

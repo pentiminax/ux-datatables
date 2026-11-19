@@ -328,6 +328,8 @@ change, the application and its test suite must run with no call to a removed me
       with `IdentifierDataProviderInterface` (`collectIdentifiers()` and
       `filterIdentifiersInScope()`, same signatures), and return `true` from `supports()` for
       `DataSourceFeature::RowScope` and `DataSourceFeature::IdentifierCollection`: without that
-      answer the bundle ignores the interface.
+      answer the bundle ignores the interface. Answering `false` (or `default => false`) for
+      `RowScope` means the provider is treated as unscoped: the row scope check is disabled for
+      row actions and bulk identifiers.
 
 </upgrade-prompt>
