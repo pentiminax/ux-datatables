@@ -19,6 +19,7 @@ use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -68,7 +69,7 @@ final class DataTableProfilerTest extends TestCase
     public function it_reports_the_edit_modal_template_declared_on_the_attribute(): void
     {
         $table    = new DataTable('products');
-        $preparer = new RenderingPreparer();
+        $preparer = new RenderingPreparer(new AuthorizationChecker());
         $prepared = self::prepareWith($preparer, $table, $preparer->resolveOptIns($table, new AsDataTable(\stdClass::class, editModalTemplate: 'admin/edit_modal.html.twig')));
 
         $profiler = new DataTableProfiler();

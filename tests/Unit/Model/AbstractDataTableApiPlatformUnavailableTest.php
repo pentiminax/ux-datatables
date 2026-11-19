@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -124,7 +125,7 @@ abstract class ApiPlatformUnavailableFixture extends AbstractDataTable
     public function __construct(?ApiResourceCollectionUrlResolver $urlResolver)
     {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(urlResolver: $urlResolver),
+            renderingPreparer: new RenderingPreparer(new AuthorizationChecker(), urlResolver: $urlResolver),
         ));
     }
 

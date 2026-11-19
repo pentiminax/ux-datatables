@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 
 #[AsDataTable(
     entityClass: \stdClass::class,
@@ -23,7 +24,7 @@ class TestDataTableWithEditModalAttribute extends AbstractDataTable
     public function __construct()
     {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(),
+            renderingPreparer: new RenderingPreparer(new AuthorizationChecker()),
         ));
     }
 

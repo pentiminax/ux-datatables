@@ -39,6 +39,7 @@ use Pentiminax\UX\DataTables\Model\Summary\Sum;
 use Pentiminax\UX\DataTables\Runtime\PreparedDataTable;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsAjaxRegistry;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
@@ -89,7 +90,7 @@ final class RenderingPreparerTest extends TestCase
     #[Test]
     public function it_does_nothing_without_resolvers(): void
     {
-        $preparer = new RenderingPreparer();
+        $preparer = new RenderingPreparer(new AuthorizationChecker());
         $table    = new DataTable('Test');
 
         $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class));
@@ -117,7 +118,7 @@ final class RenderingPreparerTest extends TestCase
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('Polling requires an Ajax source, but "Test" has no ajax option once prepared.');
 
-        $tablePayload = self::prepare(new RenderingPreparer(), $table, null);
+        $tablePayload = self::prepare(new RenderingPreparer(new AuthorizationChecker()), $table, null);
     }
 
     #[Test]
@@ -125,7 +126,7 @@ final class RenderingPreparerTest extends TestCase
     {
         $table = (new DataTable('Test'))->ajax('/rows')->poll('10s');
 
-        $tablePayload = self::prepare(new RenderingPreparer(), $table, null);
+        $tablePayload = self::prepare(new RenderingPreparer(new AuthorizationChecker()), $table, null);
 
         $this->assertSame(10, self::optionOf($tablePayload, 'pollInterval'));
     }
@@ -143,6 +144,7 @@ final class RenderingPreparerTest extends TestCase
             ->columns([TextColumn::new('status')])
             ->addExtension((new ColumnControlExtension([]))->add(1, [$searchList]));
         $preparer = new RenderingPreparer(
+            new AuthorizationChecker(),
             translator: $translator,
             searchListOptionsResolver: new SearchListOptionsResolver($translator),
         );
@@ -167,7 +169,7 @@ final class RenderingPreparerTest extends TestCase
         $urlResolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
         $urlResolver->expects($this->never())->method('resolveCollectionUrl');
 
-        $preparer = new RenderingPreparer(urlResolver: $urlResolver);
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), urlResolver: $urlResolver);
         $table    = $configure(new DataTable('Test'));
 
         $tablePayload = self::prepare($preparer, $table, $attribute);
@@ -207,7 +209,7 @@ final class RenderingPreparerTest extends TestCase
             ->with(\stdClass::class)
             ->willReturn('/api/products');
 
-        $preparer = new RenderingPreparer(urlResolver: $urlResolver);
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), urlResolver: $urlResolver);
         $table    = $configure(new DataTable('Test'));
 
         $tablePayload = self::prepare($preparer, $table, $attribute);
@@ -227,7 +229,7 @@ final class RenderingPreparerTest extends TestCase
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('Column summaries are not supported on an API Platform collection');
 
-        $tablePayload = self::prepare(new RenderingPreparer(urlResolver: $urlResolver), $table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
+        $tablePayload = self::prepare(new RenderingPreparer(new AuthorizationChecker(), urlResolver: $urlResolver), $table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
     }
 
     public static function provideApiPlatformOptIns(): iterable
@@ -266,6 +268,7 @@ final class RenderingPreparerTest extends TestCase
         });
 
         $preparer = new RenderingPreparer(
+            new AuthorizationChecker(),
             urlResolver: $urlResolver,
             urlGenerator: $urlGenerator,
             ajaxRegistry: $registry,
@@ -332,7 +335,7 @@ final class RenderingPreparerTest extends TestCase
     {
         $table = (new DataTable('Test'))->editModalTemplate(' ')->editModalAdapter('');
 
-        $preparer     = new RenderingPreparer();
+        $preparer     = new RenderingPreparer(new AuthorizationChecker());
         $optIns       = $preparer->resolveOptIns($table, new AsDataTable(entityClass: \stdClass::class, editModalTemplate: 'attribute.html.twig', editModalAdapter: 'bootstrap'));
         $tablePayload = self::prepareWith($preparer, $table, $optIns);
 
@@ -345,7 +348,7 @@ final class RenderingPreparerTest extends TestCase
     {
         $table = (new DataTable('Test'))->editModalAdapter('');
 
-        $tablePayload = self::prepare(new RenderingPreparer(), $table, new AsDataTable(entityClass: \stdClass::class));
+        $tablePayload = self::prepare(new RenderingPreparer(new AuthorizationChecker()), $table, new AsDataTable(entityClass: \stdClass::class));
 
         $this->assertNull($tablePayload->editModalAdapter);
     }
@@ -356,7 +359,7 @@ final class RenderingPreparerTest extends TestCase
         $urlResolver = $this->createStub(ApiResourceCollectionUrlResolver::class);
         $urlResolver->method('resolveCollectionUrl')->willReturn(null);
 
-        $preparer = new RenderingPreparer(urlResolver: $urlResolver);
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), urlResolver: $urlResolver);
 
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('Table "Test" opts into API Platform but "stdClass" exposes no collection operation');
@@ -375,7 +378,7 @@ final class RenderingPreparerTest extends TestCase
             ->with(\stdClass::class)
             ->willReturn($mercureConfig);
 
-        $preparer = new RenderingPreparer(mercureResolver: $mercureResolver);
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), mercureResolver: $mercureResolver);
         $table    = (new DataTable('Test'))->serverSide();
 
         $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, mercure: true));
@@ -391,7 +394,7 @@ final class RenderingPreparerTest extends TestCase
         $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
         $hubUrlResolver->method('resolveProtocolVersion')->willReturn(MercureConfig::PROTOCOL_VERSION_1_0);
 
-        $preparer = new RenderingPreparer(mercureHubUrlResolver: $hubUrlResolver);
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), mercureHubUrlResolver: $hubUrlResolver);
         $table    = new DataTable('Test');
         $table->mercure(topics: ['/api/books/{id}']);
 
@@ -407,7 +410,7 @@ final class RenderingPreparerTest extends TestCase
         $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
         $hubUrlResolver->method('resolveProtocolVersion')->willReturn(MercureConfig::PROTOCOL_VERSION_1_0);
 
-        $preparer = new RenderingPreparer(mercureHubUrlResolver: $hubUrlResolver);
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), mercureHubUrlResolver: $hubUrlResolver);
         $table    = (new DataTable('Test'))->ajax('/api/books');
 
         $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, mercure: [
@@ -428,7 +431,7 @@ final class RenderingPreparerTest extends TestCase
             ->with(\stdClass::class)
             ->willReturn($mercureConfig);
 
-        $preparer = new RenderingPreparer(mercureResolver: $mercureResolver);
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), mercureResolver: $mercureResolver);
         $table    = (new DataTable('Test'))->serverSide();
 
         $resolved = $preparer->resolveMercureConfig($table, $preparer->resolveOptIns($table, new AsDataTable(entityClass: \stdClass::class, mercure: true)));
@@ -451,6 +454,7 @@ final class RenderingPreparerTest extends TestCase
         $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
 
         $preparer = new RenderingPreparer(
+            new AuthorizationChecker(),
             mercureResolver: $mercureResolver,
             mercureHubUrlResolver: $hubUrlResolver,
         );
@@ -481,6 +485,7 @@ final class RenderingPreparerTest extends TestCase
         $hubUrlResolver->method('resolveHubUrl')->willReturn('https://example.com/.well-known/mercure');
 
         $preparer = new RenderingPreparer(
+            new AuthorizationChecker(),
             mercureResolver: new MercureConfigResolver($hubUrlResolver, $metadataResolver),
             mercureHubUrlResolver: $hubUrlResolver,
         );
@@ -506,6 +511,7 @@ final class RenderingPreparerTest extends TestCase
         $hubUrlResolver->method('resolveHubUrl')->willReturn('https://example.com/.well-known/mercure');
 
         $preparer = new RenderingPreparer(
+            new AuthorizationChecker(),
             mercureResolver: new MercureConfigResolver($hubUrlResolver, $metadataResolver),
             mercureHubUrlResolver: $hubUrlResolver,
         );
@@ -532,7 +538,7 @@ final class RenderingPreparerTest extends TestCase
         $mercureResolver = $this->createMock(MercureConfigResolver::class);
         $mercureResolver->expects($this->never())->method('resolveMercureConfig');
 
-        $preparer = new RenderingPreparer(mercureResolver: $mercureResolver);
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), mercureResolver: $mercureResolver);
         $table    = $configure(new DataTable('Test'));
 
         $tablePayload = self::prepare($preparer, $table, $attribute);
@@ -563,6 +569,7 @@ final class RenderingPreparerTest extends TestCase
         $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
 
         $preparer = new RenderingPreparer(
+            new AuthorizationChecker(),
             mercureResolver: $mercureResolver,
             mercureHubUrlResolver: $hubUrlResolver,
         );
@@ -581,7 +588,7 @@ final class RenderingPreparerTest extends TestCase
         $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn(null);
 
-        $preparer = new RenderingPreparer(mercureHubUrlResolver: $hubUrlResolver);
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), mercureHubUrlResolver: $hubUrlResolver);
         $table    = new DataTable('Test');
         $table->mercure(topics: ['/existing']);
 
@@ -597,7 +604,7 @@ final class RenderingPreparerTest extends TestCase
         $mercureResolver = $this->createStub(MercureConfigResolver::class);
         $mercureResolver->method('resolveMercureConfig')->willReturn(null);
 
-        $preparer = new RenderingPreparer(mercureResolver: $mercureResolver);
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), mercureResolver: $mercureResolver);
         $table    = new DataTable('Test');
 
         $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, mercure: true));
@@ -614,7 +621,7 @@ final class RenderingPreparerTest extends TestCase
             ->willReturn('/datatables/ajax/data');
 
         $registry = $this->createAjaxRegistry(self::TABLE_SERVICE_IDS);
-        $preparer = new RenderingPreparer(urlGenerator: $urlGenerator, ajaxRegistry: $registry);
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), urlGenerator: $urlGenerator, ajaxRegistry: $registry);
         $table    = (new DataTable('Test'))
             ->setDataTableClass(self::TABLE_CLASS)
             ->serverSide();
@@ -644,7 +651,7 @@ final class RenderingPreparerTest extends TestCase
             ->with(RenderingPreparer::AJAX_EXPORT_ROUTE, ['table' => $token])
             ->willReturn('/datatables/ajax/export?table='.$token);
 
-        $preparer = new RenderingPreparer(urlGenerator: $urlGenerator, ajaxRegistry: $registry);
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), urlGenerator: $urlGenerator, ajaxRegistry: $registry);
         $table    = (new DataTable('Test'))
             ->setDataTableClass(self::TABLE_CLASS)
             ->addExtension(new ButtonsExtension([$button()]));
@@ -677,7 +684,7 @@ final class RenderingPreparerTest extends TestCase
         $translator = $this->createStub(TranslatorInterface::class);
         $translator->method('trans')->willReturnCallback(static fn (string $id): string => 'tr:'.$id);
 
-        $preparer = new RenderingPreparer(translator: $translator, urlGenerator: $urlGenerator);
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), translator: $translator, urlGenerator: $urlGenerator);
         $table    = (new DataTable('Test'))
             ->setDataTableClass(self::TABLE_CLASS)
             ->setBulkActions((new BulkActions())->add(BulkAction::new('approve')));
@@ -699,7 +706,7 @@ final class RenderingPreparerTest extends TestCase
         $translator = $this->createStub(TranslatorInterface::class);
         $translator->method('trans')->willReturnCallback(static fn (string $id): string => 'tr:'.$id);
 
-        $preparer = new RenderingPreparer(translator: $translator);
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), translator: $translator);
 
         $withActions = (new DataTable('Test'))
             ->setDataTableClass(self::TABLE_CLASS)
@@ -726,7 +733,7 @@ final class RenderingPreparerTest extends TestCase
         $urlGenerator = $this->createStub(UrlGeneratorInterface::class);
         $urlGenerator->method('generate')->willReturnCallback(static fn (string $route): string => '/p/'.$route);
 
-        $preparer = new RenderingPreparer(urlGenerator: $urlGenerator);
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), urlGenerator: $urlGenerator);
 
         $withActions = (new DataTable('Test'))
             ->setDataTableClass(self::TABLE_CLASS)
@@ -754,7 +761,7 @@ final class RenderingPreparerTest extends TestCase
         $translator = $this->createStub(TranslatorInterface::class);
         $translator->method('trans')->willReturnCallback(static fn (string $id): string => 'tr:'.$id);
 
-        $preparer = new RenderingPreparer(translator: $translator);
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), translator: $translator);
 
         $summarized = (new DataTable('Test'))
             ->setDataTableClass(self::TABLE_CLASS)
@@ -798,7 +805,7 @@ final class RenderingPreparerTest extends TestCase
 
         $table = (new DataTable('Test'))->setDataTableClass(self::TABLE_CLASS)->add($column);
 
-        $tablePayload = self::prepare(new RenderingPreparer(translator: $translator), $table, null);
+        $tablePayload = self::prepare(new RenderingPreparer(new AuthorizationChecker(), translator: $translator), $table, null);
 
         $this->assertSame('tr:action.row.failed', $tablePayload->getView()['actionLabels']['failed']);
     }
@@ -813,7 +820,7 @@ final class RenderingPreparerTest extends TestCase
             ->setDataTableClass(self::TABLE_CLASS)
             ->add(ChoiceColumn::new('role', 'Role')->choices(RenderingPreparerRole::class));
 
-        $tablePayload = self::prepare(new RenderingPreparer(translator: $translator), $table, null);
+        $tablePayload = self::prepare(new RenderingPreparer(new AuthorizationChecker(), translator: $translator), $table, null);
 
         $this->assertSame(['admin' => 'Admin'], $table->getColumns()['role']->getCustomOptions()['choices']);
         $this->assertSame(
@@ -828,7 +835,7 @@ final class RenderingPreparerTest extends TestCase
         $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
         $urlGenerator->expects($this->never())->method('generate');
 
-        $preparer = new RenderingPreparer(urlGenerator: $urlGenerator);
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), urlGenerator: $urlGenerator);
         $table    = (new DataTable('Test'))->setDataTableClass(self::TABLE_CLASS);
 
         $tablePayload = self::prepare($preparer, $table, null);
@@ -846,6 +853,7 @@ final class RenderingPreparerTest extends TestCase
         $resolver->method('resolveCollectionUrl')->willReturn(null);
 
         $preparer = new RenderingPreparer(
+            new AuthorizationChecker(),
             urlResolver: $resolver,
             urlGenerator: $urlGenerator,
             ajaxRegistry: $this->createAjaxRegistry(self::TABLE_SERVICE_IDS),
@@ -870,6 +878,7 @@ final class RenderingPreparerTest extends TestCase
         $urlGenerator->expects($this->never())->method('generate');
 
         $preparer = new RenderingPreparer(
+            new AuthorizationChecker(),
             urlGenerator: $urlGenerator,
             ajaxRegistry: $this->createAjaxRegistry(self::TABLE_SERVICE_IDS),
         );
@@ -897,6 +906,7 @@ final class RenderingPreparerTest extends TestCase
         }
 
         $preparer = new RenderingPreparer(
+            new AuthorizationChecker(),
             urlGenerator: $urlGenerator,
             ajaxRegistry: $withRegistry ? $this->createAjaxRegistry(self::TABLE_SERVICE_IDS) : null,
         );
@@ -961,7 +971,7 @@ final class RenderingPreparerTest extends TestCase
         $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
         $urlGenerator->expects($this->never())->method('generate');
 
-        $preparer = new RenderingPreparer(urlResolver: $urlResolver, urlGenerator: $urlGenerator);
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), urlResolver: $urlResolver, urlGenerator: $urlGenerator);
         $table    = (new DataTable('Test'))
             ->setDataTableClass(self::TABLE_CLASS)
             ->serverSide();
@@ -981,6 +991,7 @@ final class RenderingPreparerTest extends TestCase
         $urlGenerator->method('generate')->willReturn('/datatables/ajax/data');
 
         $preparer = new RenderingPreparer(
+            new AuthorizationChecker(),
             urlResolver: $urlResolver,
             urlGenerator: $urlGenerator,
             ajaxRegistry: $this->createAjaxRegistry(self::TABLE_SERVICE_IDS),
@@ -1013,6 +1024,7 @@ final class RenderingPreparerTest extends TestCase
 
         $registry = $this->createAjaxRegistry(self::TABLE_SERVICE_IDS);
         $preparer = new RenderingPreparer(
+            new AuthorizationChecker(),
             urlGenerator: $urlGenerator,
             ajaxRegistry: $registry,
             requestStack: null === $query ? new RequestStack() : $this->createRequestStack($query),
@@ -1053,6 +1065,7 @@ final class RenderingPreparerTest extends TestCase
     public function it_forwards_query_parameters_into_manual_ajax(): void
     {
         $preparer = new RenderingPreparer(
+            new AuthorizationChecker(),
             requestStack: $this->createRequestStack(['q' => 'foo']),
         );
         $table = (new DataTable('Test'))
@@ -1088,7 +1101,7 @@ final class RenderingPreparerTest extends TestCase
             'filters'    => $table->getFilters()->jsonSerialize(),
             'searchList' => $searchList->jsonSerialize(),
         ];
-        $preparer = new RenderingPreparer(translator: $translator);
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), translator: $translator);
 
         $first  = self::prepare($preparer, $table, null)->getView();
         $second = self::prepare($preparer, $table, null)->getView();
@@ -1115,7 +1128,7 @@ final class RenderingPreparerTest extends TestCase
             ->with('Status')
             ->willReturn('Statut');
 
-        $preparer = new RenderingPreparer(translator: $translator);
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), translator: $translator);
         $table    = (new DataTable('Test'))->columns([
             TextColumn::new('status', 'Status'),
         ]);
@@ -1148,7 +1161,7 @@ final class RenderingPreparerTest extends TestCase
         );
         $table = (new DataTable('Test'))->setFilters($filters);
 
-        $tablePayload = self::prepare(new RenderingPreparer(translator: $translator), $table, null);
+        $tablePayload = self::prepare(new RenderingPreparer(new AuthorizationChecker(), translator: $translator), $table, null);
 
         $payload = $tablePayload->getView()['filters'][0];
         $this->assertSame('Dernière connexion', $payload['label']);
@@ -1172,7 +1185,7 @@ final class RenderingPreparerTest extends TestCase
         $filters = (new Filters())->add(TextFilter::new('lastLoginAt'));
         $table   = (new DataTable('Test'))->setFilters($filters);
 
-        $tablePayload = self::prepare(new RenderingPreparer(translator: $translator), $table, null);
+        $tablePayload = self::prepare(new RenderingPreparer(new AuthorizationChecker(), translator: $translator), $table, null);
 
         $this->assertSame('Last Login At', $tablePayload->getView()['filters'][0]['label']);
     }
@@ -1202,7 +1215,7 @@ final class RenderingPreparerTest extends TestCase
 
         $table = (new DataTable('Test'))->setFilters($filters);
 
-        $tablePayload = self::prepare(new RenderingPreparer(translator: $translator), $table, null);
+        $tablePayload = self::prepare(new RenderingPreparer(new AuthorizationChecker(), translator: $translator), $table, null);
 
         $this->assertSame(
             ['Statut', 'Derniere connexion'],
@@ -1229,7 +1242,7 @@ final class RenderingPreparerTest extends TestCase
         );
         $table = (new DataTable('Test'))->setFilters($filters);
 
-        $preparer     = new RenderingPreparer(translator: $translator);
+        $preparer     = new RenderingPreparer(new AuthorizationChecker(), translator: $translator);
         $tablePayload = self::prepare($preparer, $table, null);
 
         $this->assertSame(
@@ -1258,7 +1271,7 @@ final class RenderingPreparerTest extends TestCase
 
         $table = (new DataTable('Test'))->setFilters($filters);
 
-        $tablePayload = self::prepare(new RenderingPreparer(translator: $translator), $table, null);
+        $tablePayload = self::prepare(new RenderingPreparer(new AuthorizationChecker(), translator: $translator), $table, null);
 
         $this->assertSame($expected, $tablePayload->getView()['filterLabels']);
     }
@@ -1312,7 +1325,7 @@ final class RenderingPreparerTest extends TestCase
             ->with(\stdClass::class)
             ->willReturn($mercureConfig);
 
-        $preparer = new RenderingPreparer(mercureResolver: $mercureResolver);
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), mercureResolver: $mercureResolver);
         $table    = (new DataTable('Test'))->ajax('/api/books');
 
         $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, mercure: [
@@ -1335,7 +1348,7 @@ final class RenderingPreparerTest extends TestCase
         $mercureResolver = $this->createStub(MercureConfigResolver::class);
         $mercureResolver->method('resolveMercureConfig')->willReturn($mercureConfig);
 
-        $preparer = new RenderingPreparer(mercureResolver: $mercureResolver);
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), mercureResolver: $mercureResolver);
         $table    = (new DataTable('Test'))->ajax('/api/books');
 
         $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, mercure: [
@@ -1358,7 +1371,7 @@ final class RenderingPreparerTest extends TestCase
         $mercureResolver = $this->createStub(MercureConfigResolver::class);
         $mercureResolver->method('resolveMercureConfig')->willReturn(null);
 
-        $preparer = new RenderingPreparer(mercureResolver: $mercureResolver);
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), mercureResolver: $mercureResolver);
         $table    = (new DataTable('Test'))->ajax('/api/books');
 
         $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, mercure: $mercure));
@@ -1379,7 +1392,7 @@ final class RenderingPreparerTest extends TestCase
     #[Test]
     public function it_names_the_attribute_and_the_class_for_an_unknown_mercure_option(): void
     {
-        $preparer = new RenderingPreparer();
+        $preparer = new RenderingPreparer(new AuthorizationChecker());
         $table    = (new DataTable('Test'))->ajax('/api/books');
 
         $this->expectException(\InvalidArgumentException::class);
@@ -1397,7 +1410,7 @@ final class RenderingPreparerTest extends TestCase
     #[DataProvider('provideInvalidMercureOptions')]
     public function it_rejects_an_invalid_mercure_option(string $expectedMessage, array $mercure): void
     {
-        $preparer = new RenderingPreparer();
+        $preparer = new RenderingPreparer(new AuthorizationChecker());
         $table    = (new DataTable('Test'))->ajax('/api/books');
 
         $this->expectException(\InvalidArgumentException::class);
@@ -1430,7 +1443,7 @@ final class RenderingPreparerTest extends TestCase
     #[Test]
     public function it_ignores_an_empty_edit_modal_override(): void
     {
-        $preparer = new RenderingPreparer();
+        $preparer = new RenderingPreparer(new AuthorizationChecker());
         $table    = new DataTable('Test');
 
         $tablePayload = self::prepare($preparer, $table, new AsDataTable(

@@ -16,6 +16,7 @@ use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Ajax\RowActionGate;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\IdentifierDataProviderInterface;
@@ -111,7 +112,7 @@ final class RowScopeGuardTest extends TestCase
         $locator = $this->createStub(ContainerInterface::class);
         $locator->method('get')->willReturn(new ScopedAccountDataTable($this->provider()));
 
-        $this->registry = new AjaxDataTableRegistry($locator, new AjaxDataTableTokenManager(self::SECRET), [ScopedAccountDataTable::class => 'scoped']);
+        $this->registry = new AjaxDataTableRegistry($locator, new AjaxDataTableTokenManager(self::SECRET), [ScopedAccountDataTable::class => 'scoped'], new AuthorizationChecker());
     }
 
     #[Test]
@@ -308,7 +309,7 @@ final class RowScopeGuardTest extends TestCase
         $token = $this->forwardingToken();
 
         $twig    = new Environment(new ArrayLoader(['detail.html.twig' => '{{ entity.name }}']));
-        $service = new DetailRowService($this->locator(), $guard, $twig, new AuthorizationChecker(new TestAuthorizationChecker()));
+        $service = new DetailRowService($twig);
         $detail  = new AjaxDetailController($service, $this->gate($this->forwardingRegistry(), $guard));
 
         $this->assertSame('Beta', json_decode($detail($stack->getCurrentRequest(), new AjaxEntityQueryDto($token, 2))->getContent(), true)['html']);
@@ -372,7 +373,7 @@ final class RowScopeGuardTest extends TestCase
         $locator = $this->createStub(ContainerInterface::class);
         $locator->method('get')->willReturnCallback(fn (): ForwardedScopeAccountDataTable => new ForwardedScopeAccountDataTable($this->em));
 
-        return new AjaxDataTableRegistry($locator, new AjaxDataTableTokenManager(self::SECRET), [ForwardedScopeAccountDataTable::class => 'forwarded']);
+        return new AjaxDataTableRegistry($locator, new AjaxDataTableTokenManager(self::SECRET), [ForwardedScopeAccountDataTable::class => 'forwarded'], new AuthorizationChecker());
     }
 
     private function forwardingEditFormService(RowScopeGuard $guard): EditFormService
@@ -388,15 +389,13 @@ final class RowScopeGuardTest extends TestCase
         $renderer->method('render')->willReturn('<form></form>');
 
         return new EditFormService(
-            $this->locator(),
             new EditFormBuilder($factory, new ColumnToFormTypeMapper()),
             $renderer,
             $this->createStub(EditModalTemplateResolver::class),
             new NullMercurePublisher(),
             new MercureTopicResolver(),
             new MutationFlusher(),
-            $guard,
-            new AuthorizationChecker(new TestAuthorizationChecker()),
+            new ColumnResolver(new AuthorizationChecker(new TestAuthorizationChecker())),
         );
     }
 
@@ -461,10 +460,8 @@ final class RowScopeGuardTest extends TestCase
     private function mutator(): EntityMutator
     {
         return new EntityMutator(
-            $this->locator(),
             PropertyAccess::createPropertyAccessor(),
             new NullMercurePublisher(),
-            new AuthorizationChecker(new TestAuthorizationChecker()),
             new MercureTopicResolver(),
             new MutationFlusher(),
         );

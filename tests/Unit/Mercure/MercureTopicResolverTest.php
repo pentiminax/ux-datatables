@@ -15,6 +15,7 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -204,6 +205,7 @@ final class TopicResolverServerSideFixtureDataTable extends AbstractDataTable
     ) {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             renderingPreparer: new RenderingPreparer(
+                new AuthorizationChecker(),
                 mercureHubUrlResolver: $this->mercureHubUrlResolver,
             )
         ));
@@ -239,6 +241,7 @@ final class TopicResolverMismatchedFixtureDataTable extends AbstractDataTable
     ) {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             renderingPreparer: new RenderingPreparer(
+                new AuthorizationChecker(),
                 mercureHubUrlResolver: $this->mercureHubUrlResolver,
             )
         ));
@@ -271,6 +274,7 @@ final class TopicResolverClientSideFixtureDataTable extends AbstractDataTable
     ) {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             renderingPreparer: new RenderingPreparer(
+                new AuthorizationChecker(),
                 mercureHubUrlResolver: $this->mercureHubUrlResolver,
             )
         ));

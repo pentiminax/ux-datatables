@@ -19,13 +19,11 @@ use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
-use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Mutation\MutationContext;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
-use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -258,11 +256,9 @@ final class EntityMutatorTest extends TestCase
         ?MercureTopicResolver $topicResolver = null,
     ): EntityMutator {
         return new EntityMutator(
-            new EntityLocator(null),
             $accessor ?? $this->createStub(PropertyAccessorInterface::class),
             $publisher,
-            $permissionChecker ?? new AuthorizationChecker(new TestAuthorizationChecker()),
-            $topicResolver     ?? new MercureTopicResolver(),
+            $topicResolver ?? new MercureTopicResolver(),
             new MutationFlusher(),
         );
     }

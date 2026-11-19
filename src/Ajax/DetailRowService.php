@@ -5,22 +5,13 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Ajax;
 
 use Pentiminax\UX\DataTables\Model\Action;
-use Pentiminax\UX\DataTables\Mutation\EntityLocator;
-use Pentiminax\UX\DataTables\Mutation\RowScopeGuard;
-use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Twig\Environment;
 
 final readonly class DetailRowService
 {
-    private AuthorizationChecker $permissionChecker;
-
     public function __construct(
-        private EntityLocator $locator,
-        private RowScopeGuard $scopeGuard,
         private ?Environment $twig = null,
-        ?AuthorizationChecker $permissionChecker = null,
     ) {
-        $this->permissionChecker = $permissionChecker ?? AuthorizationChecker::fallbackFor(self::class);
     }
 
     /**

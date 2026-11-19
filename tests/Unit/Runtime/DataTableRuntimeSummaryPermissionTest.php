@@ -64,7 +64,7 @@ final class DataTableRuntimeSummaryPermissionTest extends TestCase
         $translator->method('trans')->willReturn('label');
         $table = (new DataTable('Test'))->add(NumberColumn::new('amount')->permission('ROLE_HR')->summarize(new Sum()));
 
-        $preparer = new RenderingPreparer(translator: $translator, columnResolver: new ColumnResolver(permissionChecker: $this->checker(false)));
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), translator: $translator, columnResolver: new ColumnResolver(permissionChecker: $this->checker(false)));
         $prepared = self::prepareWith($preparer, $table, $preparer->resolveOptIns($table, null));
 
         $this->assertArrayNotHasKey('summaryLabels', $prepared->getView());
@@ -80,7 +80,7 @@ final class DataTableRuntimeSummaryPermissionTest extends TestCase
         // A virtual column has no field to aggregate, so a server-side summary of it would throw.
         $columns = [NumberColumn::new('margin')->summarize(new Sum())];
 
-        $runtime = (new DataTableRuntimeFactory(autoDataProviderFactory: new AutoDataProviderFactory($em)))->createRuntime(
+        $runtime = (new DataTableRuntimeFactory(new AuthorizationChecker(), autoDataProviderFactory: new AutoDataProviderFactory($em)))->createRuntime(
             table: (new DataTable('orders'))->serverSide(false),
             columns: $columns,
             asDataTable: new AsDataTable(entityClass: SummaryOrder::class),

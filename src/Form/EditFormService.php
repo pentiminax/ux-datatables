@@ -12,30 +12,21 @@ use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Exception\MutationPersistenceException;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\MutationUpdatePublisher;
-use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationContext;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
-use Pentiminax\UX\DataTables\Mutation\RowScopeGuard;
-use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Symfony\Component\Form\FormInterface;
 
 final class EditFormService
 {
-    private readonly AuthorizationChecker $permissionChecker;
-
     public function __construct(
-        private readonly EntityLocator $locator,
         private readonly EditFormBuilder $builder,
         private readonly EditModalRenderer $renderer,
         private readonly EditModalTemplateResolver $templateResolver,
         private readonly MercurePublisherInterface $publisher,
         private readonly MercureTopicResolver $topicResolver,
         private readonly MutationFlusher $flusher,
-        private readonly RowScopeGuard $scopeGuard,
-        ?AuthorizationChecker $permissionChecker = null,
-        private readonly ?ColumnResolver $columnResolver = null,
+        private readonly ColumnResolver $columnResolver,
     ) {
-        $this->permissionChecker = $permissionChecker ?? AuthorizationChecker::fallbackFor(self::class);
     }
 
     /**
@@ -100,7 +91,7 @@ final class EditFormService
     {
         $resolvedColumns = $this->templateResolver->resolveColumns($dataTable->dataTableClass);
 
-        $columns = ($this->columnResolver ?? new ColumnResolver(permissionChecker: $this->permissionChecker))
+        $columns = $this->columnResolver
             ->visibleColumns($resolvedColumns, $dataTable->dataTableClass)
             ->columns;
 

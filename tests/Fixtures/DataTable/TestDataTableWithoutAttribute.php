@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 
 class TestDataTableWithoutAttribute extends AbstractDataTable
 {
@@ -18,7 +19,7 @@ class TestDataTableWithoutAttribute extends AbstractDataTable
         private readonly ?MercureConfigResolver $mercureConfigResolver = null,
     ) {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer($this->apiResourceCollectionUrlResolver, $this->mercureConfigResolver)
+            renderingPreparer: new RenderingPreparer(new AuthorizationChecker(), $this->apiResourceCollectionUrlResolver, $this->mercureConfigResolver)
         ));
     }
 

@@ -21,6 +21,7 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsApiPlatformProviderFactory;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\Test;
@@ -68,8 +69,9 @@ final class AbstractDataTableApiPlatformProjectionTest extends TestCase
 
         $table = new ProjectedApiBooksDataTable();
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(urlResolver: $resolver),
+            renderingPreparer: new RenderingPreparer(new AuthorizationChecker(), urlResolver: $resolver),
             runtimeFactory: new DataTableRuntimeFactory(
+                new AuthorizationChecker(),
                 autoDataProviderFactory: new AutoDataProviderFactory(
                     apiPlatformProviderFactory: $this->buildApiPlatformProviderFactory(stateProvider: $stateProvider),
                 ),

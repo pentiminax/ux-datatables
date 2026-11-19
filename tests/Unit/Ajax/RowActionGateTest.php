@@ -115,7 +115,8 @@ final class RowActionGateTest extends TestCase
             GateDeniedActionAccountDataTable::class => 'denied-action',
             GateOrderDataTable::class               => 'orders',
             GateManualDataTable::class              => 'manual',
-        ]);
+        ],
+            new AuthorizationChecker(), );
     }
 
     /**

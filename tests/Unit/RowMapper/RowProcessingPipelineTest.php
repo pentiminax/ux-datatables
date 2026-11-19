@@ -38,6 +38,8 @@ final class RowProcessingPipelineTest extends TestCase
         $pipeline = new RowProcessingPipeline(
             baseMapper: static fn (array $row): array => ['trace' => 'base:'.$row['id']],
             columns: [TextColumn::new('trace')],
+            columnResolver: new ColumnResolver(new AuthorizationChecker()),
+            actionRowDataResolver: new ActionRowDataResolver(new AuthorizationChecker()),
         );
 
         $this->assertSame($pipeline, $pipeline->add(self::tracingStage('first')));
@@ -64,6 +66,7 @@ final class RowProcessingPipelineTest extends TestCase
                 TextColumn::new('name', 'Name'),
             ],
             columnResolver: new ColumnResolver(permissionChecker: new AuthorizationChecker($checker)),
+            actionRowDataResolver: new ActionRowDataResolver(new AuthorizationChecker()),
         );
 
         $this->assertSame(
@@ -92,6 +95,7 @@ final class RowProcessingPipelineTest extends TestCase
                 TextColumn::new('name', 'Name'),
             ],
             columnResolver: new ColumnResolver(permissionChecker: new AuthorizationChecker($checker)),
+            actionRowDataResolver: new ActionRowDataResolver(new AuthorizationChecker()),
         );
 
         for ($id = 1; $id <= 50; ++$id) {
@@ -120,6 +124,7 @@ final class RowProcessingPipelineTest extends TestCase
                 TextColumn::new('name', 'Name'),
             ],
             columnResolver: new ColumnResolver(permissionChecker: new AuthorizationChecker($checker)),
+            actionRowDataResolver: new ActionRowDataResolver(new AuthorizationChecker()),
         );
 
         $this->assertSame(
@@ -143,6 +148,7 @@ final class RowProcessingPipelineTest extends TestCase
                 TextColumn::new('name', 'Name'),
             ],
             columnResolver: new ColumnResolver(permissionChecker: new AuthorizationChecker($checker)),
+            actionRowDataResolver: new ActionRowDataResolver(new AuthorizationChecker()),
         );
 
         $this->assertSame(
@@ -158,6 +164,8 @@ final class RowProcessingPipelineTest extends TestCase
         $pipeline = (new RowProcessingPipeline(
             baseMapper: static fn (mixed $row): array => ['value' => $row],
             columns: [$column],
+            columnResolver: new ColumnResolver(new AuthorizationChecker()),
+            actionRowDataResolver: new ActionRowDataResolver(new AuthorizationChecker()),
         ))->add(new NormalizationStage());
 
         $mappedRow = $pipeline->map($row);
@@ -224,6 +232,8 @@ final class RowProcessingPipelineTest extends TestCase
         $pipeline = new RowProcessingPipeline(
             baseMapper: $baseMapperFactory($columns),
             columns: $columns,
+            columnResolver: new ColumnResolver(new AuthorizationChecker()),
+            actionRowDataResolver: new ActionRowDataResolver(new AuthorizationChecker()),
         );
 
         $mappedRow = $pipeline->map($row);
@@ -276,6 +286,8 @@ final class RowProcessingPipelineTest extends TestCase
                 UrlColumn::new('website')
                     ->linkToUrl(static fn (array $row): string => 'https://example.com/users/'.$row['slug']),
             ],
+            columnResolver: new ColumnResolver(new AuthorizationChecker()),
+            actionRowDataResolver: new ActionRowDataResolver(new AuthorizationChecker()),
         );
 
         $mappedRow = $pipeline->map(['label' => 'Profile', 'slug' => 'jane']);
@@ -299,6 +311,8 @@ final class RowProcessingPipelineTest extends TestCase
             baseMapper: static fn (array $row): array => $row,
             columns: $columns,
             templateColumnRenderer: self::templateColumnRenderer(['badge.html.twig' => '<b>{{ data }}</b>']),
+            columnResolver: new ColumnResolver(new AuthorizationChecker()),
+            actionRowDataResolver: new ActionRowDataResolver(new AuthorizationChecker()),
         );
 
         $this->assertSame($expected, $pipeline->map($mappedRow));
@@ -337,6 +351,8 @@ final class RowProcessingPipelineTest extends TestCase
             templateColumnRenderer: self::templateColumnRenderer([
                 'datatable/columns/order.html.twig' => '{{ row.__ux_datatables_actions.DETAIL.url|default("missing") }}|{{ row.id }}-{{ data }}',
             ]),
+            columnResolver: new ColumnResolver(new AuthorizationChecker()),
+            actionRowDataResolver: new ActionRowDataResolver(new AuthorizationChecker()),
         ))->add(new NormalizationStage());
 
         $mappedRow = $pipeline->map(new TemplateRow(id: 7, title: 'Alien', status: 'active'));

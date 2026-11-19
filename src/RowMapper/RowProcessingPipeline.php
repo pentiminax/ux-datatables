@@ -28,10 +28,10 @@ final class RowProcessingPipeline implements RowMapperInterface
     public function __construct(
         private readonly \Closure $baseMapper,
         private readonly array $columns,
-        private readonly ColumnResolver $columnResolver = new ColumnResolver(),
+        private readonly ColumnResolver $columnResolver,
+        private readonly ActionRowDataResolver $actionRowDataResolver,
         private readonly UrlColumnDataResolver $urlColumnDataResolver = new UrlColumnDataResolver(),
         private readonly TemplateColumnRenderer $templateColumnRenderer = new TemplateColumnRenderer(),
-        private readonly ActionRowDataResolver $actionRowDataResolver = new ActionRowDataResolver(),
         private readonly ?string $dataTableClass = null,
         private ?\Closure $visibleColumnsFactory = null,
     ) {

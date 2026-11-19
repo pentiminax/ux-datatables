@@ -63,7 +63,7 @@ final readonly class SearchListOptionsResolver
             return null;
         }
 
-        $columns = $visibleColumns?->columns ?? ($this->columnResolver ?? new ColumnResolver())->filterStaticPermissions(
+        $columns = $visibleColumns?->columns ?? ($this->columnResolver ?? throw new \LogicException('Resolving search lists requires a column resolver to filter columns by permission.'))->filterStaticPermissions(
             $columns,
             $table->getDataTableClass(),
         );

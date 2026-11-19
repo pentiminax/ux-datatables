@@ -13,6 +13,7 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 
 #[AsDataTable(entityClass: \stdClass::class, mercure: true)]
 class TestDataTableWithManualMercure extends AbstractDataTable
@@ -24,6 +25,7 @@ class TestDataTableWithManualMercure extends AbstractDataTable
     ) {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             renderingPreparer: new RenderingPreparer(
+                new AuthorizationChecker(),
                 $this->apiResourceCollectionUrlResolver,
                 $this->mercureConfigResolver,
                 null,

@@ -25,17 +25,15 @@ final class ActionRowDataResolver
     public const ROW_ACTIONS_KEY    = '__ux_datatables_actions';
     public const DENIED_ACTIONS_KEY = '__ux_datatables_denied_actions';
 
-    private readonly AuthorizationChecker $permissionChecker;
     private readonly PropertyAccessorInterface $propertyAccessor;
 
     public function __construct(
-        ?AuthorizationChecker $permissionChecker = null,
+        private readonly AuthorizationChecker $permissionChecker,
         ?PropertyAccessorInterface $propertyAccessor = null,
         private readonly ?UrlGeneratorInterface $urlGenerator = null,
         private readonly ?CsrfTokenManagerInterface $csrfTokenManager = null,
     ) {
-        $this->permissionChecker = $permissionChecker ?? AuthorizationChecker::fallbackFor(self::class);
-        $this->propertyAccessor  = $propertyAccessor  ?? PropertyAccess::createPropertyAccessor();
+        $this->propertyAccessor = $propertyAccessor ?? PropertyAccess::createPropertyAccessor();
     }
 
     /**

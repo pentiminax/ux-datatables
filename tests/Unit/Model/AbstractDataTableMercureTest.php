@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -63,7 +64,7 @@ final class AbstractDataTableMercureClientSideFixture extends AbstractDataTable
         private readonly ?DataProviderInterface $dataProviderSpy = null,
     ) {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(),
+            renderingPreparer: new RenderingPreparer(new AuthorizationChecker()),
         ));
     }
 
@@ -90,6 +91,7 @@ final class AbstractDataTableMercureServerSideFixture extends AbstractDataTable
     ) {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             renderingPreparer: new RenderingPreparer(
+                new AuthorizationChecker(),
                 mercureHubUrlResolver: $this->mercureHubUrlResolver,
             ),
         ));

@@ -17,7 +17,6 @@ use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
-use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -74,7 +73,7 @@ final class DetailRowServiceTest extends TestCase
         ?Environment $twig,
         ?AuthorizationChecker $permissionChecker = null,
     ): DetailRowService {
-        return new DetailRowService($locator, $this->unscopedRowScopeGuard(), $twig, $permissionChecker ?? new AuthorizationChecker(new TestAuthorizationChecker()));
+        return new DetailRowService($twig);
     }
 
     private function resolved(AbstractDataTable $dataTable): ResolvedDataTable

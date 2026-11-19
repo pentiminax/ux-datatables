@@ -22,6 +22,7 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithAttribute;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithData;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithEditModalAttribute;
@@ -59,8 +60,9 @@ final class AsDataTableTest extends TestCase
         $table = new TestDataTableWithAttribute();
         $em    = $this->createStub(EntityManagerInterface::class);
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(urlResolver: $resolver),
+            renderingPreparer: new RenderingPreparer(new AuthorizationChecker(), urlResolver: $resolver),
             runtimeFactory: new DataTableRuntimeFactory(
+                new AuthorizationChecker(),
                 autoDataProviderFactory: new AutoDataProviderFactory($em)
             )
         ));
@@ -385,7 +387,7 @@ final class AsDataTableTest extends TestCase
 
         $table = new TestDataTableWithFluentApiPlatform();
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            columnResolver: new ColumnResolver(columnAutoDetector: $detector),
+            columnResolver: new ColumnResolver(new AuthorizationChecker(), columnAutoDetector: $detector),
         ));
 
         $this->assertSame($expected, array_values($table->getConfiguredDataTable()->getColumns()));
@@ -405,7 +407,7 @@ final class AsDataTableTest extends TestCase
 
         $table = new TestDataTableWithSerializationGroups();
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            columnResolver: new ColumnResolver(columnAutoDetector: $detector),
+            columnResolver: new ColumnResolver(new AuthorizationChecker(), columnAutoDetector: $detector),
         ));
 
         $this->assertSame($expected, array_values($table->getConfiguredDataTable()->getColumns()));

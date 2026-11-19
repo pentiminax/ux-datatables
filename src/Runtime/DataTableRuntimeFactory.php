@@ -33,11 +33,11 @@ final class DataTableRuntimeFactory
     private ?ColumnResolver $columnResolver = null;
 
     public function __construct(
+        private readonly AuthorizationChecker $permissionChecker,
         private ?AutoDataProviderFactory $autoDataProviderFactory = null,
         private readonly ?TemplateColumnRenderer $templateColumnRenderer = null,
         private readonly ?ActionRowDataResolver $actionRowDataResolver = null,
         private readonly ?UrlColumnDataResolver $urlColumnDataResolver = null,
-        private readonly ?AuthorizationChecker $permissionChecker = null,
         private readonly int $maxPageLength = 1000,
         private readonly ?SearchListOptionsResolver $searchListOptionsResolver = null,
         private readonly ?ManagerRegistry $doctrine = null,
@@ -64,9 +64,9 @@ final class DataTableRuntimeFactory
             $baseMapper,
             $columns,
             $this->columnResolver(),
+            $this->actionRowDataResolver  ?? new ActionRowDataResolver($this->permissionChecker),
             $this->urlColumnDataResolver  ?? new UrlColumnDataResolver(),
             $this->templateColumnRenderer ?? new TemplateColumnRenderer(),
-            $this->actionRowDataResolver  ?? new ActionRowDataResolver(),
             $dataTableClass,
             $visibleColumns,
         ))
@@ -217,9 +217,7 @@ final class DataTableRuntimeFactory
 
     private function columnResolver(): ColumnResolver
     {
-        return $this->columnResolver ??= new ColumnResolver(
-            permissionChecker: $this->permissionChecker ?? AuthorizationChecker::fallbackFor(self::class),
-        );
+        return $this->columnResolver ??= new ColumnResolver($this->permissionChecker);
     }
 
     private function getAutoDataProviderFactory(): AutoDataProviderFactory

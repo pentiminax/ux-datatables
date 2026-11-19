@@ -29,6 +29,7 @@ use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -543,7 +544,7 @@ final class ApiPlatformCollectionProviderTest extends TestCase
             collectionResolver: new ApiResourceCollectionUrlResolver($metadataFactory),
             queryParameterFactory: new ApiPlatformQueryParameterFactory(),
             intentFactory: new DefaultDataTableQueryIntentFactory(),
-            columnResolver: new ColumnResolver(),
+            columnResolver: new ColumnResolver(new AuthorizationChecker()),
             requestStack: new RequestStack(),
             entityClass: self::ENTITY_CLASS,
             columns: [TextColumn::new('title', 'Title')->field('title')],

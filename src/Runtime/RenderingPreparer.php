@@ -92,6 +92,7 @@ final class RenderingPreparer
     ];
 
     public function __construct(
+        private readonly AuthorizationChecker $permissionChecker,
         private readonly ?ApiResourceCollectionUrlResolver $urlResolver = null,
         private readonly ?MercureConfigResolver $mercureResolver = null,
         private readonly ?TranslatorInterface $translator = null,
@@ -104,7 +105,6 @@ final class RenderingPreparer
         private readonly ?ColumnResolver $columnResolver = null,
         private readonly DataSourceFeatureGuard $featureGuard = new DataSourceFeatureGuard(),
         private readonly ?CsrfTokenManagerInterface $csrfTokenManager = null,
-        private readonly ?AuthorizationChecker $permissionChecker = null,
     ) {
     }
 
@@ -429,7 +429,7 @@ final class RenderingPreparer
         }
 
         $allowed = (clone $bulkActions)->filterStaticPermissions(
-            $this->permissionChecker ?? AuthorizationChecker::fallbackFor(self::class),
+            $this->permissionChecker,
             $dataTableClass,
         );
 

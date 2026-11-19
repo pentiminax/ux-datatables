@@ -16,6 +16,7 @@ use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\DataProvider\ApiPlatformCollectionProviderFactory;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 trait BuildsApiPlatformProviderFactory
@@ -52,7 +53,7 @@ trait BuildsApiPlatformProviderFactory
             collectionResolver: new ApiResourceCollectionUrlResolver($metadataFactory),
             queryParameterFactory: new ApiPlatformQueryParameterFactory(),
             intentFactory: new DefaultDataTableQueryIntentFactory(),
-            columnResolver: new ColumnResolver(),
+            columnResolver: new ColumnResolver(new AuthorizationChecker()),
             requestStack: new RequestStack(),
         );
     }

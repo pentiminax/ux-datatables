@@ -130,8 +130,8 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.twig_extension', DataTablesExtension::class)
         ->arg(0, service('stimulus.helper'))
-        ->arg(1, service('datatables.profiler')->nullOnInvalid())
-        ->arg(2, service('datatables.security.authorization_checker'))
+        ->arg(1, service('datatables.security.authorization_checker'))
+        ->arg(2, service('datatables.profiler')->nullOnInvalid())
         ->tag('twig.extension')
         ->private();
 
@@ -174,12 +174,10 @@ return static function (ContainerConfigurator $container): void {
         ->private();
 
     $services->set('datatables.mutation.mutator', EntityMutator::class)
-        ->arg(0, service('datatables.mutation.locator'))
-        ->arg(1, service('property_accessor'))
-        ->arg(2, service(MercurePublisherInterface::class))
-        ->arg(3, service('datatables.security.authorization_checker'))
-        ->arg(4, service('datatables.mercure.topic_resolver'))
-        ->arg(5, service('datatables.mutation.flusher'))
+        ->arg(0, service('property_accessor'))
+        ->arg(1, service(MercurePublisherInterface::class))
+        ->arg(2, service('datatables.mercure.topic_resolver'))
+        ->arg(3, service('datatables.mutation.flusher'))
         ->private();
 
     $services->set('datatables.mutation.bulk_action_runner', BulkActionRunner::class)
@@ -266,10 +264,7 @@ return static function (ContainerConfigurator $container): void {
         ->public();
 
     $services->set('datatables.ajax.detail_row_service', DetailRowService::class)
-        ->arg(0, service('datatables.mutation.locator'))
-        ->arg(1, service('datatables.mutation.row_scope_guard'))
-        ->arg(2, service('twig')->nullOnInvalid())
-        ->arg(3, service('datatables.security.authorization_checker'))
+        ->arg(0, service('twig')->nullOnInvalid())
         ->private();
 
     $services->set('datatables.controller.ajax_detail', AjaxDetailController::class)
@@ -303,9 +298,9 @@ return static function (ContainerConfigurator $container): void {
         ->private();
 
     $services->set('datatables.column.resolver', ColumnResolver::class)
-        ->arg(0, service('datatables.column.attribute_column_reader'))
-        ->arg(1, service(ColumnAutoDetector::class)->nullOnInvalid())
-        ->arg(2, service('datatables.security.authorization_checker'))
+        ->arg(0, service('datatables.security.authorization_checker'))
+        ->arg(1, service('datatables.column.attribute_column_reader'))
+        ->arg(2, service(ColumnAutoDetector::class)->nullOnInvalid())
         ->private();
 
     $services->alias(ColumnResolver::class, 'datatables.column.resolver')
@@ -328,18 +323,18 @@ return static function (ContainerConfigurator $container): void {
         ->private();
 
     $services->set('datatables.rendering.preparer', RenderingPreparer::class)
-        ->arg(0, service(ApiResourceCollectionUrlResolver::class)->nullOnInvalid())
-        ->arg(1, service(MercureConfigResolver::class)->nullOnInvalid())
-        ->arg(2, service(TranslatorInterface::class)->nullOnInvalid())
-        ->arg(3, service(MercureHubUrlResolver::class)->nullOnInvalid())
-        ->arg(4, service('router')->nullOnInvalid())
-        ->arg(5, service('datatables.ajax.registry'))
-        ->arg(6, service('request_stack')->nullOnInvalid())
-        ->arg(7, service('datatables.column_control.search_list_options_resolver'))
-        ->arg(8, service('datatables.filter.entity_options_resolver')->nullOnInvalid())
-        ->arg(9, service('datatables.column.resolver'))
+        ->arg(0, service('datatables.security.authorization_checker'))
+        ->arg(1, service(ApiResourceCollectionUrlResolver::class)->nullOnInvalid())
+        ->arg(2, service(MercureConfigResolver::class)->nullOnInvalid())
+        ->arg(3, service(TranslatorInterface::class)->nullOnInvalid())
+        ->arg(4, service(MercureHubUrlResolver::class)->nullOnInvalid())
+        ->arg(5, service('router')->nullOnInvalid())
+        ->arg(6, service('datatables.ajax.registry'))
+        ->arg(7, service('request_stack')->nullOnInvalid())
+        ->arg(8, service('datatables.column_control.search_list_options_resolver'))
+        ->arg(9, service('datatables.filter.entity_options_resolver')->nullOnInvalid())
+        ->arg(10, service('datatables.column.resolver'))
         ->arg('$csrfTokenManager', service('datatables.security.csrf_token_manager'))
-        ->arg('$permissionChecker', service('datatables.security.authorization_checker'))
         ->private();
 
     $services->alias(RenderingPreparer::class, 'datatables.rendering.preparer')
@@ -356,11 +351,11 @@ return static function (ContainerConfigurator $container): void {
         ->private();
 
     $services->set('datatables.runtime.factory', DataTableRuntimeFactory::class)
-        ->arg(0, service('datatables.data_provider.auto_factory'))
-        ->arg(1, service('datatables.column.template_column_renderer'))
-        ->arg(2, service('datatables.column.action_row_data_resolver'))
-        ->arg(3, service(UrlColumnDataResolver::class)->nullOnInvalid())
-        ->arg(4, service('datatables.security.authorization_checker'))
+        ->arg(0, service('datatables.security.authorization_checker'))
+        ->arg(1, service('datatables.data_provider.auto_factory'))
+        ->arg(2, service('datatables.column.template_column_renderer'))
+        ->arg(3, service('datatables.column.action_row_data_resolver'))
+        ->arg(4, service(UrlColumnDataResolver::class)->nullOnInvalid())
         ->arg(5, param('datatables.max_page_length'))
         ->arg(6, service('datatables.column_control.search_list_options_resolver'))
         ->arg(7, service('doctrine')->nullOnInvalid())

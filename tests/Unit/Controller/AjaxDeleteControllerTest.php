@@ -24,7 +24,6 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
@@ -68,7 +67,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $topicResolver = $this->createStub(MercureTopicResolver::class);
         $topicResolver->method('resolveConfig')->willReturn(new MercureConfig(['/server/deletable-entity-fixtures/{id}']));
 
-        $mutator = new EntityMutator(new EntityLocator($registry), $this->createStub(PropertyAccessorInterface::class), $publisher, new AuthorizationChecker(new TestAuthorizationChecker()), $topicResolver, new MutationFlusher());
+        $mutator = new EntityMutator($this->createStub(PropertyAccessorInterface::class), $publisher, $topicResolver, new MutationFlusher());
 
         $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')
@@ -112,10 +111,8 @@ final class AjaxDeleteControllerTest extends TestCase
         $dataTables->method('get')->with(DeletableEntityFixtureDataTable::class)->willReturn($dataTable);
 
         $mutator = new EntityMutator(
-            new EntityLocator($registry),
             $this->createStub(PropertyAccessorInterface::class),
             $publisher,
-            new AuthorizationChecker(new TestAuthorizationChecker()),
             new MercureTopicResolver($resolver, $dataTables),
             new MutationFlusher(),
         );
@@ -171,10 +168,8 @@ final class AjaxDeleteControllerTest extends TestCase
 
         $controller = new AjaxDeleteController(
             new EntityMutator(
-                new EntityLocator($doctrine),
                 $this->createStub(PropertyAccessorInterface::class),
                 new NullMercurePublisher(),
-                new AuthorizationChecker(),
                 new MercureTopicResolver(),
                 new MutationFlusher(),
             ),
@@ -233,10 +228,8 @@ final class AjaxDeleteControllerTest extends TestCase
 
         return new AjaxDeleteController(
             new EntityMutator(
-                new EntityLocator($registry),
                 $this->createStub(PropertyAccessorInterface::class),
                 new NullMercurePublisher(),
-                $permissionChecker,
                 new MercureTopicResolver(),
                 new MutationFlusher(),
             ),
@@ -253,6 +246,7 @@ final class AjaxDeleteControllerTest extends TestCase
             $locator,
             new AjaxDataTableTokenManager(self::TOKEN_SECRET),
             [DeletableEntityFixtureDataTable::class => 'deletable_table'],
+            new AuthorizationChecker(),
         );
     }
 
@@ -286,6 +280,7 @@ class DeletableEntityFixtureDataTable extends AbstractDataTable
     ) {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             renderingPreparer: new RenderingPreparer(
+                new AuthorizationChecker(),
                 mercureHubUrlResolver: $this->mercureHubUrlResolver,
             )
         ));

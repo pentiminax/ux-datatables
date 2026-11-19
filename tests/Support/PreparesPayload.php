@@ -10,13 +10,14 @@ use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
 use Pentiminax\UX\DataTables\Runtime\PreparedDataTable;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Runtime\ResolvedOptIns;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 
 trait PreparesPayload
 {
     /**
      * @return array<string, mixed>
      */
-    private static function payloadOf(DataTable $table, RenderingPreparer $preparer = new RenderingPreparer()): array
+    private static function payloadOf(DataTable $table, RenderingPreparer $preparer = new RenderingPreparer(new AuthorizationChecker())): array
     {
         return self::prepareWith($preparer, $table, $preparer->resolveOptIns($table, null))->getView();
     }

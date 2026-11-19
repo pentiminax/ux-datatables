@@ -24,15 +24,12 @@ use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
  */
 final class AjaxBulkController
 {
-    private readonly AuthorizationChecker $permissionChecker;
-
     public function __construct(
         private readonly BulkActionRunner $runner,
         private readonly MutationTokenValidator $tokenValidator,
         private readonly AjaxDataTableRegistry $registry,
-        ?AuthorizationChecker $permissionChecker = null,
+        private readonly AuthorizationChecker $permissionChecker,
     ) {
-        $this->permissionChecker = $permissionChecker ?? AuthorizationChecker::fallbackFor(self::class);
     }
 
     public function __invoke(Request $request, #[MapRequestPayload] AjaxBulkQueryDto $payload): Response

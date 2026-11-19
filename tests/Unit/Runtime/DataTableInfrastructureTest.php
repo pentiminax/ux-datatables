@@ -11,6 +11,7 @@ use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -39,9 +40,9 @@ final class DataTableInfrastructureTest extends TestCase
     #[Test]
     public function it_returns_the_collaborators_it_was_given(): void
     {
-        $columnResolver      = new ColumnResolver();
-        $renderingPreparer   = new RenderingPreparer();
-        $runtimeFactory      = new DataTableRuntimeFactory();
+        $columnResolver      = new ColumnResolver(new AuthorizationChecker());
+        $renderingPreparer   = new RenderingPreparer(new AuthorizationChecker());
+        $runtimeFactory      = new DataTableRuntimeFactory(new AuthorizationChecker());
         $intentFactory       = new DefaultDataTableQueryIntentFactory();
         $queryFilterPipeline = new QueryFilterPipeline($intentFactory);
         $profiler            = new DataTableProfiler();

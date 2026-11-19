@@ -13,7 +13,7 @@ use Symfony\Component\Security\Core\Exception\AuthenticationCredentialsNotFoundE
 /**
  * Thin wrapper around Symfony's AuthorizationChecker.
  *
- * If no checker is provided, an empty or null attribute (no permission configured) and the
+ * Without a Symfony checker (no SecurityBundle), an empty or null attribute (no permission configured) and the
  * bundle's own Permission::DT_* attributes are granted; an application permission fails
  * closed with a LogicException rather than silently granting access.
  */
@@ -22,18 +22,6 @@ final class AuthorizationChecker implements AuthorizationCheckerInterface
     public function __construct(
         private readonly ?AuthorizationCheckerInterface $checker = null,
     ) {
-    }
-
-    /**
-     * The checker without Symfony Security that services fall back to when built without one.
-     *
-     * @internal
-     */
-    public static function fallbackFor(string $consumer): self
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Building "%s" without an authorization checker is deprecated: it falls back to a checker without Symfony Security. Pass the "%s" service, a checker is required in 2.0.', $consumer, self::class);
-
-        return new self();
     }
 
     public function isGranted(mixed $attribute, mixed $subject = null, ?AccessDecision $accessDecision = null): bool

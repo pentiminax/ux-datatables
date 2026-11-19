@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\Ajax\AjaxActionResult;
 use Pentiminax\UX\DataTables\Ajax\AuthorizedRow;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Exception\MutationPersistenceException;
@@ -28,7 +29,6 @@ use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
-use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationContext;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
@@ -79,15 +79,13 @@ final class EditFormServiceTest extends TestCase
         $renderer->expects($this->never())->method('renderBody');
 
         $service = new EditFormService(
-            new EntityLocator(null),
             new EditFormBuilder($this->createFormFactory($form, $entity), new ColumnToFormTypeMapper()),
             $renderer,
             $this->createRenderingTemplateResolver(EditFormServiceFixtureDataTable::class),
             new NullMercurePublisher(),
             new MercureTopicResolver(),
             new MutationFlusher(),
-            $this->unscopedRowScopeGuard(),
-            new AuthorizationChecker(new TestAuthorizationChecker()),
+            new ColumnResolver(new AuthorizationChecker(new TestAuthorizationChecker())),
         );
 
         $result = $service->renderForm($this->row($entity, $entityManager));
@@ -117,15 +115,13 @@ final class EditFormServiceTest extends TestCase
         $renderer->expects($this->never())->method('render');
 
         $service = new EditFormService(
-            new EntityLocator(null),
             new EditFormBuilder($this->createFormFactory($form, $entity), new ColumnToFormTypeMapper()),
             $renderer,
             $this->createRenderingTemplateResolver(EditFormServiceFixtureDataTable::class),
             new NullMercurePublisher(),
             new MercureTopicResolver(),
             new MutationFlusher(),
-            $this->unscopedRowScopeGuard(),
-            new AuthorizationChecker(new TestAuthorizationChecker()),
+            new ColumnResolver(new AuthorizationChecker(new TestAuthorizationChecker())),
         );
 
         $result = $service->submitForm($this->row($entity, $entityManager), ['name' => 'Alice']);
@@ -249,15 +245,13 @@ final class EditFormServiceTest extends TestCase
         $templateResolver->expects($this->never())->method('resolveBodyTemplate');
 
         $service = new EditFormService(
-            new EntityLocator(null),
             new EditFormBuilder($this->createFormFactory($form, $entity), new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
             $publisher,
             $this->topicResolverReturning(self::TOPICS),
             new MutationFlusher(),
-            $this->unscopedRowScopeGuard(),
-            new AuthorizationChecker(new TestAuthorizationChecker()),
+            new ColumnResolver(new AuthorizationChecker(new TestAuthorizationChecker())),
         );
 
         return $service->submitForm($this->row($entity, $entityManager), ['name' => 'Alice']);

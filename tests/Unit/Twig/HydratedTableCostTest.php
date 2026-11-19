@@ -14,6 +14,7 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -126,7 +127,7 @@ final class HydratedTableCostTest extends TestCase
             hydrationRowThreshold: $threshold,
         ));
 
-        return (new DataTablesExtension(new StimulusHelper(null), profiler: $profiler))->renderDataTable($table);
+        return (new DataTablesExtension(new StimulusHelper(null), new AuthorizationChecker(), profiler: $profiler))->renderDataTable($table);
     }
 }
 

@@ -59,7 +59,7 @@ final class DataTableRuntimeFactoryTest extends TestCase
     #[Test]
     public function create_row_mapper_returns_a_pipeline_applying_the_base_mapper(): void
     {
-        $factory    = new DataTableRuntimeFactory();
+        $factory    = new DataTableRuntimeFactory(new AuthorizationChecker());
         $baseMapper = static fn (mixed $row): array => ['value' => $row * 2];
 
         $mapper = $factory->createRowMapper($baseMapper, []);
@@ -71,7 +71,7 @@ final class DataTableRuntimeFactoryTest extends TestCase
     #[Test]
     public function create_row_mapper_adds_boolean_switch_metadata(): void
     {
-        $factory    = new DataTableRuntimeFactory();
+        $factory    = new DataTableRuntimeFactory(new AuthorizationChecker());
         $baseMapper = static fn (mixed $row): array => ['active' => true];
 
         $mapper = $factory->createRowMapper($baseMapper, [
@@ -87,7 +87,7 @@ final class DataTableRuntimeFactoryTest extends TestCase
     #[Test]
     public function create_row_mapper_formats_values_after_normalization(): void
     {
-        $factory    = new DataTableRuntimeFactory();
+        $factory    = new DataTableRuntimeFactory(new AuthorizationChecker());
         $baseMapper = static fn (mixed $row): array => ['status' => TestStatus::Active];
 
         $mapper = $factory->createRowMapper($baseMapper, [
@@ -109,7 +109,7 @@ final class DataTableRuntimeFactoryTest extends TestCase
         $registry = $this->createStub(ManagerRegistry::class);
         $registry->method('getManagerForClass')->willReturn($em);
 
-        $mapper = (new DataTableRuntimeFactory(doctrine: $registry))->createRowMapper(
+        $mapper = (new DataTableRuntimeFactory(new AuthorizationChecker(), doctrine: $registry))->createRowMapper(
             baseMapper: static fn (): array => [],
             columns: [],
             rowIdField: 'id',
@@ -134,7 +134,7 @@ final class DataTableRuntimeFactoryTest extends TestCase
         $registry = $this->createStub(ManagerRegistry::class);
         $registry->method('getManagerForClass')->willReturn($em);
 
-        $this->assertSame('sku', (new DataTableRuntimeFactory(doctrine: $registry))->resolveRowIdField(
+        $this->assertSame('sku', (new DataTableRuntimeFactory(new AuthorizationChecker(), doctrine: $registry))->resolveRowIdField(
             null,
             'id',
             DataTableRuntimeFactoryUuidFixture::class,
@@ -303,9 +303,10 @@ final class DataTableRuntimeFactoryTest extends TestCase
         $csrfTokenManager->expects($this->never())->method('getToken');
 
         $runtime = (new DataTableRuntimeFactory(
+            permissionChecker: new AuthorizationChecker(),
             autoDataProviderFactory: new AutoDataProviderFactory($em),
             templateColumnRenderer: new TemplateColumnRenderer($twig),
-            actionRowDataResolver: new ActionRowDataResolver(csrfTokenManager: $csrfTokenManager),
+            actionRowDataResolver: new ActionRowDataResolver(new AuthorizationChecker(), csrfTokenManager: $csrfTokenManager),
         ))->createRuntime(
             table: new DataTable('customers'),
             columns: [
@@ -369,7 +370,7 @@ final class DataTableRuntimeFactoryTest extends TestCase
     #[Test]
     public function create_row_mapper_adds_the_presentation_stage_only_when_a_callable_is_set(): void
     {
-        $factory    = new DataTableRuntimeFactory();
+        $factory    = new DataTableRuntimeFactory(new AuthorizationChecker());
         $baseMapper = static fn (mixed $row): array => ['id' => $row['id']];
 
         $plain = $factory->createRowMapper($baseMapper, []);
@@ -395,7 +396,7 @@ final class DataTableRuntimeFactoryTest extends TestCase
             ->rowClass(static fn (): string => 'late')
             ->recordUrl(static fn (): string => '/books/1');
 
-        $provider = (new DataTableRuntimeFactory(autoDataProviderFactory: new AutoDataProviderFactory(
+        $provider = (new DataTableRuntimeFactory(new AuthorizationChecker(), autoDataProviderFactory: new AutoDataProviderFactory(
             $this->createStub(EntityManagerInterface::class),
             $this->buildApiPlatformProviderFactory(),
         )))->createRuntime(
@@ -421,7 +422,7 @@ final class DataTableRuntimeFactoryTest extends TestCase
         ?AsDataTable $asDataTable = null,
         ?AutoDataProviderFactory $autoDataProviderFactory = null,
     ): DataTableRuntime {
-        return (new DataTableRuntimeFactory(autoDataProviderFactory: $autoDataProviderFactory))->createRuntime(
+        return (new DataTableRuntimeFactory(new AuthorizationChecker(), autoDataProviderFactory: $autoDataProviderFactory))->createRuntime(
             table: new DataTable('movies'),
             columns: [],
             asDataTable: $asDataTable,

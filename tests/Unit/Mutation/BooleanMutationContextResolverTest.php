@@ -149,6 +149,7 @@ final class BooleanMutationContextResolverTest extends TestCase
                 $locator,
                 new AjaxDataTableTokenManager(self::TOKEN_SECRET),
                 [$dataTableClass => 'table'],
+                new AuthorizationChecker(),
             ),
             $permissionChecker ?? new AuthorizationChecker(),
         );
@@ -163,6 +164,7 @@ final class BooleanMutationContextResolverTest extends TestCase
             $this->createStub(ContainerInterface::class),
             new AjaxDataTableTokenManager(self::TOKEN_SECRET),
             [$dataTableClass => 'table'],
+            new AuthorizationChecker(),
         ))->getActionToken($dataTableClass);
 
         $this->assertNotNull($token);

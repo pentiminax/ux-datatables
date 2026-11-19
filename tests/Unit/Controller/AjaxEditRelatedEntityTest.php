@@ -170,8 +170,8 @@ final class AjaxEditRelatedEntityTest extends TestCase
         $permissions = new AuthorizationChecker(new TestAuthorizationChecker());
 
         return new AjaxEditController(
-            new EntityMutator($locator, PropertyAccess::createPropertyAccessor(), new NullMercurePublisher(), $permissions, new MercureTopicResolver(), new MutationFlusher()),
-            new RowActionGate($this->tokenValidator(), $registry, new BooleanMutationContextResolver($registry), new RowScopeGuard($locator, self::requestStack()), $locator, $permissions),
+            new EntityMutator(PropertyAccess::createPropertyAccessor(), new NullMercurePublisher(), new MercureTopicResolver(), new MutationFlusher()),
+            new RowActionGate($this->tokenValidator(), $registry, new BooleanMutationContextResolver($registry, new AuthorizationChecker()), new RowScopeGuard($locator, self::requestStack()), $locator, $permissions),
         );
     }
 
@@ -191,7 +191,7 @@ final class AjaxEditRelatedEntityTest extends TestCase
         $containerLocator = $this->createStub(ContainerInterface::class);
         $containerLocator->method('get')->willReturn($table);
 
-        return new AjaxDataTableRegistry($containerLocator, new AjaxDataTableTokenManager('test-secret'), [$dataTableClass => 'orders']);
+        return new AjaxDataTableRegistry($containerLocator, new AjaxDataTableTokenManager('test-secret'), [$dataTableClass => 'orders'], new AuthorizationChecker());
     }
 
     private function provider(): DoctrineDataProvider

@@ -14,6 +14,7 @@ use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -222,7 +223,8 @@ final class MapRowTestTable extends AbstractDataTable
     ) {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             runtimeFactory: new DataTableRuntimeFactory(
-                actionRowDataResolver: new ActionRowDataResolver(),
+                permissionChecker: new AuthorizationChecker(),
+                actionRowDataResolver: new ActionRowDataResolver(new AuthorizationChecker()),
                 urlColumnDataResolver: new UrlColumnDataResolver($urlGenerator),
             )
         ));
