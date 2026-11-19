@@ -51,6 +51,8 @@ final class BulkActionRunner
             throw InvalidBulkSelectionException::selectAllForbidden();
         }
 
+        RowScopeGuard::scopeChecker($table);
+
         $entityClass = $table->requireEntityClass();
         $manager     = $this->locator->manager($entityClass);
         $identifier  = $this->identifierField(

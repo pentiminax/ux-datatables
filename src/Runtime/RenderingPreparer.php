@@ -123,11 +123,21 @@ final class RenderingPreparer
     }
 
     /**
+     * @param \Closure():?DataProviderInterface $provider read only when the table has actions served by the bundle
+     *
      * @throws \LogicException when the table's actions run on a data provider that cannot check the row scope
      */
-    public function assertMutationsScoped(DataTable $table, DataProviderInterface $provider): void
+    public function assertMutationsScoped(DataTable $table, \Closure $provider): void
     {
-        $this->featureGuard->assertMutationsScoped($table, $provider);
+        if (!DataSourceFeatureGuard::hasRowActions($table) && !$table->hasBulkActions()) {
+            return;
+        }
+
+        $dataProvider = $provider();
+
+        if (null !== $dataProvider) {
+            $this->featureGuard->assertMutationsScoped($table, $dataProvider);
+        }
     }
 
     /**
@@ -503,7 +513,13 @@ final class RenderingPreparer
 
     private function hasRowActions(DataTable $table): bool
     {
-        return DataSourceFeatureGuard::hasRowActions($table);
+        foreach ($table->getColumns() as $column) {
+            if ($column instanceof ActionsProvidingColumnInterface || ($column instanceof BooleanColumn && $column->isRenderedAsSwitch())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

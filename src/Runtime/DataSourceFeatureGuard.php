@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ApiPlatformCollectionProvider;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
@@ -119,11 +120,25 @@ final class DataSourceFeatureGuard
         }
     }
 
+    /**
+     * Whether a column renders an action served by the bundle's Ajax endpoints: delete, edit, a
+     * collapsible detail or a boolean switch. Link-only actions mutate nothing.
+     */
     public static function hasRowActions(DataTable $table): bool
     {
         foreach ($table->getColumns() as $column) {
-            if ($column instanceof ActionsProvidingColumnInterface || ($column instanceof BooleanColumn && $column->isRenderedAsSwitch())) {
+            if ($column instanceof BooleanColumn && $column->isRenderedAsSwitch()) {
                 return true;
+            }
+
+            if (!$column instanceof ActionsProvidingColumnInterface) {
+                continue;
+            }
+
+            foreach ($column->getActions()?->getActions() ?? [] as $action) {
+                if (ActionType::Delete === $action->getType() || ActionType::Edit === $action->getType() || ($action->isCollapsible() && ActionType::Detail === $action->getType())) {
+                    return true;
+                }
             }
         }
 
@@ -135,15 +150,15 @@ final class DataSourceFeatureGuard
         return new BadRequestHttpException(\sprintf('%s are not supported by %s. Use a DoctrineDataProvider or a custom DataProviderInterface for this table.', $feature->label(), self::providerName($provider)));
     }
 
-    /**
-     * The browser aggregates the cell values it holds, which formatValueUsing() has already turned
-     * into text: "1,234.50" is not a number.
-     */
     private static function hasMutations(DataTable $table): bool
     {
         return self::hasRowActions($table) || $table->hasBulkActions();
     }
 
+    /**
+     * The browser aggregates the cell values it holds, which formatValueUsing() has already turned
+     * into text: "1,234.50" is not a number.
+     */
     private function assertBrowserCanSummarize(DataTable $table): void
     {
         foreach (ColumnResolver::filterSummarized($table->getColumns()) as $column) {
