@@ -12,8 +12,6 @@ use Pentiminax\UX\DataTables\Column\AbstractColumn;
  * Options are open on purpose: they are resolved against the column class that ends up carrying
  * them, so a column type the bundle does not ship is configurable the same way the built-in ones
  * are.
- *
- * The class is not final so {@see Column} can extend it for the whole 1.x line.
  */
 #[\Attribute(\Attribute::TARGET_PROPERTY | \Attribute::TARGET_METHOD | \Attribute::TARGET_CLASS | \Attribute::IS_REPEATABLE)]
 class DataTableColumn

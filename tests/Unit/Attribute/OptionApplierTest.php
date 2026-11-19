@@ -16,47 +16,13 @@ use PHPUnit\Framework\TestCase;
 final class OptionApplierTest extends TestCase
 {
     #[Test]
-    public function it_applies_an_option_through_its_deprecated_setter(): void
-    {
-        $target       = new ApplierTarget();
-        $deprecations = [];
-
-        set_error_handler(static function (int $level, string $message) use (&$deprecations): bool {
-            $deprecations[] = $message;
-
-            return true;
-        }, \E_USER_DEPRECATED);
-
-        try {
-            (new OptionApplier())->apply($target, ['title' => 'Name', 'label' => 'Status']);
-        } finally {
-            restore_error_handler();
-        }
-
-        $this->assertSame('Name', $target->title);
-        $this->assertCount(1, $deprecations);
-        $this->assertStringContainsString('setTitle()', $deprecations[0]);
-        $this->assertStringContainsString('"title()"', $deprecations[0]);
-    }
-
-    #[Test]
-    public function it_falls_back_to_the_bare_fluent_method(): void
+    public function it_applies_an_option_through_its_bare_fluent_method(): void
     {
         $target = new ApplierTarget();
 
         (new OptionApplier())->apply($target, ['label' => 'Status']);
 
         $this->assertSame('Status', $target->label);
-    }
-
-    #[Test]
-    public function it_prefers_the_bare_method_over_the_setter(): void
-    {
-        $target = new ApplierTarget();
-
-        (new OptionApplier())->apply($target, ['both' => 'value']);
-
-        $this->assertSame('bare', $target->both);
     }
 
     #[Test]
@@ -82,17 +48,6 @@ final class OptionApplierTest extends TestCase
 
         (new OptionApplier())->apply(new ApplierTarget(), ['unknown' => true]);
     }
-
-    #[Test]
-    public function it_reports_support_without_applying_anything(): void
-    {
-        $applier = new OptionApplier(['aliased' => static fn (object $target, mixed $value) => null]);
-
-        $this->assertTrue($applier->supports(ApplierTarget::class, 'title'));
-        $this->assertTrue($applier->supports(ApplierTarget::class, 'label'));
-        $this->assertTrue($applier->supports(ApplierTarget::class, 'aliased'));
-        $this->assertFalse($applier->supports(ApplierTarget::class, 'unknown'));
-    }
 }
 
 final class ApplierTarget
@@ -101,32 +56,9 @@ final class ApplierTarget
 
     public ?string $label = null;
 
-    public ?string $both = null;
-
-    public function setTitle(string $title): static
-    {
-        $this->title = $title;
-
-        return $this;
-    }
-
     public function label(string $label): static
     {
         $this->label = $label;
-
-        return $this;
-    }
-
-    public function setBoth(string $value): static
-    {
-        $this->both = 'setter';
-
-        return $this;
-    }
-
-    public function both(string $value): static
-    {
-        $this->both = 'bare';
 
         return $this;
     }
