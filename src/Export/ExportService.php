@@ -7,7 +7,6 @@ namespace Pentiminax\UX\DataTables\Export;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\ColumnTranslator;
-use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\RequestInputBag;
 use Pentiminax\UX\DataTables\Enum\ExportFormat;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
@@ -151,13 +150,7 @@ final class ExportService
 
         $request = $request->withoutPagination();
 
-        if ($provider instanceof StreamingDataProviderInterface) {
-            return $provider->iterateRows($request);
-        }
-
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Exporting through data provider "%s", which has no row iteration, loads every row in memory: 2.0 requires iterateRows(). Implement StreamingDataProviderInterface.', $provider::class);
-
-        return $provider->fetchData($request)->data;
+        return $provider->iterateRows($request);
     }
 
     private function exportKeyFromRequest(Request $request): ?string

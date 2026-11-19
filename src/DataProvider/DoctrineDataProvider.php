@@ -20,12 +20,8 @@ use Pentiminax\UX\DataTables\Column\Rendering\ColumnKeyResolver;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
-use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
-use Pentiminax\UX\DataTables\Contracts\IdentifierCollectingDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\IdentifierDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
-use Pentiminax\UX\DataTables\Contracts\ScopedIdentifierProviderInterface;
-use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
@@ -34,7 +30,7 @@ use Pentiminax\UX\DataTables\Query\DoctrineSortDirection;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
 
-class DoctrineDataProvider implements DataProviderInterface, FeatureAwareDataProviderInterface, IdentifierCollectingDataProviderInterface, IdentifierDataProviderInterface, ScopedIdentifierProviderInterface, StreamingDataProviderInterface
+class DoctrineDataProvider implements DataProviderInterface, IdentifierDataProviderInterface
 {
     private const IN_SCOPE_CHUNK_SIZE = 500;
 

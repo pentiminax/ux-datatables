@@ -12,7 +12,6 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
-use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
@@ -210,31 +209,6 @@ final class ExportServiceTest extends TestCase
         $this->assertStringContainsString('configurable-data-table.xlsx', (string) $response->headers->get('Content-Disposition'));
         $this->assertCount(2, $xlsx->rows);
         $this->assertSame([], $csv->rows);
-    }
-
-    #[Test]
-    public function it_falls_back_to_fetch_data_when_the_provider_is_not_streaming(): void
-    {
-        $csv   = new RecordingExporter();
-        $table = new ConfigurableDataTable(
-            [TextColumn::new('email')],
-            configureTable: static fn (DataTable $table): DataTable => $table->buttons([
-                Button::csv(serverSide: true),
-            ]),
-            dataProvider: new class implements DataProviderInterface {
-                public function fetchData(DataTableRequest $request): DataTableResult
-                {
-                    return new DataTableResult(1, 1, [
-                        ['email' => 0 === $request->length ? 'all' : 'page'],
-                    ]);
-                }
-            },
-        );
-
-        $deprecations = $this->deprecationsOf(fn () => $this->send((new ExportService(new ExporterRegistry([$csv])))->export($table, $this->exportRequest())));
-
-        $this->assertSame([['email' => 'all']], $csv->rows);
-        $this->assertCount(1, array_filter($deprecations, static fn (string $message): bool => str_contains($message, 'has no row iteration')));
     }
 
     #[Test]
@@ -511,7 +485,12 @@ final class QueryScopedExportTable extends AbstractDataTable
 
     protected function createDataProvider(): DataProviderInterface
     {
-        return new class($this) implements DataProviderInterface, StreamingDataProviderInterface {
+        return new class($this) implements DataProviderInterface {
+            public function supports(\Pentiminax\UX\DataTables\Enum\DataSourceFeature $feature): bool
+            {
+                return true;
+            }
+
             public function __construct(private QueryScopedExportTable $table)
             {
             }

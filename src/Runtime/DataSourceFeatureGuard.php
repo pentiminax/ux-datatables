@@ -7,7 +7,6 @@ namespace Pentiminax\UX\DataTables\Runtime;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
-use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ApiPlatformCollectionProvider;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
@@ -82,12 +81,6 @@ final class DataSourceFeatureGuard
     {
         if ($provider instanceof DoctrineDataProvider && null !== $request->searchBuilder) {
             SearchBuilderFilter::assertSearchable($request->searchBuilder, array_values($columns));
-        }
-
-        if (!$provider instanceof FeatureAwareDataProviderInterface) {
-            trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Data provider "%s" is not feature aware, so the bundle assumes it supports every query feature: 2.0 requires supports(). Implement FeatureAwareDataProviderInterface.', $provider::class);
-
-            return;
         }
 
         foreach (self::QUERY_FEATURES as $feature) {

@@ -8,7 +8,6 @@ use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
-use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
@@ -279,29 +278,14 @@ final class DataSourceFeatureGuardTest extends TestCase
     }
 
     #[Test]
-    public function it_assumes_a_provider_that_declares_nothing_supports_every_feature(): void
-    {
-        $provider = new class implements DataProviderInterface {
-            public function fetchData(DataTableRequest $request): DataTableResult
-            {
-                return new DataTableResult(recordsTotal: 0, recordsFiltered: 0, data: []);
-            }
-        };
-
-        $runtime = $this->runtime($provider);
-        $runtime->handleRequest(new Request(query: ['draw' => 1, 'filters' => ['status' => 'active']]));
-
-        $deprecations = $this->deprecationsOf(fn () => $this->assertSame($provider, $runtime->getDataProvider()));
-
-        $this->assertCount(1, $deprecations);
-        $this->assertStringContainsString('is not feature aware', $deprecations[0]);
-        $this->assertStringContainsString('2.0 requires supports()', $deprecations[0]);
-    }
-
-    #[Test]
     public function it_does_not_ask_an_exhaustive_supports_about_the_row_scope_features(): void
     {
-        $provider = new class implements DataProviderInterface, FeatureAwareDataProviderInterface {
+        $provider = new class implements DataProviderInterface {
+            public function iterateRows(DataTableRequest $request): iterable
+            {
+                return $this->fetchData($request)->data;
+            }
+
             public function supports(DataSourceFeature $feature): bool
             {
                 return match ($feature) {
@@ -324,7 +308,12 @@ final class DataSourceFeatureGuardTest extends TestCase
     #[Test]
     public function it_treats_a_feature_the_supports_match_does_not_know_as_unsupported(): void
     {
-        $provider = new class implements DataProviderInterface, FeatureAwareDataProviderInterface {
+        $provider = new class implements DataProviderInterface {
+            public function iterateRows(DataTableRequest $request): iterable
+            {
+                return $this->fetchData($request)->data;
+            }
+
             public function supports(DataSourceFeature $feature): bool
             {
                 return match ($feature) {
@@ -359,7 +348,12 @@ final class DataSourceFeatureGuardTest extends TestCase
     #[Test]
     public function it_refuses_summaries_the_provider_cannot_compute(): void
     {
-        $provider = new class implements DataProviderInterface, FeatureAwareDataProviderInterface {
+        $provider = new class implements DataProviderInterface {
+            public function iterateRows(DataTableRequest $request): iterable
+            {
+                return $this->fetchData($request)->data;
+            }
+
             public function supports(DataSourceFeature $feature): bool
             {
                 return DataSourceFeature::Summaries !== $feature;

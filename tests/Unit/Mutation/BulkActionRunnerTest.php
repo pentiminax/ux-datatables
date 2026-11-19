@@ -11,8 +11,6 @@ use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
-use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
-use Pentiminax\UX\DataTables\Contracts\IdentifierCollectingDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\IdentifierDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
@@ -342,6 +340,16 @@ final class BulkActionRunnerTest extends TestCase
     public function it_keeps_the_explicit_selection_when_the_provider_cannot_check_the_scope(): void
     {
         $provider = new class implements DataProviderInterface {
+            public function supports(DataSourceFeature $feature): bool
+            {
+                return true;
+            }
+
+            public function iterateRows(DataTableRequest $request): iterable
+            {
+                return $this->fetchData($request)->data;
+            }
+
             public function fetchData(DataTableRequest $request): DataTableResult
             {
                 return new DataTableResult(0, 0, []);
@@ -576,7 +584,22 @@ final class BulkActionRunnerTest extends TestCase
     #[Test]
     public function it_forwards_the_displayed_request_to_the_provider_without_its_pagination(): void
     {
-        $provider = new class implements DataProviderInterface, IdentifierCollectingDataProviderInterface {
+        $provider = new class implements DataProviderInterface, IdentifierDataProviderInterface {
+            public function filterIdentifiersInScope(DataTableRequest $request, array $ids, string $field): array
+            {
+                return $ids;
+            }
+
+            public function supports(DataSourceFeature $feature): bool
+            {
+                return true;
+            }
+
+            public function iterateRows(DataTableRequest $request): iterable
+            {
+                return $this->fetchData($request)->data;
+            }
+
             public ?DataTableRequest $seen = null;
 
             public function fetchData(DataTableRequest $request): DataTableResult
@@ -617,7 +640,22 @@ final class BulkActionRunnerTest extends TestCase
     #[Test]
     public function it_collects_the_identifiers_of_the_field_the_selection_speaks_in(): void
     {
-        $provider = new class implements DataProviderInterface, IdentifierCollectingDataProviderInterface {
+        $provider = new class implements DataProviderInterface, IdentifierDataProviderInterface {
+            public function filterIdentifiersInScope(DataTableRequest $request, array $ids, string $field): array
+            {
+                return $ids;
+            }
+
+            public function supports(DataSourceFeature $feature): bool
+            {
+                return true;
+            }
+
+            public function iterateRows(DataTableRequest $request): iterable
+            {
+                return $this->fetchData($request)->data;
+            }
+
             public ?string $seenField = null;
 
             public function fetchData(DataTableRequest $request): DataTableResult
@@ -711,7 +749,22 @@ final class BulkActionRunnerTest extends TestCase
         $em->flush();
         $em->clear();
 
-        $provider = new class implements DataProviderInterface, IdentifierCollectingDataProviderInterface {
+        $provider = new class implements DataProviderInterface, IdentifierDataProviderInterface {
+            public function filterIdentifiersInScope(DataTableRequest $request, array $ids, string $field): array
+            {
+                return $ids;
+            }
+
+            public function supports(DataSourceFeature $feature): bool
+            {
+                return true;
+            }
+
+            public function iterateRows(DataTableRequest $request): iterable
+            {
+                return $this->fetchData($request)->data;
+            }
+
             public ?string $seenField = null;
 
             public function fetchData(DataTableRequest $request): DataTableResult
@@ -1077,8 +1130,13 @@ final class BulkActionRunnerTest extends TestCase
  *
  * @internal
  */
-final class ScopingProvider implements DataProviderInterface, FeatureAwareDataProviderInterface, IdentifierDataProviderInterface
+final class ScopingProvider implements DataProviderInterface, IdentifierDataProviderInterface
 {
+    public function iterateRows(DataTableRequest $request): iterable
+    {
+        return $this->fetchData($request)->data;
+    }
+
     /**
      * @param list<DataSourceFeature> $declared
      */
@@ -1112,6 +1170,16 @@ final class ScopingProvider implements DataProviderInterface, FeatureAwareDataPr
  */
 final class IdentifierlessProvider implements DataProviderInterface
 {
+    public function supports(DataSourceFeature $feature): bool
+    {
+        return true;
+    }
+
+    public function iterateRows(DataTableRequest $request): iterable
+    {
+        return $this->fetchData($request)->data;
+    }
+
     public function fetchData(DataTableRequest $request): DataTableResult
     {
         return new DataTableResult(0, 0, []);

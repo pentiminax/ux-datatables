@@ -199,6 +199,16 @@ final class ResponseTestTable extends AbstractDataTable
 
 final class FixedResultDataProvider implements DataProviderInterface
 {
+    public function supports(\Pentiminax\UX\DataTables\Enum\DataSourceFeature $feature): bool
+    {
+        return true;
+    }
+
+    public function iterateRows(DataTableRequest $request): iterable
+    {
+        return $this->fetchData($request)->data;
+    }
+
     public function fetchData(DataTableRequest $request): DataTableResult
     {
         return new DataTableResult(
