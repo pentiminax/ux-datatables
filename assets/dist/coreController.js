@@ -18,7 +18,6 @@ import { applyCustomButtonActions } from './functions/applyCustomButtonActions.j
 import { normalizeDisabledColumnControls } from './functions/columnControl.js';
 import { ensureSummaryFooter, hasSummaries, installColumnSummaries, } from './functions/columnSummaries.js';
 import { deleteEntity } from './functions/deleteEntity.js';
-import { detectStyleFramework } from './functions/detectStyleFramework.js';
 import { detectTheme } from './functions/detectTheme.js';
 import { fetchDetailRow } from './functions/fetchDetailRow.js';
 import { fetchEditForm } from './functions/fetchEditForm.js';
@@ -109,9 +108,7 @@ class default_1 extends Controller {
         this.dispatchEvent('pre-connect', {
             config: payload,
         });
-        const framework = isStyleFramework(payload.styleFramework)
-            ? payload.styleFramework
-            : detectStyleFramework();
+        const framework = isStyleFramework(payload.styleFramework) ? payload.styleFramework : 'dt';
         this.framework = framework;
         const DataTable = await loadDataTableLibrary(framework);
         if (this.adoptLiveTable(DataTable)) {

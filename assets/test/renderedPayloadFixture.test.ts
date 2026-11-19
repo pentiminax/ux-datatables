@@ -1,6 +1,6 @@
 import { Application } from '@hotwired/stimulus'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import DatatableController from '../src/controller.js'
+import DatatableController from '../src/coreController.js'
 import frFR from '../src/i18n/fr-FR.js'
 import type { ActionType } from '../src/columnRenderers/types.js'
 import { loadDataTableLibrary } from '../src/functions/loadDataTableLibrary.js'
@@ -77,7 +77,6 @@ describe('rendered payload fixture', () => {
         payloads = []
         registeredFeatures = []
         warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-        packageLoaders.setFallback(null)
         packageLoaders.register('buttons', async () => ({}))
         for (const name of ['select', 'responsive'] as const) {
             packageLoaders.register(name, async () => ({}))

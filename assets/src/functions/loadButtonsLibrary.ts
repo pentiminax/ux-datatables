@@ -78,7 +78,9 @@ async function loadExportPackage(name: 'jszip' | 'pdfmake', required: boolean): 
 
 /** JSZip and pdfmake stay optional: without them only the Excel and PDF buttons are unavailable. */
 export async function loadButtonsLibrary(
-    DataTable: typeof import('datatables.net').default,
+    DataTable: {
+        Buttons: { jszip: (jszip: unknown) => void; pdfMake: (pdfMake: unknown) => void }
+    },
     framework: StyleFramework,
     layout: unknown
 ): Promise<void> {

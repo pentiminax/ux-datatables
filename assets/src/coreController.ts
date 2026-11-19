@@ -26,7 +26,6 @@ import {
     installColumnSummaries,
 } from './functions/columnSummaries.js'
 import { deleteEntity } from './functions/deleteEntity.js'
-import { detectStyleFramework } from './functions/detectStyleFramework.js'
 import { detectTheme } from './functions/detectTheme.js'
 import { fetchDetailRow } from './functions/fetchDetailRow.js'
 import { fetchEditForm } from './functions/fetchEditForm.js'
@@ -177,9 +176,7 @@ export default class extends Controller {
             config: payload,
         })
 
-        const framework = isStyleFramework(payload.styleFramework)
-            ? payload.styleFramework
-            : detectStyleFramework()
+        const framework = isStyleFramework(payload.styleFramework) ? payload.styleFramework : 'dt'
         this.framework = framework
 
         const DataTable = await loadDataTableLibrary(framework)

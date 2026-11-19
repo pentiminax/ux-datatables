@@ -56,7 +56,7 @@ describe('loadButtonsLibrary', () => {
             mockSpecifier(frameworkSpecifier, loaded)
             mockSpecifier(cssSpecifier, loaded)
 
-            await import('../builtinPackageLoaders.js')
+            await import('../../../test/support/frameworkLoaders.js')
             const { loadButtonsLibrary } = await import('../loadButtonsLibrary.js')
 
             await loadButtonsLibrary(
@@ -82,7 +82,7 @@ describe('loadButtonsLibrary', () => {
             mockSpecifier(specifier, loaded)
         }
 
-        await import('../builtinPackageLoaders.js')
+        await import('../../../test/support/frameworkLoaders.js')
         const { loadButtonsLibrary } = await import('../loadButtonsLibrary.js')
 
         await loadButtonsLibrary(DataTable as never, 'dt', { topStart: { buttons: ['excel'] } })

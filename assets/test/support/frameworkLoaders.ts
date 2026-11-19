@@ -1,5 +1,6 @@
-import type { StyleFramework } from '../types/styleFramework.js'
-import { type PackageName, packageLoaders } from './packageLoaders.js'
+// Registers a loader per package and framework so tests exercise the registered-loading path.
+import { type PackageName, packageLoaders } from '../../src/functions/packageLoaders.js'
+import type { StyleFramework } from '../../src/types/styleFramework.js'
 
 type Loader = () => Promise<unknown>
 
@@ -135,7 +136,12 @@ const sharedLoaders: Partial<Record<PackageName, Loader>> = {
     },
 }
 
-// 1.x fallback used by dist/controller.js; the core entry never installs it.
-packageLoaders.setFallback(
-    (name, framework) => sharedLoaders[name] ?? frameworkLoaders[name]?.[framework ?? 'dt']
-)
+for (const [name, loader] of Object.entries(sharedLoaders)) {
+    packageLoaders.register(name as PackageName, loader as Loader)
+}
+
+for (const [name, loaders] of Object.entries(frameworkLoaders)) {
+    for (const [framework, loader] of Object.entries(loaders)) {
+        packageLoaders.register(name as PackageName, loader, framework as StyleFramework)
+    }
+}

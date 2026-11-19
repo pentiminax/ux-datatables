@@ -22,13 +22,12 @@ const PACKAGE_NAMES = [
 export class PackageLoaderRegistry {
     constructor() {
         this.loaders = new Map();
-        this.fallback = null;
     }
-    register(name, loader) {
+    register(name, loader, framework) {
         if (!PACKAGE_NAMES.includes(name)) {
             throw new Error(`Cannot register an unknown package "${name}". Valid names: ${PACKAGE_NAMES.join(', ')}.`);
         }
-        this.loaders.set(name, loader);
+        this.loaders.set(this.key(name, framework), loader);
         return this;
     }
     isRegistered(name) {
@@ -44,11 +43,11 @@ export class PackageLoaderRegistry {
         }
         return loader();
     }
-    setFallback(fallback) {
-        this.fallback = fallback;
-    }
     resolve(name, framework) {
-        return this.loaders.get(name) ?? this.fallback?.(name, framework);
+        return this.loaders.get(this.key(name, framework)) ?? this.loaders.get(name);
+    }
+    key(name, framework) {
+        return framework === undefined ? name : `${name}:${framework}`;
     }
 }
 export const packageLoaders = new PackageLoaderRegistry();

@@ -6,10 +6,6 @@ vi.mock('../src/functions/loadDataTableLibrary.js', () => ({
     loadDataTableLibrary: vi.fn(),
 }))
 
-vi.mock('../src/functions/detectStyleFramework.js', () => ({
-    detectStyleFramework: () => 'dt',
-}))
-
 vi.mock('../src/functions/deleteEntity.js', () => ({
     deleteEntity: vi.fn(async () => new Response(null, { status: 200 })),
 }))
@@ -42,7 +38,7 @@ vi.mock('../src/bulk/confirmModal.js', () => ({
 }))
 
 import { confirmAction } from '../src/bulk/confirmModal.js'
-import DatatableController from '../src/controller.js'
+import DatatableController from '../src/coreController.js'
 import { deleteEntity } from '../src/functions/deleteEntity.js'
 import { fetchEditForm } from '../src/functions/fetchEditForm.js'
 import { submitEditForm } from '../src/functions/submitEditForm.js'

@@ -1,4 +1,3 @@
-import { BootstrapModalAdapter } from './BootstrapModalAdapter.js';
 import { DialogModalAdapter } from './DialogModalAdapter.js';
 export class ModalAdapterRegistry {
     constructor() {
@@ -12,7 +11,5 @@ export class ModalAdapterRegistry {
         return this.factories.get(key) ?? null;
     }
 }
-export const modalAdapters = new ModalAdapterRegistry()
-    .register('dt', () => new DialogModalAdapter())
-    .register('bs5', () => new BootstrapModalAdapter());
+export const modalAdapters = new ModalAdapterRegistry().register('dt', () => new DialogModalAdapter());
 //# sourceMappingURL=ModalAdapterRegistry.js.map

@@ -1,21 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { BootstrapModalAdapter } from '../BootstrapModalAdapter.js'
 import { DialogModalAdapter } from '../DialogModalAdapter.js'
 import { resolveModalAdapter } from '../resolveModalAdapter.js'
-
-vi.mock('bootstrap', () => ({
-    Modal: class {
-        constructor(private readonly element: HTMLElement) {}
-
-        show(): void {}
-
-        hide(): void {
-            this.element.dispatchEvent(new Event('hidden.bs.modal'))
-        }
-
-        dispose(): void {}
-    },
-}))
 
 describe('resolveModalAdapter', () => {
     it('resolves the dialog adapter for the dt framework', async () => {
@@ -24,10 +9,11 @@ describe('resolveModalAdapter', () => {
         expect(adapter).toBeInstanceOf(DialogModalAdapter)
     })
 
-    it('resolves the bootstrap adapter for the bs5 framework', async () => {
-        const adapter = await resolveModalAdapter(null, 'bs5')
+    it('returns null for bs5 until the application registers its adapter', async () => {
+        const error = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-        expect(adapter).toBeInstanceOf(BootstrapModalAdapter)
+        expect(await resolveModalAdapter(null, 'bs5')).toBeNull()
+        expect(error).toHaveBeenCalledWith(expect.stringContaining("modalAdapters.register('bs5'"))
     })
 
     it('prefers an explicit adapter key over the detected framework', async () => {
@@ -43,7 +29,7 @@ describe('resolveModalAdapter', () => {
 
         expect(adapter).toBeNull()
         expect(error).toHaveBeenCalledWith(
-            '[ux-datatables] No modal adapter registered for "missing".'
+            expect.stringContaining('No modal adapter registered for "missing".')
         )
     })
 })

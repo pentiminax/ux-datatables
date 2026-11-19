@@ -1,13 +1,13 @@
 import { Application } from '@hotwired/stimulus'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import DatatableController from '../src/controller.js'
+import DatatableController from '../src/coreController.js'
 import { loadDataTableLibrary } from '../src/functions/loadDataTableLibrary.js'
 
 vi.mock('../src/functions/loadDataTableLibrary.js', () => ({
     loadDataTableLibrary: vi.fn(),
 }))
 
-describe('style framework autodetection', () => {
+describe('style framework default', () => {
     let application: Application
     let warn: ReturnType<typeof vi.spyOn>
 
@@ -39,19 +39,22 @@ describe('style framework autodetection', () => {
         vi.clearAllMocks()
     })
 
-    it('warns that autodetection is removed in 2.0 when the payload names no framework', async () => {
+    it('uses dt without inspecting the page stylesheets when the payload names no framework', async () => {
+        Object.defineProperty(document, 'styleSheets', {
+            configurable: true,
+            value: [{ href: '/css/dataTables.bootstrap5.min.css' }],
+        })
+
         await mountTable({})
 
-        await vi.waitFor(() =>
-            expect(warn).toHaveBeenCalledWith(expect.stringContaining('autodetected'))
-        )
+        await vi.waitFor(() => expect(loadDataTableLibrary).toHaveBeenCalledWith('dt'))
+        expect(warn).not.toHaveBeenCalled()
     })
 
-    it('stays quiet when the payload sets the framework explicitly', async () => {
-        await mountTable({ styleFramework: 'dt' })
+    it('uses the framework the payload declares', async () => {
+        await mountTable({ styleFramework: 'bs5' })
 
-        await vi.waitFor(() => expect(loadDataTableLibrary).toHaveBeenCalledWith('dt'))
-        expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('autodetected'))
+        await vi.waitFor(() => expect(loadDataTableLibrary).toHaveBeenCalledWith('bs5'))
     })
 })
 

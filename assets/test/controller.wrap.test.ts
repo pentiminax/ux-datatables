@@ -6,11 +6,7 @@ vi.mock('../src/functions/loadDataTableLibrary.js', () => ({
     loadDataTableLibrary: vi.fn(),
 }))
 
-vi.mock('../src/functions/detectStyleFramework.js', () => ({
-    detectStyleFramework: () => 'dt',
-}))
-
-import DatatableController from '../src/controller.js'
+import DatatableController from '../src/coreController.js'
 
 const INSTANCE_LIMIT = 5
 

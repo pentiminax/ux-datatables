@@ -42,4 +42,10 @@ describe('resolveColumnStyleAdapter', () => {
             columnStyleAdapters.register('tailwind', previous ?? (() => custom))
         }
     })
+
+    it('fails with the missing registration when no adapter exists for the framework', () => {
+        expect(() => resolveColumnStyleAdapter('missing' as never)).toThrow(
+            `columnStyleAdapters.register('missing', factory)`
+        )
+    })
 })

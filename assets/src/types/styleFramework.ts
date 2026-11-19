@@ -17,7 +17,7 @@ export const STYLE_FRAMEWORKS: StyleFrameworkConfig[] = [
 /**
  * Whether a value is a framework key the app declared explicitly (e.g. via the PHP
  * `styleFramework()` option), as opposed to `undefined` or some other payload value that
- * means autodetection should run instead.
+ * means the default `dt` applies.
  */
 export function isStyleFramework(value: unknown): value is StyleFramework {
     return typeof value === 'string' && STYLE_FRAMEWORKS.some(({ key }) => key === value)

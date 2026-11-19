@@ -30,27 +30,22 @@ export type PackageName = (typeof PACKAGE_NAMES)[number]
 /** Imports a package (JS and CSS) and resolves with its module namespace. */
 export type PackageLoader = () => Promise<unknown>
 
-type FallbackResolver = (
-    name: PackageName,
-    framework: StyleFramework | undefined
-) => PackageLoader | undefined
-
 /**
- * Maps the optional packages the controller needs to loaders the application declares, so its
+ * Maps the optional packages the controller needs to loaders the application registers, so its
  * bundler or import map only ships what the application actually registered.
  */
 export class PackageLoaderRegistry {
-    private readonly loaders = new Map<PackageName, PackageLoader>()
-    private fallback: FallbackResolver | null = null
+    private readonly loaders = new Map<string, PackageLoader>()
 
-    register(name: PackageName, loader: PackageLoader): this {
+    /** A loader registered for a framework wins over the one registered for the name alone. */
+    register(name: PackageName, loader: PackageLoader, framework?: StyleFramework): this {
         if (!(PACKAGE_NAMES as readonly string[]).includes(name)) {
             throw new Error(
                 `Cannot register an unknown package "${name}". Valid names: ${PACKAGE_NAMES.join(', ')}.`
             )
         }
 
-        this.loaders.set(name, loader)
+        this.loaders.set(this.key(name, framework), loader)
 
         return this
     }
@@ -77,13 +72,12 @@ export class PackageLoaderRegistry {
         return loader()
     }
 
-    /** @internal */
-    setFallback(fallback: FallbackResolver | null): void {
-        this.fallback = fallback
+    private resolve(name: PackageName, framework?: StyleFramework): PackageLoader | undefined {
+        return this.loaders.get(this.key(name, framework)) ?? this.loaders.get(name)
     }
 
-    private resolve(name: PackageName, framework?: StyleFramework): PackageLoader | undefined {
-        return this.loaders.get(name) ?? this.fallback?.(name, framework)
+    private key(name: PackageName, framework?: StyleFramework): string {
+        return framework === undefined ? name : `${name}:${framework}`
     }
 }
 

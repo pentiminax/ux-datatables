@@ -104,7 +104,7 @@ describe('DataTables extension package resolution', () => {
                 mockSpecifier(specifier, loaded)
             }
 
-            await import('../builtinPackageLoaders.js')
+            await import('../../../test/support/frameworkLoaders.js')
             const { packageLoaders } = await import('../packageLoaders.js')
 
             await packageLoaders.load(name as ExtensionName, framework)

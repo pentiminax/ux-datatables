@@ -2,7 +2,6 @@ import type { DataTableTheme } from '../functions/detectTheme.js'
 import type { StyleFramework } from '../types/styleFramework.js'
 import type { ColumnStyleAdapter } from './ColumnStyleAdapter.js'
 import { columnStyleAdapters } from './ColumnStyleAdapterRegistry.js'
-import { TailwindColumnStyleAdapter } from './TailwindColumnStyleAdapter.js'
 
 export function resolveColumnStyleAdapter(
     framework: StyleFramework,
@@ -15,7 +14,9 @@ export function resolveColumnStyleAdapter(
     const factory = themeFactory ?? columnStyleAdapters.get(framework)
 
     if (!factory) {
-        return new TailwindColumnStyleAdapter()
+        throw new Error(
+            `No column style adapter is registered for "${framework}". Register one with columnStyleAdapters.register('${framework}', factory).`
+        )
     }
 
     return factory()

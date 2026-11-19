@@ -4,12 +4,12 @@
   "license": "MIT",
   "version": "1.5.1",
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/core.js",
+  "types": "dist/core.d.ts",
   "symfony": {
     "controllers": {
       "datatable": {
-        "main": "dist/controller.js",
+        "main": "dist/core.js",
         "webpackMode": "eager",
         "fetch": "eager",
         "enabled": true,
@@ -27,71 +27,19 @@
         "enabled": false,
         "autoimport": {
           "@pentiminax/ux-datatables/dist/styles/datatables-base-style.css": true,
-          "@pentiminax/ux-datatables/dist/styles/datatables-tailwind-theme.css": true,
+          "@pentiminax/ux-datatables/dist/styles/datatables-tailwind-theme.css": false,
           "datatables.net-dt/css/dataTables.dataTables.min.css": true,
           "datatables.net-bs5/css/dataTables.bootstrap5.min.css": false
         }
       }
     },
     "importmap": {
-      "@hotwired/stimulus": "^3.0.0",
-      "bootstrap": "^5.3.8",
-      "datatables.net-bs5": "^3.1.3",
-      "datatables.net-buttons": "^4.1.2",
-      "datatables.net-buttons-bs5": "^4.1.3",
-      "datatables.net-buttons-bs5/css/buttons.bootstrap5.min.css": "^4.1.3",
-      "datatables.net-buttons-dt": "^4.1.2",
-      "datatables.net-buttons-dt/css/buttons.dataTables.min.css": "^4.1.2",
-      "datatables.net-colreorder-bs5": "^3.1.2",
-      "datatables.net-colreorder-bs5/css/colReorder.bootstrap5.min.css": "^3.1.2",
-      "datatables.net-colreorder-dt": "^3.1.2",
-      "datatables.net-colreorder-dt/css/colReorder.dataTables.min.css": "^3.1.2",
-      "datatables.net-columncontrol-bs5": "^2.1.3",
-      "datatables.net-columncontrol-bs5/css/columnControl.bootstrap5.min.css": "^2.1.3",
-      "datatables.net-columncontrol-dt": "^2.1.2",
-      "datatables.net-columncontrol-dt/css/columnControl.dataTables.min.css": "^2.1.2",
-      "datatables.net-datetime": "^2.1.3",
-      "datatables.net-dt": "^3.1.3",
-      "datatables.net-fixedcolumns-bs5": "^6.1.2",
-      "datatables.net-fixedcolumns-bs5/css/fixedColumns.bootstrap5.min.css": "^6.1.2",
-      "datatables.net-fixedcolumns-dt": "^6.1.1",
-      "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.min.css": "^6.1.1",
-      "datatables.net-fixedheader-bs5": "^5.1.2",
-      "datatables.net-fixedheader-bs5/css/fixedHeader.bootstrap5.min.css": "^5.1.2",
-      "datatables.net-fixedheader-dt": "^5.1.2",
-      "datatables.net-fixedheader-dt/css/fixedHeader.dataTables.min.css": "^5.1.2",
-      "datatables.net-keytable-bs5": "^3.1.1",
-      "datatables.net-keytable-bs5/css/keyTable.bootstrap5.min.css": "^3.1.1",
-      "datatables.net-keytable-dt": "^3.1.1",
-      "datatables.net-keytable-dt/css/keyTable.dataTables.min.css": "^3.1.1",
-      "datatables.net-responsive-bs5": "^4.1.1",
-      "datatables.net-responsive-bs5/css/responsive.bootstrap5.min.css": "^4.1.1",
-      "datatables.net-responsive-dt": "^4.1.1",
-      "datatables.net-responsive-dt/css/responsive.dataTables.min.css": "^4.1.1",
-      "datatables.net-rowgroup-bs5": "^2.1.1",
-      "datatables.net-rowgroup-bs5/css/rowGroup.bootstrap5.min.css": "^2.1.1",
-      "datatables.net-rowgroup-dt": "^2.1.1",
-      "datatables.net-rowgroup-dt/css/rowGroup.dataTables.min.css": "^2.1.1",
-      "datatables.net-scroller-bs5": "^3.1.1",
-      "datatables.net-scroller-bs5/css/scroller.bootstrap5.min.css": "^3.1.1",
-      "datatables.net-scroller-dt": "^3.1.1",
-      "datatables.net-scroller-dt/css/scroller.dataTables.min.css": "^3.1.1",
-      "datatables.net-searchbuilder-bs5": "^2.1.1",
-      "datatables.net-searchbuilder-bs5/css/searchBuilder.bootstrap5.min.css": "^2.1.1",
-      "datatables.net-searchbuilder-dt": "^2.1.1",
-      "datatables.net-searchbuilder-dt/css/searchBuilder.dataTables.min.css": "^2.1.1",
-      "datatables.net-select-bs5": "^4.1.1",
-      "datatables.net-select-bs5/css/select.bootstrap5.min.css": "^4.1.1",
-      "datatables.net-select-dt": "^4.1.1",
-      "datatables.net-select-dt/css/select.dataTables.min.css": "^4.1.1",
-      "jszip": "^3.10.2",
-      "lucide": "^1.52.0",
-      "pdfmake": "^0.3.14",
-      "pdfmake/build/vfs_fonts.js": "^0.3.14"
+      "@hotwired/stimulus": "^3.0.0"
     }
   },
   "peerDependencies": {
     "@hotwired/stimulus": "^3.0.0",
+    "bootstrap": "^5.3.8",
     "datatables.net-bs5": "^3.1.3",
     "datatables.net-buttons": "^4.1.2",
     "datatables.net-buttons-bs5": "^4.1.3",
@@ -168,5 +116,97 @@
     "pdfmake": "^0.3.14",
     "typescript": "^7.0.2",
     "vitest": "^5.0.3"
+  },
+  "peerDependenciesMeta": {
+    "bootstrap": {
+      "optional": true
+    },
+    "datatables.net-bs5": {
+      "optional": true
+    },
+    "datatables.net-buttons": {
+      "optional": true
+    },
+    "datatables.net-buttons-bs5": {
+      "optional": true
+    },
+    "datatables.net-buttons-dt": {
+      "optional": true
+    },
+    "datatables.net-colreorder-bs5": {
+      "optional": true
+    },
+    "datatables.net-colreorder-dt": {
+      "optional": true
+    },
+    "datatables.net-columncontrol-bs5": {
+      "optional": true
+    },
+    "datatables.net-columncontrol-dt": {
+      "optional": true
+    },
+    "datatables.net-datetime": {
+      "optional": true
+    },
+    "datatables.net-dt": {
+      "optional": true
+    },
+    "datatables.net-fixedcolumns-bs5": {
+      "optional": true
+    },
+    "datatables.net-fixedcolumns-dt": {
+      "optional": true
+    },
+    "datatables.net-fixedheader-bs5": {
+      "optional": true
+    },
+    "datatables.net-fixedheader-dt": {
+      "optional": true
+    },
+    "datatables.net-keytable-bs5": {
+      "optional": true
+    },
+    "datatables.net-keytable-dt": {
+      "optional": true
+    },
+    "datatables.net-responsive-bs5": {
+      "optional": true
+    },
+    "datatables.net-responsive-dt": {
+      "optional": true
+    },
+    "datatables.net-rowgroup-bs5": {
+      "optional": true
+    },
+    "datatables.net-rowgroup-dt": {
+      "optional": true
+    },
+    "datatables.net-scroller-bs5": {
+      "optional": true
+    },
+    "datatables.net-scroller-dt": {
+      "optional": true
+    },
+    "datatables.net-searchbuilder-bs5": {
+      "optional": true
+    },
+    "datatables.net-searchbuilder-dt": {
+      "optional": true
+    },
+    "datatables.net-select-bs5": {
+      "optional": true
+    },
+    "datatables.net-select-dt": {
+      "optional": true
+    },
+    "jszip": {
+      "optional": true
+    },
+    "lucide": {
+      "optional": true
+    },
+    "pdfmake": {
+      "optional": true
+    }
   }
 }

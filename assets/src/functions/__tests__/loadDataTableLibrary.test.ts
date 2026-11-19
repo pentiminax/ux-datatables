@@ -19,7 +19,7 @@ describe('loadDataTableLibrary', () => {
 
             vi.doMock(`datatables.net-${framework}`, () => ({ default: DataTable }))
 
-            await import('../builtinPackageLoaders.js')
+            await import('../../../test/support/frameworkLoaders.js')
             const { loadDataTableLibrary } = await import('../loadDataTableLibrary.js')
 
             await expect(loadDataTableLibrary(framework)).resolves.toBe(DataTable)
