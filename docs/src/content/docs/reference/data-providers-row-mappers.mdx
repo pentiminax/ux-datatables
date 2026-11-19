@@ -74,9 +74,9 @@ batches instead of loading the whole result set.
 `DataSourceFeature::RowScope` and `DataSourceFeature::IdentifierCollection` need a provider that
 implements `IdentifierDataProviderInterface`, which checks which identifiers belong to the table's
 permanent scope and names every row of a request. The provider declares the features it covers
-through `supports()`; implementing the interface alone declares nothing. Without `RowScope`, row
-actions and bulk actions on the table run unscoped, which is deprecated since 1.6 and refused in 2.0
-unless the table calls `unscopedMutations()`. Without `IdentifierCollection`, a bulk "select all
+through `supports()`; implementing the interface alone declares nothing. Without `RowScope` (or when
+`supports()` throws an `\UnhandledMatchError` for it), row actions and bulk actions on the table are
+refused unless the table calls `unscopedMutations()`. Without `IdentifierCollection`, a bulk "select all
 matching" is rejected.
 
 Built-in providers:

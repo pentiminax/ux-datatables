@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Mutation;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\Persistence\ObjectManager;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Ajax\DetailRowService;
@@ -16,6 +18,7 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\Contracts\IdentifierDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
 use Pentiminax\UX\DataTables\Controller\AjaxDetailController;
@@ -26,7 +29,10 @@ use Pentiminax\UX\DataTables\Controller\AjaxEditFormSubmitController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditRequestDto;
 use Pentiminax\UX\DataTables\Controller\AjaxEntityQueryDto;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
+use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormService;
@@ -38,6 +44,7 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
@@ -76,6 +83,14 @@ final class RowScopeGuardTest extends TestCase
     use BuildsEntityManager;
     use BuildsRowActionGate;
     use CollectsDeprecations;
+
+    private static function requestStack(): RequestStack
+    {
+        $stack = new RequestStack();
+        $stack->push(new Request());
+
+        return $stack;
+    }
 
     private const SECRET = 'test-secret';
 
@@ -116,23 +131,119 @@ final class RowScopeGuardTest extends TestCase
     }
 
     #[Test]
-    public function it_keeps_current_behavior_when_the_provider_cannot_check_the_scope(): void
+    public function it_refuses_a_row_when_the_provider_cannot_check_the_scope(): void
     {
         $table = new ResolvedDataTable(new ScopedAccountDataTable($this->createStub(DataProviderInterface::class)), CountAccount::class, ScopedAccountDataTable::class);
 
-        $deprecations = $this->scopeDeprecationsOf(fn () => $this->guard()->assertInScope($table, 3));
+        $this->expectException(MutationNotAllowedException::class);
 
-        $this->assertCount(1, $deprecations);
-        $this->assertStringContainsString('does not support the "rowScope" feature: 2.0 refuses the request', $deprecations[0]);
-        $this->assertStringContainsString('unscopedMutations()', $deprecations[0]);
+        $this->guard()->assertInScope($table, 1);
     }
 
     #[Test]
-    public function it_stays_quiet_when_the_table_opts_out_of_the_scope_check(): void
+    public function it_refuses_a_provider_whose_supports_throws_an_unhandled_match_error_for_the_row_scope(): void
+    {
+        $provider = new class implements DataProviderInterface, IdentifierDataProviderInterface {
+            public function supports(DataSourceFeature $feature): bool
+            {
+                return match ($feature) {
+                    DataSourceFeature::SearchBuilder => true,
+                };
+            }
+
+            public function iterateRows(DataTableRequest $request): iterable
+            {
+                return [];
+            }
+
+            public function fetchData(DataTableRequest $request): DataTableResult
+            {
+                return new DataTableResult(recordsTotal: 0, recordsFiltered: 0, data: []);
+            }
+
+            public function collectIdentifiers(DataTableRequest $request, ?string $field = null): array
+            {
+                return [1];
+            }
+
+            public function filterIdentifiersInScope(DataTableRequest $request, array $ids, string $field): array
+            {
+                return $ids;
+            }
+        };
+
+        $this->expectException(MutationNotAllowedException::class);
+
+        $this->guard()->assertInScope(new ResolvedDataTable(new ScopedAccountDataTable($provider), CountAccount::class, ScopedAccountDataTable::class), 1);
+    }
+
+    #[Test]
+    public function it_keeps_every_id_when_the_table_opts_out_of_the_scope_check(): void
     {
         $table = new ResolvedDataTable(new ScopedAccountDataTable($this->createStub(DataProviderInterface::class), unscopedMutations: true), CountAccount::class, ScopedAccountDataTable::class);
 
-        $this->assertSame([], $this->scopeDeprecationsOf(fn () => $this->guard()->assertInScope($table, 3)));
+        $this->guard()->assertInScope($table, 3);
+        $this->assertSame([3, 999], RowScopeGuard::keepInScope($table, new Request(), 'id', [3, 999]));
+    }
+
+    #[Test]
+    public function it_refuses_a_row_without_a_current_request(): void
+    {
+        $this->expectException(MutationNotAllowedException::class);
+
+        (new RowScopeGuard($this->locator()))->assertInScope($this->resolved(), 1);
+    }
+
+    #[Test]
+    public function it_refuses_an_entity_without_an_identifier_field(): void
+    {
+        $metadata = $this->createStub(ClassMetadata::class);
+        $metadata->method('getIdentifier')->willReturn([]);
+
+        $manager = $this->createStub(ObjectManager::class);
+        $manager->method('getClassMetadata')->willReturn($metadata);
+
+        $doctrine = $this->createStub(ManagerRegistry::class);
+        $doctrine->method('getManagerForClass')->willReturn($manager);
+
+        $this->expectException(MutationNotAllowedException::class);
+
+        (new RowScopeGuard(new EntityLocator($doctrine)))->assertInScope($this->resolved(), 1);
+    }
+
+    #[Test]
+    public function it_refuses_a_mutation_without_a_data_table_request(): void
+    {
+        $table = new ResolvedDataTable(new RequestlessScopedAccountDataTable(new class implements DataProviderInterface, IdentifierDataProviderInterface {
+            public function supports(DataSourceFeature $feature): bool
+            {
+                return true;
+            }
+
+            public function iterateRows(DataTableRequest $request): iterable
+            {
+                return [];
+            }
+
+            public function fetchData(DataTableRequest $request): DataTableResult
+            {
+                return new DataTableResult(recordsTotal: 0, recordsFiltered: 0, data: []);
+            }
+
+            public function collectIdentifiers(DataTableRequest $request, ?string $field = null): array
+            {
+                return [1];
+            }
+
+            public function filterIdentifiersInScope(DataTableRequest $request, array $ids, string $field): array
+            {
+                return $ids;
+            }
+        }), CountAccount::class, ScopedAccountDataTable::class);
+
+        $this->expectException(MutationNotAllowedException::class);
+
+        $this->deprecationsOf(static fn () => RowScopeGuard::keepInScope($table, new Request(), 'id', [1]));
     }
 
     #[Test]
@@ -344,7 +455,7 @@ final class RowScopeGuardTest extends TestCase
 
     private function guard(): RowScopeGuard
     {
-        return new RowScopeGuard($this->locator());
+        return new RowScopeGuard($this->locator(), self::requestStack());
     }
 
     private function mutator(): EntityMutator
@@ -392,7 +503,7 @@ final class RowScopeGuardTest extends TestCase
 }
 
 #[AsDataTable(entityClass: CountAccount::class)]
-final class ScopedAccountDataTable extends AbstractDataTable
+class ScopedAccountDataTable extends AbstractDataTable
 {
     public function __construct(private readonly DataProviderInterface $dataProvider, private readonly bool $unscopedMutations = false)
     {
@@ -469,5 +580,14 @@ final class ForwardedScopeAccountDataTable extends AbstractDataTable
                 }
             },
         );
+    }
+}
+
+#[AsDataTable(entityClass: CountAccount::class)]
+final class RequestlessScopedAccountDataTable extends ScopedAccountDataTable
+{
+    public function getRequest(): ?DataTableRequest
+    {
+        return null;
     }
 }
