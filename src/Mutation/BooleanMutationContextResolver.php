@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Mutation;
 
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\InvalidBooleanMutationContextException;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 
@@ -37,7 +38,7 @@ final readonly class BooleanMutationContextResolver
             }
 
             return new BooleanMutationContext(
-                entityClass: $column->getEntityClass() ?? $resolved->requireEntityClass(),
+                entityClass: $column->getEntityClass() ?? $resolved->entityClass ?? throw new EntityNotFoundException(),
                 dataTableClass: $resolved->dataTableClass,
                 field: $field,
                 table: $resolved,

@@ -98,7 +98,7 @@ final class RowActionGate
     private function assertToggleInScope(ResolvedDataTable $table, BooleanMutationContext $toggle, RowActionRequest $rowAction): void
     {
         if (null === $table->entityClass) {
-            throw new MutationNotAllowedException();
+            throw new EntityNotFoundException();
         }
 
         if ($toggle->entityClass === $table->entityClass) {

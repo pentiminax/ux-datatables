@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Fixtures\DataTable;
 
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
@@ -13,7 +14,7 @@ use Pentiminax\UX\DataTables\Model\BulkActions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 
 /**
- * A server-side table with a bulk action on a provider that cannot check the row scope.
+ * A server-side table with no entity class: a bulk action on a provider that cannot check the row scope, and a switch with no row to toggle.
  */
 final class HarnessUnscopedBulkDataTable extends AbstractDataTable
 {
@@ -25,6 +26,7 @@ final class HarnessUnscopedBulkDataTable extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield TextColumn::new('id');
+        yield BooleanColumn::new('active')->renderAsSwitch();
     }
 
     public function configureBulkActions(BulkActions $actions): BulkActions

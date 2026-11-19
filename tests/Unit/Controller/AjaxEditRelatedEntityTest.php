@@ -19,7 +19,6 @@ use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditRequestDto;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
-use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
@@ -136,7 +135,7 @@ final class AjaxEditRelatedEntityTest extends TestCase
         try {
             $controller($this->request(), new AjaxEditRequestDto($token, 30, 'vip', true));
             $this->fail('The toggle must be refused.');
-        } catch (MutationNotAllowedException) {
+        } catch (EntityNotFoundException) {
             $this->assertFalse($this->em->find(RelatedToggleCustomer::class, 30)->vip);
         }
     }
