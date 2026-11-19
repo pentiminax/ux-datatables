@@ -59,3 +59,32 @@ async function mountTable(view: Record<string, unknown>): Promise<void> {
         await new Promise((resolve) => setTimeout(resolve, 0))
     }
 }
+
+describe('style framework from the registered loaders', () => {
+    it('resolves a payload without styleFramework to the only registered style', async () => {
+        vi.resetModules()
+        const { packageLoaders } = await import('../src/functions/packageLoaders.js')
+        const { loadDataTableLibrary: mocked } = await import(
+            '../src/functions/loadDataTableLibrary.js'
+        )
+        const { default: Controller } = await import('../src/coreController.js')
+        packageLoaders.register('dataTables', async () => ({}), 'bs5')
+        vi.mocked(mocked).mockResolvedValue(
+            Object.assign(function MockDataTable() {}, { feature: { register: vi.fn() }, isDataTable: () => false }) as never
+        )
+
+        const application = Application.start()
+        application.register('datatable', Controller)
+        const table = document.createElement('table')
+        table.setAttribute('data-controller', 'datatable')
+        table.setAttribute(
+            'data-datatable-view-value',
+            JSON.stringify({ columns: [{ data: 'name', title: 'Name' }] })
+        )
+        document.body.appendChild(table)
+
+        await vi.waitFor(() => expect(mocked).toHaveBeenCalledWith('bs5'))
+        application.stop()
+        document.body.innerHTML = ''
+    })
+})

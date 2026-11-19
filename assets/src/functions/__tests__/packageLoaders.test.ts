@@ -14,6 +14,15 @@ describe('packageLoaders', () => {
         )
     })
 
+    it('names the style and the third argument when only another style has a loader', async () => {
+        const { PackageLoaderRegistry } = await import('../packageLoaders.js')
+        const registry = new PackageLoaderRegistry().register('select', async () => 'dt', 'dt')
+
+        await expect(registry.load('select', 'bs5')).rejects.toThrow(
+            `registered only for the dt style, not for "bs5": register it for "bs5" with packageLoaders.register('select', loader, 'bs5')`
+        )
+    })
+
     it('rejects a loader registered under an unknown name and lists the valid ones', async () => {
         const { PackageLoaderRegistry } = await import('../packageLoaders.js')
         const registry = new PackageLoaderRegistry()

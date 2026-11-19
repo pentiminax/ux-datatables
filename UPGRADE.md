@@ -56,10 +56,11 @@ php bin/console ux-datatables:install --style=tailwind buttons responsive select
   `VIEW_ATTRIBUTE`. Read the table view with `DataTablesExtension::VIEW_ATTRIBUTE`, or with
   `DataTableView` in tests.
 - **`--prune` is removed** from `ux-datatables:install`: remove it from scripts and Composer hooks.
-- **Styles.** The style comes from `data_tables.style_framework` (default `dt`) or `styleFramework()`
-  on a table, never from the page stylesheets: autodetection is removed. A style with no registered
+- **Styles.** The style comes from `data_tables.style_framework` (unset, it is the style of the registered loaders; several registered styles throw) or
+  `styleFramework()` on a table, never from the page stylesheets: autodetection is removed. A style with no registered
   adapter fails with a message naming the missing registration. Two styles can coexist by
-  registering a loader per framework: `packageLoaders.register('dataTables', loader, 'bs5')`.
+  registering a loader per framework: `packageLoaders.register('dataTables', loader, 'bs5')`. Requesting a
+  style that has only other styles' loaders fails with a message naming that third argument.
 
 Copied code is covered by the 2.x backward compatibility promise: the loader signature, the
 registries, and the modal and column style adapter interfaces change only in a major version.

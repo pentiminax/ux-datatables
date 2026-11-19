@@ -138,6 +138,10 @@ final class InstallCommand extends Command
             $io->warning(\sprintf('Kept as is because they differ from what the command would write: %s. Run the command interactively to review the diff, or delete a file to have it generated again.', implode(', ', $kept)));
         }
 
+        if (InstallStyle::Bootstrap5 === $style && \in_array('assets/datatables.js', $kept, true) && !str_contains((string) file_get_contents($loaders), 'datatables_bootstrap_modal.js')) {
+            $io->warning("Your assets/datatables.js does not register the Bootstrap modal adapter. Add this line after its core import: import './datatables_bootstrap_modal.js'. Also pass 'bs5' as the third argument of its dataTables and extension register() calls, for example .register('select', loader, 'bs5').");
+        }
+
         if (null === $bootstrapImport && !$this->hasBootstrapImport()) {
             $io->warning('Neither assets/stimulus_bootstrap.js nor assets/bootstrap.js exists. Add this line before startStimulusApp(): '.self::IMPORT_LINE);
         }
@@ -484,8 +488,10 @@ final class InstallCommand extends Command
 
         $controller          = $bundle->datatable ??= new \stdClass();
         $controller->enabled = true;
-        $controller->fetch                    ??= 'eager';
-        $autoimport = $controller->autoimport ??= new \stdClass();
+        $controller->fetch ??= 'eager';
+        // An empty JSON object written by hand or by a tool can decode to an empty array.
+        $controller->autoimport = (object) ($controller->autoimport ?? []);
+        $autoimport             = $controller->autoimport;
 
         // 2.0 removed the Bootstrap 3 and 4 stylesheets, which 1.x built-in setups may still autoimport.
         foreach (array_keys(get_object_vars($autoimport)) as $path) {

@@ -254,7 +254,7 @@ change, the application and its test suite must run with no call to a removed me
    `responsive`, `rowGroup`, `scroller`, `searchBuilder`, `select`) or omit them to let the command
    detect them. The command migrates the files the 1.5 and 1.6 installer wrote in place, never
    overwrites a file you edited when non-interactive (it prints a warning naming the files it kept
-   and exits with a failure status: review them, or pass `--style` when it reports an ambiguous kit),
+   and exits with a failure status: review them; for `bs5`, add `import './datatables_bootstrap_modal.js'` to a kept `datatables.js` and pass `'bs5'` as the third argument of its `dataTables` and extension `register()` calls, or pass `--style` when it reports an ambiguous kit),
    runs `importmap:require` under AssetMapper, and prints an `npm install` line under a bundler:
    run that line.
 2. Remove `package_loading` from `config/packages/*.yaml` (the command does it for the file it

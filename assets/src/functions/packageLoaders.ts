@@ -69,11 +69,13 @@ export class PackageLoaderRegistry {
         const loader = this.resolve(name, framework)
 
         if (!loader) {
-            return Promise.reject(
-                new Error(
-                    `The "${name}" package is not registered. Install it and register it with packageLoaders.register('${name}', loader).`
-                )
-            )
+            const others = this.frameworksOf(name)
+            const hint =
+                framework !== undefined && others.length > 0
+                    ? ` It is registered only for the ${others.join(', ')} style, not for "${framework}": register it for "${framework}" with packageLoaders.register('${name}', loader, '${framework}').`
+                    : ` Install it and register it with packageLoaders.register('${name}', loader).`
+
+            return Promise.reject(new Error(`The "${name}" package is not registered.${hint}`))
         }
 
         return loader()

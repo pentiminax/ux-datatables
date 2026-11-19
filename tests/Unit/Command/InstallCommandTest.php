@@ -238,6 +238,30 @@ final class InstallCommandTest extends TestCase
     }
 
     #[Test]
+    public function it_tells_how_to_register_the_modal_adapter_in_a_kept_bs5_file(): void
+    {
+        file_put_contents($this->dir.'/assets/datatables.js', str_replace('import { packageLoaders }', "// mine\nimport { packageLoaders }", (string) file_get_contents(__DIR__.'/../../Fixtures/Install/v1.7-bs5.js')));
+
+        $tester = $this->install(['--style' => 'bs5'], [], ['interactive' => false]);
+
+        $display = (string) preg_replace('/\s*\n\s*/', ' ', $tester->getDisplay());
+        $this->assertStringContainsString("import './datatables_bootstrap_modal.js'", $display);
+        $this->assertStringContainsString("'bs5' as the third argument", $display);
+        $this->assertSame(Command::FAILURE, $tester->getStatusCode());
+    }
+
+    #[Test]
+    public function it_accepts_an_empty_autoimport_array(): void
+    {
+        file_put_contents($this->dir.'/assets/controllers.json', '{"controllers": {"@pentiminax/ux-datatables": {"datatable": {"enabled": true, "autoimport": []}}}, "entrypoints": []}');
+
+        $tester = $this->install([]);
+
+        $this->assertSame(0, $tester->getStatusCode());
+        $this->assertTrue($this->readJson('assets/controllers.json')['controllers']['@pentiminax/ux-datatables']['datatable']['autoimport']['datatables.net-dt/css/dataTables.dataTables.min.css']);
+    }
+
+    #[Test]
     public function it_shows_repeated_lines_in_the_diff(): void
     {
         $this->install(['extensions' => ['select']]);
