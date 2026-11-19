@@ -691,9 +691,16 @@ final class DataTablesExtensionTest extends TestCase
         return $table;
     }
 
-    /**
-     * @return array<string, mixed>
-     */
+    #[Test]
+    public function it_renders_a_table_whose_only_edit_action_links_to_a_url_without_building_its_provider(): void
+    {
+        $table = new LinkEditDataTable();
+
+        $this->renderPayload($table);
+
+        $this->assertSame(0, $table->providerCalls);
+    }
+
     #[Test]
     #[DataProvider('dataSourceModes')]
     public function it_refuses_at_render_a_table_with_actions_on_a_provider_that_cannot_check_the_row_scope(string $mode): void
@@ -716,6 +723,9 @@ final class DataTablesExtensionTest extends TestCase
         yield 'ajax' => ['ajax'];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function renderPayload(AbstractDataTable $table): array
     {
         return $this->decodePayload($this->renderTableElement($table));
@@ -782,6 +792,34 @@ final readonly class InlineBook
     public function getTemplateLabel(): string
     {
         return 'dto-'.$this->id;
+    }
+}
+
+#[AsDataTable(entityClass: InlineBook::class)]
+final class LinkEditDataTable extends AbstractDataTable
+{
+    public int $providerCalls = 0;
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->ajax('/own-endpoint');
+    }
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id');
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions->add(Action::edit()->linkToUrl('/books/edit'));
+    }
+
+    protected function createDataProvider(): ?DataProviderInterface
+    {
+        ++$this->providerCalls;
+
+        return null;
     }
 }
 

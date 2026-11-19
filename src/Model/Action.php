@@ -299,6 +299,14 @@ final class Action implements \JsonSerializable, ExecutableActionInterface
         return $this;
     }
 
+    /**
+     * Whether the browser follows a URL or route of the application instead of a bundle endpoint.
+     */
+    public function hasTarget(): bool
+    {
+        return null !== $this->url || null !== $this->urlResolver || null !== $this->routeName;
+    }
+
     public function getRouteName(): ?string
     {
         return $this->routeName;

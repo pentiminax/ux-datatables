@@ -44,8 +44,8 @@ final class DataSourceFeatureGuard
     }
 
     /**
-     * Render-time check, from the mode alone: no provider is built while rendering, so a server-side
-     * table is checked on its first request instead.
+     * Render-time check, from the mode alone: it builds no provider, which
+     * {@see self::assertMutationsScoped()} does for a table with actions served by the bundle.
      *
      * @throws \LogicException when the table configures a feature its mode cannot apply
      */
@@ -122,7 +122,7 @@ final class DataSourceFeatureGuard
 
     /**
      * Whether a column renders an action served by the bundle's Ajax endpoints: delete, edit, a
-     * collapsible detail or a boolean switch. Link-only actions mutate nothing.
+     * collapsible detail or a boolean switch. An action that targets a URL or a route never calls them.
      */
     public static function hasRowActions(DataTable $table): bool
     {
@@ -136,6 +136,10 @@ final class DataSourceFeatureGuard
             }
 
             foreach ($column->getActions()?->getActions() ?? [] as $action) {
+                if ($action->hasTarget()) {
+                    continue;
+                }
+
                 if (ActionType::Delete === $action->getType() || ActionType::Edit === $action->getType() || ($action->isCollapsible() && ActionType::Detail === $action->getType())) {
                     return true;
                 }

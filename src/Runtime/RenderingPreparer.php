@@ -215,7 +215,7 @@ final class RenderingPreparer
             unset($extensions['select']);
         }
 
-        $hasRowActions = $this->hasRowActions($table);
+        $hasRowActions = $this->rendersActionUrls($table);
         $filters       = $this->translatedFilters($table->getFilters());
         $hasFilters    = null !== $filters && !$filters->isEmpty();
         $emptyState    = $table->getEmptyState();
@@ -511,7 +511,7 @@ final class RenderingPreparer
         return array_map(fn (string $key): string => $this->translator->trans($key, domain: FilterLabels::DOMAIN), $keys);
     }
 
-    private function hasRowActions(DataTable $table): bool
+    private function rendersActionUrls(DataTable $table): bool
     {
         foreach ($table->getColumns() as $column) {
             if ($column instanceof ActionsProvidingColumnInterface || ($column instanceof BooleanColumn && $column->isRenderedAsSwitch())) {
