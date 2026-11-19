@@ -16,6 +16,56 @@ Deprecated APIs keep working for the whole 1.x line and are removed in 2.0.
 
 ## Upgrading to 2.0.0
 
+### The frontend is installed with `ux-datatables:install`
+
+2.0 removes the built-in package loaders. The bundle no longer ships the DataTables.net packages
+for every style: your application owns the package loaders for its kit and extensions, which
+`ux-datatables:install` copies into `assets/datatables.js`. Run it once after `composer update`:
+
+```bash
+php bin/console ux-datatables:install --style=tailwind buttons responsive select
+```
+
+- **Migration.** An application on 1.6 with registered package loading keeps its setup: the
+  command recognizes the files the 1.5 and 1.6 installer wrote and updates them in place. An
+  application on built-in loading gets a working registered setup from the same command; pass the
+  extensions it uses, or let the command detect them from your `AbstractDataTable` classes. A file
+  you edited is shown as a diff and replaced only after you confirm. A non-interactive run never
+  overwrites it.
+- **Kits.** `dt`, `bs5` and Tailwind (`--style=tailwind`, which is `dt` plus the bundled Tailwind
+  theme). The `bs5` kit also copies the Bootstrap modal adapter to
+  `assets/datatables_bootstrap_modal.js`.
+- **`datatable` is the core controller.** It imports only `@hotwired/stimulus`, and the base style,
+  the `dt` CSS and the Tailwind theme are autoimported. `datatable_core` stays as a deprecated alias
+  until 3.0. The Stimulus identifier is `pentiminax--ux-datatables--datatable`; code that looks up
+  `pentiminax--ux-datatables--datatable-core` keeps working only while the alias is enabled. To
+  drop the Tailwind theme, set its `autoimport` flag to `false`.
+- **`package_loading` is removed.** `registered` is accepted, ignored and deprecated, so remove it
+  from `data_tables.yaml` (the install command does). `builtin` fails with a message pointing to
+  the install command.
+- **Main entry.** `@pentiminax/ux-datatables` is now the core entry: it exports the controller, the
+  registries (`packageLoaders`, `buttonActions`, `modalAdapters`, `columnStyleAdapters`) and the
+  adapter types, and no longer imports DataTables packages. `@pentiminax/ux-datatables/dist/controller.js`,
+  `dist/index.js` and `BootstrapModalAdapter` are removed: the Bootstrap adapter is the copied file.
+- **Peer dependencies.** Only `@hotwired/stimulus` is required; the DataTables packages are optional.
+  Symfony Flex no longer adds import map entries for packages you do not use, so you can delete the
+  ones the 1.x recipe added and the install command did not require.
+- **`--prune` is removed** from `ux-datatables:install`: remove it from scripts and Composer hooks.
+- **Styles.** The style comes from `data_tables.style_framework` (default `dt`) or `styleFramework()`
+  on a table, never from the page stylesheets: autodetection is removed. A style with no registered
+  adapter fails with a message naming the missing registration. Two styles can coexist by
+  registering a loader per framework: `packageLoaders.register('dataTables', loader, 'bs5')`.
+
+Copied code is covered by the 2.x backward compatibility promise: the loader signature, the
+registries, and the modal and column style adapter interfaces change only in a major version.
+
+### Bootstrap 3 and 4 are removed
+
+`StyleFramework::Bootstrap` and `StyleFramework::Bootstrap4`, the `bs` and `bs4` frontend styles
+and their packages are removed. Use `StyleFramework::Bootstrap5` (`bs5`) or
+`StyleFramework::DataTables` (`dt`). A bundle config setting `style_framework` to `bs` or `bs4`
+fails with a message naming `bs5` and `dt`.
+
 ### Rendering no longer writes to the table
 
 `render_datatable()` builds the payload it sends to the browser without writing to your table.
@@ -673,7 +723,7 @@ What 2.0 changes:
 - Bootstrap 3 and 4 are removed. The supported styles are `dt` (with or without the Tailwind
   theme) and `bs5`. To drop the Tailwind theme, set its `autoimport` flag to `false`.
 - The peer dependencies shrink to `@hotwired/stimulus`; the DataTables packages become optional.
-- `--prune` also removes CSS entries.
+- `--prune` is removed.
 
 ## Upgrading to 1.3.0
 
