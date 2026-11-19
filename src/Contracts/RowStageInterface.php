@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Contracts;
 
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
+
 /**
  * One step of {@see \Pentiminax\UX\DataTables\RowMapper\RowProcessingPipeline}, refining an
  * already-mapped row before URL, template, and action resolution run.

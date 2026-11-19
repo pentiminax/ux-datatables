@@ -155,9 +155,10 @@ final class CountryTable extends AbstractDataTable
 
 `AbstractColumn` is the only column implementation. `ColumnInterface` stays as the read-only view
 handed to extension points, and loses `setField()` and `setVisible()`. `DataTable::add()`,
-`DataTable::columns()` and `configureColumns()` accept `AbstractColumn` instances only, and the
-2.0 summaries, value formatting, ColumnControl search and export formatting no longer skip a
-column that is not one.
+`DataTable::columns()` and `configureColumns()` accept `AbstractColumn` instances only, and passing
+anything else fails when the table is configured. Summaries, value formatting, ColumnControl search
+and export formatting used to skip a column that was not an `AbstractColumn`: with the type enforced,
+every column gets them.
 
 - A class that implements `ColumnInterface` directly must extend a bundled column or `AbstractColumn`
   instead. Set the type in the constructor and drop the members `AbstractColumn` already provides.
@@ -207,10 +208,23 @@ private string $email;
 (`foo()`) only. A custom column or filter that answered an option through its own `setFoo()` method
 must declare `foo()`, otherwise the option throws "is not supported by".
 
-### Column deprecations removed
+```php
+// Declaration, unchanged
+#[DataTableColumn(type: RatingColumn::class, options: ['max' => 5])]
+private int $rating;
+
+// Before (1.x): RatingColumn answered the option through its own setter
+public function setMax(int $max): static { /* ... */ }
+
+// After (2.0): declare the bare method
+public function max(int $max): static { /* ... */ }
+```
+
+### Deprecations removed
 
 Everything below was deprecated in 1.x and is removed. Each line names its replacement.
 
+- Applying an attribute option through a `setFoo()` method: declare `foo()`.
 - `setClassName()`, `setCellType()`, `setName()`, `setOrderable()`, `setSearchable()`,
   `setSearchNormalization()`, `setColumnControl()`, `setType()`, `setWidth()`,
   `setResponsivePriority()`, `setTitle()`, `setVisible()`, `setData()`, `setDefaultContent()`,

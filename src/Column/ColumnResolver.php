@@ -211,7 +211,7 @@ final class ColumnResolver
      * Columns a server-side export writes: exportable and visible in the table.
      *
      * A hidden column is not part of what the user sees, and a TemplateColumn or an ActionColumn
-     * carries markup rather than data, so both stay out unless setExportable(true) opts them back in.
+     * carries markup rather than data, so both stay out unless exportable(true) opts them back in.
      *
      * @param iterable<AbstractColumn> $columns
      *

@@ -297,7 +297,7 @@ class DataTable
         $this->columns = [];
 
         foreach ($columns as $column) {
-            $this->columns[$column->getName()] = $column;
+            $this->add($column);
         }
 
         return $this;
