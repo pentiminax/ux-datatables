@@ -694,6 +694,28 @@ final class DataTablesExtensionTest extends TestCase
     /**
      * @return array<string, mixed>
      */
+    #[Test]
+    #[DataProvider('dataSourceModes')]
+    public function it_refuses_at_render_a_table_with_actions_on_a_provider_that_cannot_check_the_row_scope(string $mode): void
+    {
+        $table = new UnscopedActionsDataTable($mode);
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('unscopedMutations()');
+
+        $this->renderPayload($table);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function dataSourceModes(): iterable
+    {
+        yield 'client side' => ['default'];
+        yield 'server side' => ['serverSide'];
+        yield 'ajax' => ['ajax'];
+    }
+
     private function renderPayload(AbstractDataTable $table): array
     {
         return $this->decodePayload($this->renderTableElement($table));
@@ -763,6 +785,37 @@ final readonly class InlineBook
     }
 }
 
+final class UnscopedActionsDataTable extends AbstractDataTable
+{
+    public function __construct(private readonly string $mode)
+    {
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return match ($this->mode) {
+            'serverSide' => $table->serverSide(),
+            'ajax'       => $table->ajax('/books.json'),
+            default      => $table,
+        };
+    }
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id');
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions->add(Action::delete());
+    }
+
+    protected function createDataProvider(): ?DataProviderInterface
+    {
+        return new ArrayDataProvider([], $this->createRowMapper());
+    }
+}
+
 final class ProviderHydratedDataTable extends AbstractDataTable
 {
     public int $providerCalls = 0;
@@ -778,8 +831,6 @@ final class ProviderHydratedDataTable extends AbstractDataTable
 
     public function configureDataTable(DataTable $table): DataTable
     {
-        $table->unscopedMutations();
-
         return match ($this->mode) {
             'serverSide'  => $table->serverSide(),
             'ajax'        => $table->ajax('/books.json'),

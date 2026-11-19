@@ -55,6 +55,14 @@ final class AjaxEditRelatedEntityTest extends TestCase
 {
     use BuildsEntityManager;
 
+    private static function requestStack(): \Symfony\Component\HttpFoundation\RequestStack
+    {
+        $stack = new \Symfony\Component\HttpFoundation\RequestStack();
+        $stack->push(new Request());
+
+        return $stack;
+    }
+
     private EntityManagerInterface $em;
     private ManagerRegistry $doctrine;
     private AjaxEditController $controller;
@@ -163,7 +171,7 @@ final class AjaxEditRelatedEntityTest extends TestCase
 
         return new AjaxEditController(
             new EntityMutator($locator, PropertyAccess::createPropertyAccessor(), new NullMercurePublisher(), $permissions, new MercureTopicResolver(), new MutationFlusher()),
-            new RowActionGate($this->tokenValidator(), $registry, new BooleanMutationContextResolver($registry), new RowScopeGuard($locator), $locator, $permissions),
+            new RowActionGate($this->tokenValidator(), $registry, new BooleanMutationContextResolver($registry), new RowScopeGuard($locator, self::requestStack()), $locator, $permissions),
         );
     }
 

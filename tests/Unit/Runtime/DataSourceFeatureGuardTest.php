@@ -408,6 +408,24 @@ final class DataSourceFeatureGuardTest extends TestCase
     }
 
     #[Test]
+    #[DataProvider('actionsServedByNoEndpoint')]
+    public function it_accepts_link_only_and_empty_actions_on_any_provider(\Closure $configure): void
+    {
+        (new DataSourceFeatureGuard())->assertMutationsScoped($configure(new DataTable('people')), self::unscopedProvider());
+        $this->addToAssertionCount(1);
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(DataTable): DataTable}>
+     */
+    public static function actionsServedByNoEndpoint(): iterable
+    {
+        yield 'empty actions' => [static fn (DataTable $table): DataTable => $table->columns([ActionColumn::fromActions('actions', 'Actions', new Actions())])];
+        yield 'link-only detail' => [static fn (DataTable $table): DataTable => $table->columns([ActionColumn::fromActions('actions', 'Actions', (new Actions())->add(Action::detail()->linkToUrl('/books')))])];
+        yield 'custom action' => [static fn (DataTable $table): DataTable => $table->columns([ActionColumn::fromActions('actions', 'Actions', (new Actions())->add(Action::new('open')->linkToUrl('/books')))])];
+    }
+
+    #[Test]
     public function it_accepts_a_table_without_actions_on_any_provider(): void
     {
         (new DataSourceFeatureGuard())->assertMutationsScoped((new DataTable('people'))->columns(self::columns()), self::unscopedProvider());
@@ -438,6 +456,7 @@ final class DataSourceFeatureGuardTest extends TestCase
     {
         yield 'row action switch' => [static fn (DataTable $table): DataTable => $table->columns([BooleanColumn::new('active')->renderAsSwitch()])];
         yield 'action column' => [static fn (DataTable $table): DataTable => $table->columns([ActionColumn::fromActions('actions', 'Actions', (new Actions())->add(Action::delete()))])];
+        yield 'collapsible detail' => [static fn (DataTable $table): DataTable => $table->columns([ActionColumn::fromActions('actions', 'Actions', (new Actions())->add(Action::detail()->collapsible('detail.html.twig')))])];
         yield 'bulk action' => [static fn (DataTable $table): DataTable => $table->setBulkActions((new BulkActions())->add(BulkAction::new('touch')->handler(static fn () => null)))];
     }
 

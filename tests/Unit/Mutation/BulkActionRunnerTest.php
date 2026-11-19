@@ -426,6 +426,42 @@ final class BulkActionRunnerTest extends TestCase
     }
 
     #[Test]
+    #[DataProvider('selectAllQueries')]
+    public function it_refuses_a_select_all_on_a_provider_that_collects_identifiers_but_cannot_check_the_scope(array $query): void
+    {
+        $action   = BulkAction::new('touch')->handler(static fn () => $this->fail('The handler must not run.'));
+        $provider = new ScopingProvider(declared: [DataSourceFeature::IdentifierCollection]);
+
+        $this->expectException(MutationNotAllowedException::class);
+
+        $this->runner()->run($this->resolved($action, provider: $provider), $action, new BulkSelection(allMatching: true, query: $query), $this->postRequest());
+    }
+
+    #[Test]
+    public function it_refuses_an_explicit_selection_sent_with_a_real_data_tables_query(): void
+    {
+        $action = BulkAction::new('touch')->handler(static fn () => $this->fail('The handler must not run.'));
+
+        $this->expectException(MutationNotAllowedException::class);
+
+        $this->runner()->run(
+            $this->resolved($action, provider: new IdentifierlessProvider()),
+            $action,
+            new BulkSelection(ids: [1], query: $this->dataTablesQuery()),
+            $this->postRequest(),
+        );
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function selectAllQueries(): iterable
+    {
+        yield 'without draw' => [[]];
+        yield 'with draw' => [['draw' => '1', 'start' => '0', 'length' => '2']];
+    }
+
+    #[Test]
     public function it_refuses_a_provider_whose_supports_throws_an_unhandled_match_error_for_the_row_scope(): void
     {
         $action = BulkAction::new('touch')->handler(static fn () => null);
@@ -887,6 +923,7 @@ final class BulkActionRunnerTest extends TestCase
         });
         $table = new ConfigurableDataTable(
             columnsConfig: [TextColumn::new('name')],
+            configureTable: static fn (DataTable $table): DataTable => $table->unscopedMutations(),
             bulkActions: static fn (BulkActions $actions): BulkActions => $actions->add($action),
         );
 

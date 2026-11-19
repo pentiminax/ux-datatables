@@ -84,6 +84,14 @@ final class RowScopeGuardTest extends TestCase
     use BuildsRowActionGate;
     use CollectsDeprecations;
 
+    private static function requestStack(): RequestStack
+    {
+        $stack = new RequestStack();
+        $stack->push(new Request());
+
+        return $stack;
+    }
+
     private const SECRET = 'test-secret';
 
     private EntityManagerInterface $em;
@@ -176,6 +184,14 @@ final class RowScopeGuardTest extends TestCase
 
         $this->guard()->assertInScope($table, 3);
         $this->assertSame([3, 999], RowScopeGuard::keepInScope($table, new Request(), 'id', [3, 999]));
+    }
+
+    #[Test]
+    public function it_refuses_a_row_without_a_current_request(): void
+    {
+        $this->expectException(MutationNotAllowedException::class);
+
+        (new RowScopeGuard($this->locator()))->assertInScope($this->resolved(), 1);
     }
 
     #[Test]
@@ -439,7 +455,7 @@ final class RowScopeGuardTest extends TestCase
 
     private function guard(): RowScopeGuard
     {
-        return new RowScopeGuard($this->locator());
+        return new RowScopeGuard($this->locator(), self::requestStack());
     }
 
     private function mutator(): EntityMutator

@@ -286,8 +286,9 @@ the case for an API Platform table, `ArrayDataProvider` and a custom provider th
 `DataSourceFeature::RowScope`. 2.0 refuses them:
 
 - A table with row actions or bulk actions on such a provider throws a `LogicException` naming
-  `unscopedMutations()`, when it renders (client-side tables) or on its first data request
-  (server-side tables). Its Ajax endpoints answer `403`.
+  `unscopedMutations()` when it renders, whatever its data source mode. Only the actions the bundle
+  serves through its Ajax endpoints count: delete, edit, a collapsible detail, a boolean switch and
+  bulk actions. Link-only actions and custom actions do not. The Ajax endpoints answer `403`.
 - A provider whose `supports()` throws an `\UnhandledMatchError` for `RowScope` counts as unscoped,
   and is refused the same way.
 - An entity without an identifier field answers `403` instead of skipping the scope check.

@@ -335,8 +335,8 @@ change, the application and its test suite must run with no call to a removed me
     whose data provider cannot check the row scope: an API Platform table, an `ArrayDataProvider`, or
     a custom provider that does not return `true` from `supports()` for
     `DataSourceFeature::RowScope`. Such a table now throws a `LogicException` naming
-    `unscopedMutations()` (at render for client-side tables, on the first data request for
-    server-side ones), and its Ajax endpoints answer `403`.
+    `unscopedMutations()` at render, and its Ajax endpoints answer `403`. Link-only and custom actions
+    do not count.
     - When the scope is enforced elsewhere, add `unscopedMutations()` in `configureDataTable()`.
     - Otherwise implement `IdentifierDataProviderInterface` on the provider and return `true` for
       `DataSourceFeature::RowScope`.

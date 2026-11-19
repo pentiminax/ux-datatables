@@ -265,7 +265,7 @@ A data provider you build yourself in `createDataProvider()` must receive the sc
 `configureBaseQueryBuilder` argument; without it the check covers the whole entity table.
 
 A custom data provider that does not declare `DataSourceFeature::RowScope`, and an API Platform
-backed table, are refused: the table throws a `LogicException` on its first data request and the
+backed table, are refused: the table throws a `LogicException` when it renders and the
 bulk endpoint answers `403`. When the scope is enforced elsewhere, state it on the table with
 `unscopedMutations()`: the handler then receives every identifier that exists, and must scope
 itself.
