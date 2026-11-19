@@ -299,7 +299,7 @@ call to a removed method.
    table was configured into `configureDataTable()`: 2.0 resolves those opt-ins once. Calls to
    `rows()` from a controller need no change.
 6. If the application constructs `DataTablesExtension` itself, pass only the Stimulus helper, the
-   profiler, the authorization checker.
+   authorization checker and, optionally, the profiler, in that order.
 7. Search the payload for a key set both as an option and as an extension: 2.0 throws a
    `LogicException` at render for it. Keep one of the two.
 8. Stop calling `RenderingPreparer`, `FilterEntityOptionsResolver` and `SearchListOptionsResolver`
@@ -392,9 +392,9 @@ call to a removed method.
       `new ExportService($registry, new ColumnResolver($checker))`.
     - `new RowProcessingPipeline($mapper, $columns)` needs `new ColumnResolver($checker)` and
       `new ActionRowDataResolver($checker)` as the third and fourth arguments.
-    - Drop the locator, row scope guard and checker arguments from `new EntityMutator(...)`
+    - Drop the locator and checker arguments from `new EntityMutator(...)`
       (now `$accessor, $publisher, $topicResolver, $flusher`), `new DetailRowService($twig)` and
-      `new EditFormService(...)` (now `$builder, $renderer, $templateResolver, $publisher,
+      `new EditFormService(...)` (also drop the row scope guard; now `$builder, $renderer, $templateResolver, $publisher,
       $topicResolver, $flusher, $columnResolver`).
 
     ```php

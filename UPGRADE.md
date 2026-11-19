@@ -121,7 +121,7 @@ overwriting the first value. Rename or remove the duplicate.
 ### `DataTablesExtension` takes fewer constructor arguments
 
 If you build `DataTablesExtension` by hand, its arguments are now the Stimulus helper, the
-profiler and the authorization checker: drop the column resolver, request stack, CSRF token manager,
+authorization checker and the profiler: drop the column resolver, request stack, CSRF token manager,
 Ajax registry and controller name arguments. The bundle's service needs no change.
 `DataTableProfiler::collectRenderedTable()` now receives the prepared payload and the configured
 table.
@@ -382,14 +382,20 @@ final class TenantProvider implements DataProviderInterface, IdentifierDataProvi
 
 `unscopedMutations()` adds no check: the scope is yours to enforce. It is not deprecated.
 
-On an unscoped provider a bulk action callback receives the identifiers the browser sent, as long as
-a row with that identifier exists. The bundle cannot tell whether the current user may act on it, so
-validate the identifiers in the callback (ownership, tenant, state) before you act on them:
+On an unscoped provider a bulk action handler receives the entities of every identifier the browser
+sent, as long as a row with that identifier exists. The bundle cannot tell whether the current user
+may act on them, so validate each entity in the handler (ownership, tenant, state) and decline the
+ones that fail with `$context->skip()`:
 
 ```php
-BulkAction::new('archive')->handler(function (array $entities) use ($security): void {
-    foreach ($entities as $entity) {
+use Pentiminax\UX\DataTables\Mutation\BulkActionContext;
+use Pentiminax\UX\DataTables\Mutation\BulkRecords;
+
+BulkAction::new('archive')->handler(function (BulkRecords $records, BulkActionContext $context) use ($security): void {
+    foreach ($records as $entity) {
         if ($entity->getOwner() !== $security->getUser()) {
+            $context->skip();
+
             continue;
         }
 
