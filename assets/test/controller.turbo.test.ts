@@ -7,10 +7,6 @@ vi.mock('../src/functions/loadDataTableLibrary.js', () => ({
     loadDataTableLibrary: vi.fn(),
 }))
 
-vi.mock('../src/functions/detectStyleFramework.js', () => ({
-    detectStyleFramework: () => 'dt',
-}))
-
 vi.mock('../src/functions/mercureSubscription.js', () => ({
     createMercureSubscription: vi.fn(),
 }))
@@ -23,7 +19,7 @@ vi.mock('../src/functions/toggleBooleanValue.js', () => ({
     toggleBooleanValue: vi.fn(async () => new Response(null, { status: 200 })),
 }))
 
-import DatatableController from '../src/controller.js'
+import DatatableController from '../src/coreController.js'
 import { deleteEntity } from '../src/functions/deleteEntity.js'
 import { toggleBooleanValue } from '../src/functions/toggleBooleanValue.js'
 
@@ -423,6 +419,7 @@ function mountTable(extraView: Record<string, unknown> = {}): HTMLTableElement {
         'data-datatable-view-value',
         JSON.stringify({
             columns: [{ data: 'name', title: 'Name' }],
+            styleFramework: 'dt',
             ...extraView,
         })
     )

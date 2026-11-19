@@ -18,7 +18,6 @@ import { applyCustomButtonActions } from './functions/applyCustomButtonActions.j
 import { normalizeDisabledColumnControls } from './functions/columnControl.js';
 import { ensureSummaryFooter, hasSummaries, installColumnSummaries, } from './functions/columnSummaries.js';
 import { deleteEntity } from './functions/deleteEntity.js';
-import { detectStyleFramework } from './functions/detectStyleFramework.js';
 import { detectTheme } from './functions/detectTheme.js';
 import { fetchDetailRow } from './functions/fetchDetailRow.js';
 import { fetchEditForm } from './functions/fetchEditForm.js';
@@ -44,7 +43,7 @@ import { applyThemeSearchPlaceholder } from './functions/themeSearchField.js';
 import { toggleBooleanValue } from './functions/toggleBooleanValue.js';
 import { applyUrlStateToPayload, isUrlStateEnabled, readUrlState, writeUrlState, } from './functions/urlState.js';
 import { resolveModalAdapter } from './modal/resolveModalAdapter.js';
-import { isStyleFramework } from './types/styleFramework.js';
+import { isStyleFramework, registeredStyleFramework } from './types/styleFramework.js';
 const EXTENSION_MAP = {
     select: 'select',
     responsive: 'responsive',
@@ -111,7 +110,7 @@ class default_1 extends Controller {
         });
         const framework = isStyleFramework(payload.styleFramework)
             ? payload.styleFramework
-            : detectStyleFramework();
+            : registeredStyleFramework();
         this.framework = framework;
         const DataTable = await loadDataTableLibrary(framework);
         if (this.adoptLiveTable(DataTable)) {

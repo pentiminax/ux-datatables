@@ -10,7 +10,9 @@ export async function resolveModalAdapter(
     const factory = modalAdapters.get(key)
 
     if (!factory) {
-        console.error(`[ux-datatables] No modal adapter registered for "${key}".`)
+        console.error(
+            `[ux-datatables] No modal adapter registered for "${key}". Register one with modalAdapters.register('${key}', factory).`
+        )
 
         return null
     }

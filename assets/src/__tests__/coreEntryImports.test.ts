@@ -44,8 +44,4 @@ describe('core entry', () => {
     it('reaches no optional package, so bundlers and import maps only need Stimulus', () => {
         expect([...bareSpecifiersReachableFrom('core.ts')]).toEqual(['@hotwired/stimulus'])
     })
-
-    it('keeps the built-in loaders reachable from the 1.x controller entry', () => {
-        expect(bareSpecifiersReachableFrom('controller.ts')).toContain('datatables.net-select-bs5')
-    })
 })

@@ -4,8 +4,6 @@ import { requiredExportPackages } from '../loadButtonsLibrary.js'
 
 const frameworks: Array<{ framework: StyleFramework; cssSuffix: string }> = [
     { framework: 'dt', cssSuffix: 'dataTables' },
-    { framework: 'bs', cssSuffix: 'bootstrap' },
-    { framework: 'bs4', cssSuffix: 'bootstrap4' },
     { framework: 'bs5', cssSuffix: 'bootstrap5' },
 ]
 
@@ -58,7 +56,7 @@ describe('loadButtonsLibrary', () => {
             mockSpecifier(frameworkSpecifier, loaded)
             mockSpecifier(cssSpecifier, loaded)
 
-            await import('../builtinPackageLoaders.js')
+            await import('../../../test/support/frameworkLoaders.js')
             const { loadButtonsLibrary } = await import('../loadButtonsLibrary.js')
 
             await loadButtonsLibrary(
@@ -84,7 +82,7 @@ describe('loadButtonsLibrary', () => {
             mockSpecifier(specifier, loaded)
         }
 
-        await import('../builtinPackageLoaders.js')
+        await import('../../../test/support/frameworkLoaders.js')
         const { loadButtonsLibrary } = await import('../loadButtonsLibrary.js')
 
         await loadButtonsLibrary(DataTable as never, 'dt', { topStart: { buttons: ['excel'] } })

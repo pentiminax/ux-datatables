@@ -1,36 +1,29 @@
-export type StyleFramework =
-    | 'dt'
-    /** @deprecated since 1.5, use 'bs5' or 'dt' instead. Removed in 2.0. */
-    | 'bs'
-    /** @deprecated since 1.5, use 'bs5' or 'dt' instead. Removed in 2.0. */
-    | 'bs4'
-    | 'bs5'
+import { packageLoaders } from '../functions/packageLoaders.js'
 
-export interface StyleFrameworkConfig {
-    key: StyleFramework
-    cssPattern: string
-}
+export type StyleFramework = 'dt' | 'bs5'
 
-/**
- * Ordered list of supported DataTables styling frameworks.
- *
- * Order matters: more specific patterns must come before less specific ones.
- * 'bootstrap5' must precede 'bootstrap4', which must precede 'bootstrap',
- * to prevent a partial href match from short-circuiting detection.
- * 'dt' is last and serves as fallback.
- */
-export const STYLE_FRAMEWORKS: StyleFrameworkConfig[] = [
-    { key: 'bs5', cssPattern: 'dataTables.bootstrap5' },
-    { key: 'bs4', cssPattern: 'dataTables.bootstrap4' },
-    { key: 'bs', cssPattern: 'dataTables.bootstrap' },
-    { key: 'dt', cssPattern: 'dataTables.dataTables' },
-]
+export const STYLE_FRAMEWORKS: StyleFramework[] = ['dt', 'bs5']
 
 /**
  * Whether a value is a framework key the app declared explicitly (e.g. via the PHP
- * `styleFramework()` option), as opposed to `undefined` or some other payload value that
- * means autodetection should run instead.
+ * `styleFramework()` option), as opposed to `undefined` or some other payload value.
  */
 export function isStyleFramework(value: unknown): value is StyleFramework {
-    return typeof value === 'string' && STYLE_FRAMEWORKS.some(({ key }) => key === value)
+    return typeof value === 'string' && (STYLE_FRAMEWORKS as string[]).includes(value)
+}
+
+/**
+ * The style a table without a declared one uses: the one the application registered loaders for.
+ * Loaders registered without a framework do not name a style, which then is `dt`.
+ */
+export function registeredStyleFramework(): StyleFramework {
+    const registered = packageLoaders.frameworksOf('dataTables')
+
+    if (registered.length > 1) {
+        throw new Error(
+            `Several styles are registered (${registered.join(', ')}). Set data_tables.style_framework or call styleFramework() on the table.`
+        )
+    }
+
+    return registered[0] ?? 'dt'
 }

@@ -356,13 +356,9 @@ use Pentiminax\UX\DataTables\Enum\StyleFramework;
 $dataTable->styleFramework(StyleFramework::Bootstrap5);
 ```
 
-Without a declared framework, the frontend inspects `document.styleSheets` at connect time and
-warns once per page. Under a lazily-loaded Stimulus controller (`fetch: "lazy"`), the app's own
-stylesheet import can still be in flight when detection runs, which can misdetect the framework.
-Declaring it skips detection entirely, so there's nothing to race. Autodetection is removed in 2.0,
-where the default becomes `dt`.
+Without a declared framework, the frontend uses the style of the registered loaders and never inspects the page stylesheets. With loaders registered for several styles, it fails and asks you to declare one.
 
-Available cases: `DataTables` (`dt`), `Bootstrap` (`bs`), `Bootstrap4` (`bs4`), `Bootstrap5`
+Available cases: `DataTables` (`dt`), `Bootstrap5`
 (`bs5`).
 
 ## Layout

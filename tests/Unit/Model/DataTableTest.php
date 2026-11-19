@@ -1023,37 +1023,6 @@ final class DataTableTest extends TestCase
     }
 
     #[Test]
-    #[DataProvider('deprecatedStyleFrameworks')]
-    public function it_deprecates_bootstrap_3_and_4_but_keeps_them_working(StyleFramework $framework): void
-    {
-        $deprecations = [];
-        set_error_handler(static function (int $level, string $message) use (&$deprecations): bool {
-            $deprecations[] = $message;
-
-            return true;
-        }, \E_USER_DEPRECATED);
-
-        try {
-            $table = (new DataTable('users'))->styleFramework($framework);
-        } finally {
-            restore_error_handler();
-        }
-
-        $this->assertCount(1, $deprecations);
-        $this->assertStringContainsString('Bootstrap5', $deprecations[0]);
-        $this->assertSame($framework->value, $table->getBundleOption('styleFramework'));
-    }
-
-    /**
-     * @return iterable<string, array{StyleFramework}>
-     */
-    public static function deprecatedStyleFrameworks(): iterable
-    {
-        yield 'Bootstrap 3' => [StyleFramework::Bootstrap];
-        yield 'Bootstrap 4' => [StyleFramework::Bootstrap4];
-    }
-
-    #[Test]
     public function it_does_not_deprecate_current_style_frameworks(): void
     {
         $deprecations = [];

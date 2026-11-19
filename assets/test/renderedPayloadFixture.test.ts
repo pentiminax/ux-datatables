@@ -1,6 +1,6 @@
 import { Application } from '@hotwired/stimulus'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import DatatableController from '../src/controller.js'
+import DatatableController from '../src/coreController.js'
 import frFR from '../src/i18n/fr-FR.js'
 import type { ActionType } from '../src/columnRenderers/types.js'
 import { loadDataTableLibrary } from '../src/functions/loadDataTableLibrary.js'
@@ -77,7 +77,6 @@ describe('rendered payload fixture', () => {
         payloads = []
         registeredFeatures = []
         warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-        packageLoaders.setFallback(null)
         packageLoaders.register('buttons', async () => ({}))
         for (const name of ['select', 'responsive'] as const) {
             packageLoaders.register(name, async () => ({}))
@@ -121,7 +120,7 @@ describe('rendered payload fixture', () => {
     it('initializes a table from the pinned payload and keeps its sections', async () => {
         const table = document.createElement('table')
         table.setAttribute('data-controller', 'datatable')
-        table.setAttribute('data-datatable-view-value', JSON.stringify(view))
+        table.setAttribute('data-datatable-view-value', JSON.stringify({ ...view, styleFramework: 'dt' }))
         document.body.appendChild(table)
 
         await vi.waitFor(() => expect(payloads).toHaveLength(1))
@@ -143,7 +142,7 @@ describe('rendered payload fixture', () => {
     it('renders the CUSTOM action, loads the bundled catalog and reads the row action URLs', async () => {
         const table = document.createElement('table')
         table.setAttribute('data-controller', 'datatable')
-        table.setAttribute('data-datatable-view-value', JSON.stringify(view))
+        table.setAttribute('data-datatable-view-value', JSON.stringify({ ...view, styleFramework: 'dt' }))
         document.body.appendChild(table)
 
         await vi.waitFor(() => expect(payloads).toHaveLength(1))

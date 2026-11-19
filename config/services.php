@@ -132,7 +132,6 @@ return static function (ContainerConfigurator $container): void {
         ->arg(0, service('stimulus.helper'))
         ->arg(1, service('datatables.profiler')->nullOnInvalid())
         ->arg(2, service('datatables.security.authorization_checker'))
-        ->arg(3, param('datatables.controller_name'))
         ->tag('twig.extension')
         ->private();
 

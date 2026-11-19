@@ -6,8 +6,6 @@ import type { ExtensionName } from '../packageLoaders.js'
 
 const frameworks: Array<{ framework: StyleFramework; cssSuffix: string }> = [
     { framework: 'dt', cssSuffix: 'dataTables' },
-    { framework: 'bs', cssSuffix: 'bootstrap' },
-    { framework: 'bs4', cssSuffix: 'bootstrap4' },
     { framework: 'bs5', cssSuffix: 'bootstrap5' },
 ]
 
@@ -106,7 +104,7 @@ describe('DataTables extension package resolution', () => {
                 mockSpecifier(specifier, loaded)
             }
 
-            await import('../builtinPackageLoaders.js')
+            await import('../../../test/support/frameworkLoaders.js')
             const { packageLoaders } = await import('../packageLoaders.js')
 
             await packageLoaders.load(name as ExtensionName, framework)
@@ -118,5 +116,4 @@ describe('DataTables extension package resolution', () => {
     it('resolves the DateTime package SearchBuilder needs for date columns', () => {
         expect(existsSync(fileURLToPath(import.meta.resolve('datatables.net-datetime')))).toBe(true)
     })
-
 })

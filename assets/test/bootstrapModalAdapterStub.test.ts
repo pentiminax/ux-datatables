@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { BootstrapModalAdapter } from '../BootstrapModalAdapter.js'
+import { modalAdapters } from '../src/core.js'
 
 vi.mock('bootstrap', () => ({
     Modal: class {
@@ -15,14 +15,20 @@ vi.mock('bootstrap', () => ({
     },
 }))
 
-describe('BootstrapModalAdapter', () => {
+describe('copied Bootstrap modal adapter', () => {
+    const createAdapter = async () => {
+        await import('../../src/Install/stubs/bootstrapModalAdapter.js')
+
+        return (await modalAdapters.get('bs5')?.()) as any
+    }
+
     afterEach(() => {
         document.body.innerHTML = ''
         vi.restoreAllMocks()
     })
 
     it('renders the modal, submits the form, replaces the body, and cleans up on hide', async () => {
-        const adapter = new BootstrapModalAdapter()
+        const adapter = await createAdapter()
         const onSubmit = vi.fn().mockResolvedValue(undefined)
 
         await adapter.show(

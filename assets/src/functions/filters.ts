@@ -42,7 +42,7 @@ interface FilterControl {
     reset: () => void
 }
 
-const BOOTSTRAP_FRAMEWORKS: StyleFramework[] = ['bs', 'bs4', 'bs5']
+const BOOTSTRAP_FRAMEWORKS: StyleFramework[] = ['bs5']
 
 function isBootstrap(framework: StyleFramework): boolean {
     return BOOTSTRAP_FRAMEWORKS.includes(framework)

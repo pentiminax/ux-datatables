@@ -1,28 +1,28 @@
 import { Application } from '@hotwired/stimulus'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import DatatableController from '../src/controller.js'
-import { loadDataTableLibrary } from '../src/functions/loadDataTableLibrary.js'
-import { packageLoaders } from '../src/functions/packageLoaders.js'
 
 vi.mock('../src/functions/loadDataTableLibrary.js', () => ({
     loadDataTableLibrary: vi.fn(),
 }))
 
-vi.mock('../src/functions/detectStyleFramework.js', () => ({
-    detectStyleFramework: () => 'dt',
-}))
-
 describe('optional packages', () => {
+    let DatatableController: typeof import('../src/coreController.js').default
+    let loadDataTableLibrary: typeof import('../src/functions/loadDataTableLibrary.js').loadDataTableLibrary
+    let packageLoaders: typeof import('../src/functions/packageLoaders.js').packageLoaders
     let application: Application
     let payloads: Array<Record<string, any>>
     let warn: ReturnType<typeof vi.spyOn>
     let jszip: ReturnType<typeof vi.fn>
 
-    beforeEach(() => {
+    beforeEach(async () => {
+        // A fresh module graph starts with an empty registry, unlike the one test/setup.ts fills.
+        vi.resetModules()
+        DatatableController = (await import('../src/coreController.js')).default
+        ;({ loadDataTableLibrary } = await import('../src/functions/loadDataTableLibrary.js'))
+        ;({ packageLoaders } = await import('../src/functions/packageLoaders.js'))
         payloads = []
         warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
         jszip = vi.fn()
-        packageLoaders.setFallback(null)
         packageLoaders.register('buttons', async () => ({}))
 
         const initialized = new WeakSet<Element>()

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('registered package loading', () => {
     beforeEach(() => {
-        // test/setup.ts registers the built-in loaders in the shared module graph.
+        // test/setup.ts registers loaders in the shared module graph.
         vi.resetModules()
     })
 
@@ -14,9 +14,11 @@ describe('registered package loading', () => {
         )
     })
 
-    it('is undone by the main entry, which still brings the built-in loaders back in 1.x', async () => {
-        const { packageLoaders } = await import('../index.js')
+    it('exports the controller as the default and the registries from the main entry', async () => {
+        const entry = await import('../core.js')
 
-        expect(packageLoaders.has('select', 'bs5')).toBe(true)
+        expect(entry.default).toBe(entry.DataTableController)
+        expect(entry.packageLoaders).toBeDefined()
+        expect(entry.modalAdapters.get('dt')).not.toBeNull()
     })
 })

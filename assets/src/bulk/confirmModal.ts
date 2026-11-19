@@ -3,7 +3,7 @@ import type { ModalAdapter } from '../modal/ModalAdapter.js'
 import { resolveModalAdapter } from '../modal/resolveModalAdapter.js'
 import type { StyleFramework } from '../types/styleFramework.js'
 
-const BOOTSTRAP_FRAMEWORKS: StyleFramework[] = ['bs', 'bs4', 'bs5']
+const BOOTSTRAP_FRAMEWORKS: StyleFramework[] = ['bs5']
 
 export interface ConfirmRequest {
     message: string

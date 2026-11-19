@@ -1,13 +1,13 @@
 import { Application } from '@hotwired/stimulus'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import DatatableController from '../src/controller.js'
+import DatatableController from '../src/coreController.js'
 import { loadDataTableLibrary } from '../src/functions/loadDataTableLibrary.js'
 
 vi.mock('../src/functions/loadDataTableLibrary.js', () => ({
     loadDataTableLibrary: vi.fn(),
 }))
 
-describe('style framework autodetection', () => {
+describe('style framework default', () => {
     let application: Application
     let warn: ReturnType<typeof vi.spyOn>
 
@@ -39,19 +39,10 @@ describe('style framework autodetection', () => {
         vi.clearAllMocks()
     })
 
-    it('warns that autodetection is removed in 2.0 when the payload names no framework', async () => {
-        await mountTable({})
+    it('uses the framework the payload declares', async () => {
+        await mountTable({ styleFramework: 'bs5' })
 
-        await vi.waitFor(() =>
-            expect(warn).toHaveBeenCalledWith(expect.stringContaining('autodetected'))
-        )
-    })
-
-    it('stays quiet when the payload sets the framework explicitly', async () => {
-        await mountTable({ styleFramework: 'dt' })
-
-        await vi.waitFor(() => expect(loadDataTableLibrary).toHaveBeenCalledWith('dt'))
-        expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('autodetected'))
+        await vi.waitFor(() => expect(loadDataTableLibrary).toHaveBeenCalledWith('bs5'))
     })
 })
 
@@ -68,3 +59,32 @@ async function mountTable(view: Record<string, unknown>): Promise<void> {
         await new Promise((resolve) => setTimeout(resolve, 0))
     }
 }
+
+describe('style framework from the registered loaders', () => {
+    it('resolves a payload without styleFramework to the only registered style', async () => {
+        vi.resetModules()
+        const { packageLoaders } = await import('../src/functions/packageLoaders.js')
+        const { loadDataTableLibrary: mocked } = await import(
+            '../src/functions/loadDataTableLibrary.js'
+        )
+        const { default: Controller } = await import('../src/coreController.js')
+        packageLoaders.register('dataTables', async () => ({}), 'bs5')
+        vi.mocked(mocked).mockResolvedValue(
+            Object.assign(function MockDataTable() {}, { feature: { register: vi.fn() }, isDataTable: () => false }) as never
+        )
+
+        const application = Application.start()
+        application.register('datatable', Controller)
+        const table = document.createElement('table')
+        table.setAttribute('data-controller', 'datatable')
+        table.setAttribute(
+            'data-datatable-view-value',
+            JSON.stringify({ columns: [{ data: 'name', title: 'Name' }] })
+        )
+        document.body.appendChild(table)
+
+        await vi.waitFor(() => expect(mocked).toHaveBeenCalledWith('bs5'))
+        application.stop()
+        document.body.innerHTML = ''
+    })
+})

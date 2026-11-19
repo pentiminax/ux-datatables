@@ -1,33 +1,23 @@
 ---
-title: Loading only the extensions you use
-description: Register the DataTables packages your application needs instead of shipping all of them
+title: Frontend packages and the install command
+description: Install the loaders for your kit and extensions, and load only the DataTables packages you use
 order: 45
 ---
 
-By default, the `datatable` Stimulus controller imports every DataTables package it can use: the
-core in each of four styles, all ten extensions in each style, JSZip, pdfmake, Lucide and
-Bootstrap. Your bundler or import map has to resolve all of them, even when your tables only use
-paging and search, so you have to install every one of those packages.
+The bundle does not ship or maintain the DataTables.net packages. Your application owns a small
+amount of copied frontend code, written by `ux-datatables:install`: the **package loaders** for
+your kit and extensions and, for Bootstrap 5, the modal adapter. Everything that carries a security
+boundary or the payload contract (the PHP runtime, the Ajax controllers, the `datatable` Stimulus
+controller, the Twig templates, the `<dialog>` modal adapter and the Tailwind theme stylesheet)
+stays in the Composer package and receives fixes through `composer update`.
 
-**Registered package loading** inverts this. The `datatable_core` controller imports nothing but
-`@hotwired/stimulus`, and your application registers the packages it uses with `packageLoaders`.
-You install and resolve only the packages you register, and a package you do not register is never
-requested. It does not reduce what the browser downloads for the packages a table actually uses:
-the built-in loaders already fetch each package on demand.
+The `datatable` controller imports nothing but `@hotwired/stimulus`. You install and resolve only
+the packages you register, and a package you do not register is never requested.
 
-<Aside type="note" title="Opt-in in 1.5, the default in 2.0">
-  Registered loading is opt-in in 1.5. When `data_tables.package_loading` is not set, the bundle
-  keeps the 1.x behavior and triggers a deprecation. Setting `package_loading: builtin` explicitly
-  is deprecated too. In 2.0 the option is removed: `builtin` fails with a clear message, and
-  `registered` is accepted, ignored and deprecated. See the
-  [upgrade guide](https://github.com/pentiminax/ux-datatables/blob/main/UPGRADE.md).
-</Aside>
-
-<Aside type="caution" title="Import from the core entry">
-  In registered mode, import everything from `@pentiminax/ux-datatables/dist/core.js`:
-  `packageLoaders`, `buttonActions`, `modalAdapters` and the adapter types. The main entry,
-  `@pentiminax/ux-datatables`, still re-exports the 1.x controller in 1.x, so importing it brings the
-  built-in loaders, and the packages you did not install, back into your bundle.
+<Aside type="note" title="Stable for the whole 2.x line">
+  The loader signature, the `packageLoaders`, `modalAdapters` and `columnStyleAdapters` registries,
+  and the modal and column style adapter interfaces are covered by the backward compatibility
+  promise for 2.x. Copied code never has to be regenerated to stay supported.
 </Aside>
 
 ## Run the install command
@@ -38,18 +28,16 @@ php bin/console ux-datatables:install --style=tailwind buttons responsive select
 
 Extensions are arguments: `buttons`, `colReorder`, `columnControl`, `fixedColumns`, `fixedHeader`,
 `keyTable`, `responsive`, `rowGroup`, `scroller`, `searchBuilder` and `select`. Pass none to pick
-them interactively, or `--all` to select every one.
+them interactively, or `--all` to select every one. Without arguments the command also scans your
+`AbstractDataTable` classes for the extensions they use (`--no-detect` skips the scan).
 
 <Tabs>
   <TabItem label="AssetMapper">
-    The command runs `importmap:require` for you. Run it again with the deprecated
-    `--prune` option to drop the DataTables entries you did not register. Symfony Flex puts the entries the bundle declares back
-    into `importmap.php` on the next `composer install` or `composer update`, so run the command
-    with `--prune` again after each Composer run:
+    The command runs `importmap:require` for the packages you need. It pins a stylesheet to the
+    version of its package and never downgrades a pin.
 
     ```bash
     php bin/console ux-datatables:install --style=tailwind buttons responsive select
-    php bin/console ux-datatables:install --style=tailwind --prune buttons responsive select
     php bin/console cache:clear
     ```
   </TabItem>
@@ -62,23 +50,34 @@ them interactively, or `--all` to select every one.
     npm install datatables.net-dt@3.1.3 datatables.net-buttons-dt@4.1.2 ...
     npm run watch
     ```
-
-    `--prune` (deprecated since 1.7) has no effect with Encore: unregistered packages are simply not bundled.
   </TabItem>
 </Tabs>
 
-The command is idempotent. To change the selection, run it again with the new list of extensions.
+### Kits
+
+<Table
+  headers={['`--style`', 'Packages', 'Stylesheets']}
+  rows={[
+    ['`tailwind` (default)', '`datatables.net-*-dt`', 'DataTables `dt` CSS, the bundle base style and the Tailwind theme'],
+    ['`dt`', '`datatables.net-*-dt`', 'DataTables `dt` CSS and the bundle base style'],
+    ['`bs5`', '`datatables.net-*-bs5`, `bootstrap`', 'Bootstrap 5 DataTables CSS and the bundle base style, plus the copied Bootstrap modal adapter'],
+  ]}
+/>
+
+The Tailwind kit is the `dt` kit with the bundle's Tailwind theme enabled in `controllers.json`; it
+has no loaders of its own. Bootstrap 3 and 4 are not offered. See [Styling](/guide/styling/).
 
 ### What it writes
 
 <Table
   headers={['File', 'Change']}
   rows={[
-    ['`assets/datatables.js`', 'Generated, one `packageLoaders.register()` call per package. Do not edit it.'],
+    ['`assets/datatables.js`', 'One `packageLoaders.register()` call per package. It is yours: edit it to pin a version or swap a package.'],
+    ['`assets/datatables_bootstrap_modal.js`', 'The Bootstrap modal adapter, for the `bs5` kit only. It is imported by `assets/datatables.js`.'],
     ['`assets/stimulus_bootstrap.js` or `assets/bootstrap.js`', 'Adds `import \'./datatables.js\'` so registration runs before the Stimulus app starts.'],
-    ['`assets/controllers.json`', 'Enables `datatable_core`, disables `datatable`, and sets the `autoimport` flags of the chosen style.'],
-    ['`config/packages/data_tables.yaml`', 'Sets `package_loading: registered` and `style_framework` (`dt`, or `bs5` for the Bootstrap 5 style), replacing existing values.'],
-    ['`importmap.php` (AssetMapper)', 'Adds the entry for `dist/core.js`, the DataTables stylesheet of the chosen style, and the packages you registered.'],
+    ['`assets/controllers.json`', 'Enables `datatable` and sets the `autoimport` flags of the chosen kit.'],
+    ['`config/packages/data_tables.yaml`', 'Sets `style_framework` (`dt`, or `bs5`) and removes a leftover `package_loading`.'],
+    ['`importmap.php` (AssetMapper)', 'Adds the entry for `dist/core.js`, the DataTables stylesheet of the chosen kit, and the packages you registered.'],
   ]}
 />
 
@@ -86,27 +85,35 @@ For `buttons`, the command also registers JSZip and pdfmake. They load only when
 `excel` or `pdf` button. Lucide is always registered, because icon columns and empty states use it
 and the command cannot detect them.
 
-### Styles
+### Running it again
 
-<Table
-  headers={['`--style`', 'Packages', 'Stylesheets']}
-  rows={[
-    ['`tailwind` (default)', '`datatables.net-*-dt`', 'DataTables `dt` CSS, the bundle base style and the Tailwind theme'],
-    ['`dt`', '`datatables.net-*-dt`', 'DataTables `dt` CSS and the bundle base style'],
-    ['`bs5`', '`datatables.net-*-bs5`, `bootstrap`', 'Bootstrap 5 DataTables CSS and the bundle base style'],
-  ]}
-/>
+- An unchanged file is left alone.
+- A loader file the command generated and you did not edit is regenerated. It keeps the extensions
+  it already loads, so running the command with one more extension adds only that loader. This also
+  migrates the files written by the 1.5 and 1.6 installer.
+- A file you edited is shown as a diff and replaced only after you confirm. A non-interactive run
+  never overwrites it and says which files it kept.
+- Without `--style`, the kit is inferred from `assets/datatables.js`, `style_framework` and the `autoimport` flags of `controllers.json` (Tailwind on a fresh project). When they disagree the command stops and asks for `--style`.
+- When it keeps a file because you edited it and it runs non-interactively, it prints a warning naming the file and exits with a failure status.
 
-Bootstrap 3 and 4 are not offered. See [Styling](/guide/styling/).
+### Two styles in one application
 
-### Pruning the import map
+`styleFramework()` selects the style per table. When one application mixes styles (for example a
+Bootstrap 5 admin and a Tailwind public site), register the loaders of each style under its
+framework, as the third argument of `register()`. A loader registered for a framework wins over the
+one registered for the name alone:
 
-`--prune` is deprecated since 1.7 and removed in 2.0, because Symfony Flex will no longer declare
-import map entries to prune. It removes the `datatables.net*`, `jszip` and `pdfmake` JavaScript entries from
-`importmap.php` that you did not register. It never touches `bootstrap` or `lucide`, because your
-application may import them itself, and it leaves CSS entries alone: with
-`missing_import_mode: strict`, removing a stylesheet that the 1.x loaders still mention makes
-`asset-map:compile` fail.
+```js
+import { packageLoaders } from '@pentiminax/ux-datatables/dist/core.js'
+
+packageLoaders
+    .register('dataTables', () => import('datatables.net-dt'), 'dt')
+    .register('dataTables', () => import('datatables.net-bs5'), 'bs5')
+```
+
+The command registers its loaders for the kit's framework, so a table that requests a style you did
+not install fails with `The "dataTables" package is not registered`, and one that requests a style
+with no adapter fails with a message naming the missing registration.
 
 ## Manual setup
 
@@ -114,27 +121,20 @@ You do not need the command. Three files carry the whole setup.
 
 <Steps>
 
-1. **Select the controller in `config/packages/data_tables.yaml`**
+1. **Select the style in `config/packages/data_tables.yaml`**
 
     ```yaml
     data_tables:
-        package_loading: registered # builtin | registered
         style_framework: dt # dt | bs5
     ```
 
-    In debug mode, an explicit value that contradicts `assets/controllers.json` fails the
-    container build, instead of rendering a controller nobody registered.
-
-2. **Enable `datatable_core` in `assets/controllers.json`**
+2. **Enable `datatable` in `assets/controllers.json`**
 
     ```json
     {
         "controllers": {
             "@pentiminax/ux-datatables": {
                 "datatable": {
-                    "enabled": false
-                },
-                "datatable_core": {
                     "enabled": true,
                     "fetch": "eager",
                     "autoimport": {
@@ -193,6 +193,9 @@ php bin/console importmap:require datatables.net-dt datatables.net-select-dt \
 
 With Encore, run `npm install` for the same packages.
 
+The package's main entry, `@pentiminax/ux-datatables`, is the same core entry: it exports the
+controller, `packageLoaders`, `buttonActions`, `modalAdapters` and the adapter types.
+
 ## The "package is not registered" error
 
 A table that needs a package you did not register fails with:
@@ -210,6 +213,13 @@ JSZip, pdfmake and Lucide are optional and never raise this error. Without JSZip
 Buttons loads without Excel and PDF support, and the console warns which package is missing for the
 `excel` or `pdf` button your layout declares. A JSZip or pdfmake that fails to load disables only
 its button and warns. Without Lucide, tables initialize without their icons and the console warns.
+
+## Leftover 1.x configuration
+
+`data_tables.package_loading: registered` is accepted, ignored and deprecated: remove it.
+`package_loading: builtin` fails, because the built-in loaders no longer exist; run
+`ux-datatables:install` instead. The `datatable_core` controller stays as a deprecated alias of
+`datatable` until 3.0; the command leaves its `controllers.json` entry as it finds it.
 
 ## Third-party extensions
 

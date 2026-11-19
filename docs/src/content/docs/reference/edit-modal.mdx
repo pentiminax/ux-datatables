@@ -36,11 +36,11 @@ public function configureActions(Actions $actions): Actions
 }
 ```
 
-The Stimulus controller detects the CSS framework on page load. When no Bootstrap stylesheet is found, it falls back to `dt` and uses the built-in `DialogModalAdapter` with the default `@PentiminaxDataTables/modal/datatables/` Twig template.
+The Stimulus controller uses the `style_framework` your config or the table declares (unset: the style of the registered loaders, and several registered styles throw), `dt` with the built-in `DialogModalAdapter` with the default `@PentiminaxDataTables/modal/datatables/` Twig template.
 
 ## Bootstrap Projects
 
-When Bootstrap 5 CSS is detected, the `BootstrapModalAdapter` is used automatically. Override the Twig template globally to match:
+With `style_framework: bs5`, the `BootstrapModalAdapter` that `ux-datatables:install --style=bs5` copied into `assets/datatables_bootstrap_modal.js` is used. Override the Twig template globally to match:
 
 ```yaml
 # config/packages/data_tables.yaml
@@ -251,7 +251,7 @@ The built-in adapters are:
 | Key                  | Adapter                 | When used                               |
 | -------------------- | ----------------------- | --------------------------------------- |
 | `dt`                 | `DialogModalAdapter`    | Default fallback (Tailwind, custom CSS) |
-| `bs` / `bs4` / `bs5` | `BootstrapModalAdapter` | Bootstrap CSS detected                  |
+| `bs5`                | `BootstrapModalAdapter` | Copied by `ux-datatables:install --style=bs5` |
 
 ## Cross Links
 

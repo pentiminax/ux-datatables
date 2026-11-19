@@ -870,19 +870,10 @@ class DataTable
     }
 
     /**
-     * Declare the CSS framework this table renders against, skipping the frontend's
-     * stylesheet-sniffing autodetection.
-     *
-     * Autodetection inspects document.styleSheets at connect() time, which can race a
-     * lazily-loaded framework stylesheet that has not finished importing yet. Set this
-     * whenever the framework is already known so the frontend never has to guess.
+     * Declare the CSS framework this table renders against, overriding data_tables.style_framework.
      */
     public function styleFramework(StyleFramework $framework): static
     {
-        if (\in_array($framework, [StyleFramework::Bootstrap, StyleFramework::Bootstrap4], true)) {
-            trigger_deprecation('pentiminax/ux-datatables', '1.5', 'Passing "%s::%s" to "styleFramework()" is deprecated and removed in 2.0, use "%1$s::Bootstrap5" or "%1$s::DataTables" instead.', StyleFramework::class, $framework->name);
-        }
-
         $this->options->set('styleFramework', $framework->value);
 
         return $this;

@@ -1,7 +1,7 @@
 import { applyFeatureLayout } from './featureLayout.js';
 import { isRecord } from './htmlUtils.js';
 import { createPopover } from './popover.js';
-const BOOTSTRAP_FRAMEWORKS = ['bs', 'bs4', 'bs5'];
+const BOOTSTRAP_FRAMEWORKS = ['bs5'];
 function isBootstrap(framework) {
     return BOOTSTRAP_FRAMEWORKS.includes(framework);
 }

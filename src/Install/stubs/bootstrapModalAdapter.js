@@ -1,20 +1,14 @@
-import { packageLoaders } from '../functions/packageLoaders.js'
-import type { ModalAdapter, ModalHandlers } from './ModalAdapter.js'
-import { createModalRoot, extractFormData } from './modalUtils.js'
+// Bootstrap 5 edit modal adapter, copied by bin/console ux-datatables:install. Adapt it to your Bootstrap setup.
+import {
+    createModalRoot,
+    extractFormData,
+    modalAdapters,
+    packageLoaders,
+} from '@pentiminax/ux-datatables/dist/core.js'
 
-type BootstrapModalInstance = {
-    dispose?: () => void
-    hide: () => void
-    show: () => void
-}
-
-type BootstrapModalConstructor = new (element: HTMLElement) => BootstrapModalInstance
-
-async function loadBootstrapModal(): Promise<BootstrapModalConstructor | null> {
+async function loadBootstrapModal() {
     try {
-        const bootstrap = (await packageLoaders.load('bootstrap')) as {
-            Modal?: BootstrapModalConstructor
-        }
+        const bootstrap = await packageLoaders.load('bootstrap')
 
         return bootstrap.Modal ?? null
     } catch (error) {
@@ -24,17 +18,17 @@ async function loadBootstrapModal(): Promise<BootstrapModalConstructor | null> {
     }
 }
 
-export class BootstrapModalAdapter implements ModalAdapter {
-    private modalRoot: HTMLElement | null = null
-    private modalBody: HTMLElement | null = null
-    private submitButton: HTMLButtonElement | null = null
-    private modalInstance: BootstrapModalInstance | null = null
-    private handlers: ModalHandlers | null = null
-    private open = false
-    private notifyCancelOnHide = true
-    private hideResolver: (() => void) | null = null
+class BootstrapModalAdapter {
+    modalRoot = null
+    modalBody = null
+    submitButton = null
+    modalInstance = null
+    handlers = null
+    open = false
+    notifyCancelOnHide = true
+    hideResolver = null
 
-    private readonly hiddenListener = (): void => {
+    hiddenListener = () => {
         const shouldCancel = this.notifyCancelOnHide
         const onCancel = this.handlers?.onCancel
 
@@ -47,12 +41,12 @@ export class BootstrapModalAdapter implements ModalAdapter {
         }
     }
 
-    private readonly submitListener = async (): Promise<void> => {
+    submitListener = async () => {
         if (!this.handlers || !this.submitButton || !this.modalBody) {
             return
         }
 
-        const form = this.modalBody.querySelector<HTMLFormElement>('#ux-datatables-edit-form')
+        const form = this.modalBody.querySelector('#ux-datatables-edit-form')
 
         if (!form) {
             console.error('[ux-datatables] Missing #ux-datatables-edit-form inside the modal body.')
@@ -75,7 +69,7 @@ export class BootstrapModalAdapter implements ModalAdapter {
         }
     }
 
-    async show(html: string, handlers: ModalHandlers): Promise<void> {
+    async show(html, handlers) {
         this.cleanup()
         this.handlers = handlers
         this.notifyCancelOnHide = true
@@ -86,10 +80,8 @@ export class BootstrapModalAdapter implements ModalAdapter {
             return
         }
 
-        const modalBody = modalRoot.querySelector<HTMLElement>('[data-ux-datatables-modal-body]')
-        const submitButton = modalRoot.querySelector<HTMLButtonElement>(
-            '[data-ux-datatables-submit]'
-        )
+        const modalBody = modalRoot.querySelector('[data-ux-datatables-modal-body]')
+        const submitButton = modalRoot.querySelector('[data-ux-datatables-submit]')
 
         if (!modalBody || !submitButton) {
             console.error(
@@ -119,7 +111,7 @@ export class BootstrapModalAdapter implements ModalAdapter {
         this.open = true
     }
 
-    replaceBody(html: string): void {
+    replaceBody(html) {
         if (!this.modalBody) {
             console.error('[ux-datatables] Cannot replace modal body before the modal is shown.')
 
@@ -129,7 +121,7 @@ export class BootstrapModalAdapter implements ModalAdapter {
         this.modalBody.innerHTML = html
     }
 
-    hide(): Promise<void> {
+    hide() {
         if (!this.modalInstance || !this.open) {
             this.cleanup()
 
@@ -144,11 +136,11 @@ export class BootstrapModalAdapter implements ModalAdapter {
         })
     }
 
-    isOpen(): boolean {
+    isOpen() {
         return this.open
     }
 
-    private cleanup(): void {
+    cleanup() {
         this.open = false
 
         if (this.submitButton) {
@@ -169,3 +161,5 @@ export class BootstrapModalAdapter implements ModalAdapter {
         this.handlers = null
     }
 }
+
+modalAdapters.register('bs5', () => new BootstrapModalAdapter())

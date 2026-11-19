@@ -6,11 +6,7 @@ vi.mock('../src/functions/loadDataTableLibrary.js', () => ({
     loadDataTableLibrary: vi.fn(),
 }))
 
-vi.mock('../src/functions/detectStyleFramework.js', () => ({
-    detectStyleFramework: () => 'dt',
-}))
-
-import DatatableController from '../src/controller.js'
+import DatatableController from '../src/coreController.js'
 
 const INSTANCE_LIMIT = 5
 
@@ -76,7 +72,7 @@ describe('datatable controller DOM wrapping', () => {
         table.setAttribute('data-controller', 'datatable')
         table.setAttribute(
             'data-datatable-view-value',
-            JSON.stringify({ columns: [{ data: 'name', title: 'Name' }] })
+            JSON.stringify({ columns: [{ data: 'name', title: 'Name' }], styleFramework: 'dt' })
         )
         document.body.appendChild(table)
 

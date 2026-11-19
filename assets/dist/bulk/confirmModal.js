@@ -1,6 +1,6 @@
 import { escapeHtml } from '../functions/htmlUtils.js';
 import { resolveModalAdapter } from '../modal/resolveModalAdapter.js';
-const BOOTSTRAP_FRAMEWORKS = ['bs', 'bs4', 'bs5'];
+const BOOTSTRAP_FRAMEWORKS = ['bs5'];
 export async function confirmAction(request) {
     const modal = await resolveModalAdapter(request.adapterKey ?? null, request.framework);
     if (!modal) {

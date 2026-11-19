@@ -1,7 +1,7 @@
 import { Application } from '@hotwired/stimulus'
 import DataTable from 'datatables.net-dt'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import DatatableController from '../src/controller.js'
+import DatatableController from '../src/coreController.js'
 
 describe('datatable controller text rendering', () => {
     let application: Application

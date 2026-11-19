@@ -4,16 +4,15 @@ export type ExtensionName = (typeof EXTENSION_NAMES)[number];
 declare const PACKAGE_NAMES: readonly ["dataTables", "buttons", "jszip", "pdfmake", "bootstrap", "lucide", "colReorder", "columnControl", "fixedColumns", "fixedHeader", "keyTable", "responsive", "rowGroup", "scroller", "searchBuilder", "select"];
 export type PackageName = (typeof PACKAGE_NAMES)[number];
 export type PackageLoader = () => Promise<unknown>;
-type FallbackResolver = (name: PackageName, framework: StyleFramework | undefined) => PackageLoader | undefined;
 export declare class PackageLoaderRegistry {
     private readonly loaders;
-    private fallback;
-    register(name: PackageName, loader: PackageLoader): this;
+    register(name: PackageName, loader: PackageLoader, framework?: StyleFramework): this;
     isRegistered(name: PackageName): boolean;
+    frameworksOf(name: PackageName): StyleFramework[];
     has(name: PackageName, framework?: StyleFramework): boolean;
     load(name: PackageName, framework?: StyleFramework): Promise<unknown>;
-    setFallback(fallback: FallbackResolver | null): void;
     private resolve;
+    private key;
 }
 export declare const packageLoaders: PackageLoaderRegistry;
 export declare function defaultExport<T>(module: unknown): T;

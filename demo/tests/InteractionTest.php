@@ -37,7 +37,7 @@ final class InteractionTest extends DataTableTestCase
         self::getContainer()->get(DemoSeeder::class)->reset();
 
         $crawler             = $this->client->request('GET', '/en/actions');
-        $view                = json_decode((string) $crawler->filter('table[data-controller]')->attr(DataTablesExtension::CORE_VIEW_ATTRIBUTE), true, flags: \JSON_THROW_ON_ERROR);
+        $view                = json_decode((string) $crawler->filter('table[data-controller]')->attr(DataTablesExtension::VIEW_ATTRIBUTE), true, flags: \JSON_THROW_ON_ERROR);
         $this->mutationToken = $view['csrfToken'];
     }
 

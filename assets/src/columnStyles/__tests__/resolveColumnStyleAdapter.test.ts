@@ -6,7 +6,7 @@ import { TailwindColumnStyleAdapter } from '../TailwindColumnStyleAdapter.js'
 import { TailwindThemeColumnStyleAdapter } from '../TailwindThemeColumnStyleAdapter.js'
 
 describe('resolveColumnStyleAdapter', () => {
-    it.each(['bs', 'bs4', 'bs5'] as const)(
+    it.each(['bs5'] as const)(
         'resolves the Bootstrap adapter for the %s framework',
         (framework) => {
             expect(resolveColumnStyleAdapter(framework)).toBeInstanceOf(BootstrapColumnStyleAdapter)
@@ -41,5 +41,11 @@ describe('resolveColumnStyleAdapter', () => {
         } finally {
             columnStyleAdapters.register('tailwind', previous ?? (() => custom))
         }
+    })
+
+    it('fails with the missing registration when no adapter exists for the framework', () => {
+        expect(() => resolveColumnStyleAdapter('missing' as never)).toThrow(
+            `columnStyleAdapters.register('missing', factory)`
+        )
     })
 })

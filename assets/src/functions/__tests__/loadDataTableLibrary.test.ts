@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { StyleFramework } from '../../types/styleFramework.js'
 
-const frameworks: StyleFramework[] = ['dt', 'bs', 'bs4', 'bs5']
+const frameworks: StyleFramework[] = ['dt', 'bs5']
 
 describe('loadDataTableLibrary', () => {
     afterEach(() => {
@@ -19,7 +19,7 @@ describe('loadDataTableLibrary', () => {
 
             vi.doMock(`datatables.net-${framework}`, () => ({ default: DataTable }))
 
-            await import('../builtinPackageLoaders.js')
+            await import('../../../test/support/frameworkLoaders.js')
             const { loadDataTableLibrary } = await import('../loadDataTableLibrary.js')
 
             await expect(loadDataTableLibrary(framework)).resolves.toBe(DataTable)

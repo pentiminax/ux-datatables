@@ -26,7 +26,6 @@ import {
     installColumnSummaries,
 } from './functions/columnSummaries.js'
 import { deleteEntity } from './functions/deleteEntity.js'
-import { detectStyleFramework } from './functions/detectStyleFramework.js'
 import { detectTheme } from './functions/detectTheme.js'
 import { fetchDetailRow } from './functions/fetchDetailRow.js'
 import { fetchEditForm } from './functions/fetchEditForm.js'
@@ -64,7 +63,7 @@ import {
 } from './functions/urlState.js'
 import { resolveModalAdapter } from './modal/resolveModalAdapter.js'
 import type { DataTableView } from './types/dataTableView.js'
-import { isStyleFramework, type StyleFramework } from './types/styleFramework.js'
+import { isStyleFramework, registeredStyleFramework, type StyleFramework } from './types/styleFramework.js'
 
 /**
  * Maps DataTables payload property keys to the package loader of their extension.
@@ -179,7 +178,7 @@ export default class extends Controller {
 
         const framework = isStyleFramework(payload.styleFramework)
             ? payload.styleFramework
-            : detectStyleFramework()
+            : registeredStyleFramework()
         this.framework = framework
 
         const DataTable = await loadDataTableLibrary(framework)

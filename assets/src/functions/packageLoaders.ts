@@ -30,33 +30,35 @@ export type PackageName = (typeof PACKAGE_NAMES)[number]
 /** Imports a package (JS and CSS) and resolves with its module namespace. */
 export type PackageLoader = () => Promise<unknown>
 
-type FallbackResolver = (
-    name: PackageName,
-    framework: StyleFramework | undefined
-) => PackageLoader | undefined
-
 /**
- * Maps the optional packages the controller needs to loaders the application declares, so its
+ * Maps the optional packages the controller needs to loaders the application registers, so its
  * bundler or import map only ships what the application actually registered.
  */
 export class PackageLoaderRegistry {
-    private readonly loaders = new Map<PackageName, PackageLoader>()
-    private fallback: FallbackResolver | null = null
+    private readonly loaders = new Map<string, PackageLoader>()
 
-    register(name: PackageName, loader: PackageLoader): this {
+    /** A loader registered for a framework wins over the one registered for the name alone. */
+    register(name: PackageName, loader: PackageLoader, framework?: StyleFramework): this {
         if (!(PACKAGE_NAMES as readonly string[]).includes(name)) {
             throw new Error(
                 `Cannot register an unknown package "${name}". Valid names: ${PACKAGE_NAMES.join(', ')}.`
             )
         }
 
-        this.loaders.set(name, loader)
+        this.loaders.set(this.key(name, framework), loader)
 
         return this
     }
 
     isRegistered(name: PackageName): boolean {
-        return this.loaders.has(name)
+        return this.resolve(name) !== undefined
+    }
+
+    /** The frameworks a package has a framework-scoped loader for. */
+    frameworksOf(name: PackageName): StyleFramework[] {
+        return [...this.loaders.keys()]
+            .filter((key) => key.startsWith(`${name}:`))
+            .map((key) => key.slice(name.length + 1) as StyleFramework)
     }
 
     has(name: PackageName, framework?: StyleFramework): boolean {
@@ -67,23 +69,32 @@ export class PackageLoaderRegistry {
         const loader = this.resolve(name, framework)
 
         if (!loader) {
-            return Promise.reject(
-                new Error(
-                    `The "${name}" package is not registered. Install it and register it with packageLoaders.register('${name}', loader).`
-                )
-            )
+            const others = this.frameworksOf(name)
+            const hint =
+                framework !== undefined && others.length > 0
+                    ? ` It is registered only for the ${others.join(', ')} style, not for "${framework}": register it for "${framework}" with packageLoaders.register('${name}', loader, '${framework}').`
+                    : ` Install it and register it with packageLoaders.register('${name}', loader).`
+
+            return Promise.reject(new Error(`The "${name}" package is not registered.${hint}`))
         }
 
         return loader()
     }
 
-    /** @internal */
-    setFallback(fallback: FallbackResolver | null): void {
-        this.fallback = fallback
+    private resolve(name: PackageName, framework?: StyleFramework): PackageLoader | undefined {
+        const loader = this.loaders.get(this.key(name, framework)) ?? this.loaders.get(name)
+
+        if (loader || framework !== undefined) {
+            return loader
+        }
+
+        const [first] = this.frameworksOf(name)
+
+        return first === undefined ? undefined : this.loaders.get(this.key(name, first))
     }
 
-    private resolve(name: PackageName, framework?: StyleFramework): PackageLoader | undefined {
-        return this.loaders.get(name) ?? this.fallback?.(name, framework)
+    private key(name: PackageName, framework?: StyleFramework): string {
+        return framework === undefined ? name : `${name}:${framework}`
     }
 }
 

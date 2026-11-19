@@ -8,12 +8,10 @@ use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInter
 use Pentiminax\UX\DataTables\Contracts\DataTableDefaultsConfiguratorInterface;
 use Pentiminax\UX\DataTables\DependencyInjection\Compiler\CsrfTokenManagerPass;
 use Pentiminax\UX\DataTables\DependencyInjection\Compiler\DataTableRegistryPass;
-use Pentiminax\UX\DataTables\DependencyInjection\Compiler\PackageLoadingControllerPass;
 use Pentiminax\UX\DataTables\DependencyInjection\Compiler\ValidateDataTableAttributesPass;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
-use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use Symfony\Bundle\MakerBundle\Maker\AbstractMaker;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
@@ -36,7 +34,6 @@ class PentiminaxDataTablesBundle extends AbstractBundle
         $container->addCompilerPass(new DataTableRegistryPass());
         $container->addCompilerPass(new ValidateDataTableAttributesPass());
         $container->addCompilerPass(new CsrfTokenManagerPass());
-        $container->addCompilerPass(new PackageLoadingControllerPass());
     }
 
     public function configure(DefinitionConfigurator $definition): void
@@ -44,12 +41,27 @@ class PentiminaxDataTablesBundle extends AbstractBundle
         $definition->rootNode()
             ->children()
                 ->enumNode('package_loading')
-                    ->values(['builtin', 'registered'])
-                    ->info('Who loads the DataTables packages: "builtin" bundles every package (1.x behavior), "registered" loads only the packages the application registers with packageLoaders. Unset follows "builtin"; the default becomes "registered" in 2.0.')
+                    ->values(['registered', 'builtin'])
+                    ->info('Deprecated and ignored: packages are always loaded through the loaders registered with packageLoaders. "builtin" fails, run "bin/console ux-datatables:install" instead.')
+                    ->validate()
+                        ->always(static function (string $value): string {
+                            if ('builtin' === $value) {
+                                throw new \InvalidArgumentException('The "data_tables.package_loading" option no longer accepts "builtin": 2.0 removed the built-in package loaders. Run "bin/console ux-datatables:install" to register the packages your application loads, then remove the option.');
+                            }
+
+                            trigger_deprecation('pentiminax/ux-datatables', '2.0', 'The "data_tables.package_loading" option is deprecated and ignored, remove it. Removed in 3.0.');
+
+                            return $value;
+                        })
+                    ->end()
                 ->end()
                 ->enumNode('style_framework')
                     ->values(['dt', 'bs5'])
-                    ->info('CSS framework DataTables.net renders against: "dt" for the DataTables.net and Tailwind styles, "bs5" for Bootstrap 5. A table overrides it with styleFramework(). Unset leaves the browser to detect it from the stylesheets, which is removed in 2.0, where the default becomes "dt".')
+                    ->beforeNormalization()
+                        ->ifTrue(static fn (mixed $value): bool => \in_array($value, ['bs', 'bs4'], true))
+                        ->thenInvalid('Bootstrap 3 and 4 are not supported since 2.0. Use "bs5" for Bootstrap 5, or "dt" for the DataTables.net and Tailwind styles.')
+                    ->end()
+                    ->info('CSS framework DataTables.net renders against: "dt" for the DataTables.net and Tailwind styles, "bs5" for Bootstrap 5. A table overrides it with styleFramework(). Unset, the frontend uses the style of the loaders the application registered.')
                 ->end()
                 ->integerNode('max_page_length')
                     ->min(1)
@@ -164,21 +176,7 @@ class PentiminaxDataTablesBundle extends AbstractBundle
         $formAvailable    = interface_exists(FormFactoryInterface::class);
         $mercureAvailable = interface_exists(HubInterface::class);
 
-        $packageLoading = $config['package_loading'] ?? null;
-
-        if (null === $packageLoading) {
-            trigger_deprecation('pentiminax/ux-datatables', '1.5', 'Not setting "data_tables.package_loading" is deprecated: its default becomes "registered" in 2.0. Set "package_loading: registered", or run "bin/console ux-datatables:install".');
-        } else {
-            if ('builtin' === $packageLoading) {
-                trigger_deprecation('pentiminax/ux-datatables', '1.5', 'Setting "data_tables.package_loading" to "builtin" is deprecated: "builtin" fails in 2.0, where the built-in loaders are removed. Set "package_loading: registered", or run "bin/console ux-datatables:install".');
-            }
-
-            // Only an explicit choice is checked against controllers.json: 1.x apps may register the controller themselves.
-            $container->parameters()->set('datatables.package_loading', $packageLoading);
-        }
-
         $container->parameters()
-            ->set('datatables.controller_name', 'registered' === $packageLoading ? DataTablesExtension::CORE_CONTROLLER_NAME : DataTablesExtension::CONTROLLER_NAME)
             ->set('datatables.options', ($config['options'] ?? []) + (isset($config['style_framework']) ? ['styleFramework' => $config['style_framework']] : []))
             ->set('datatables.table_attributes', $config['table_attributes'] ?? [])
             ->set('datatables.extensions', $config['extensions'] ?? [])

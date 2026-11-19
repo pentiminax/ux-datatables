@@ -23,7 +23,7 @@ enum InstallStyle: string
     }
 
     /**
-     * Flags of the datatable_core controller's "autoimport" in assets/controllers.json.
+     * Flags of the datatable controller's "autoimport" in assets/controllers.json.
      *
      * @return array<string, bool>
      */

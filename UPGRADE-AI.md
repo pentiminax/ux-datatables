@@ -237,12 +237,47 @@ must log no `pentiminax/ux-datatables` deprecation.
 <upgrade-prompt version="2.0">
 
 Context: ux-datatables 2.0 removes what 1.x deprecated. This section covers rendering (rendering no
-longer writes to the table, and the option bag holds DataTables.net options only) and columns
-(`AbstractColumn` is the only column implementation, and every column `setX()` method is gone) and
-data providers (`DataProviderInterface` is the only provider contract). After this
+longer writes to the table, and the option bag holds DataTables.net options only), columns
+(`AbstractColumn` is the only column implementation, and every column `setX()` method is gone), data
+providers (`DataProviderInterface` is the only provider contract) and the frontend distribution
+(built-in package loaders, `package_loading`, Bootstrap 3 and 4, style autodetection and `--prune`
+are removed). After this
 change, the application and its test suite must run with no call to a removed method.
 
 ## Required changes
+
+### Frontend distribution
+
+1. Run `php bin/console ux-datatables:install --style=<tailwind|dt|bs5> <extensions>` non-interactively
+   once. Pick the style from `data_tables.style_framework` or the page's CSS (`bs5` for Bootstrap
+   5, `tailwind` for the bundled Tailwind theme, else `dt`). Pass the extensions the tables use
+   (`buttons`, `colReorder`, `columnControl`, `fixedColumns`, `fixedHeader`, `keyTable`,
+   `responsive`, `rowGroup`, `scroller`, `searchBuilder`, `select`) or omit them to let the command
+   detect them. The command migrates the files the 1.5 and 1.6 installer wrote in place, never
+   overwrites a file you edited when non-interactive (it prints a warning naming the files it kept
+   and exits with a failure status: review them; for `bs5`, add `import './datatables_bootstrap_modal.js'` to a kept `datatables.js` and pass `'bs5'` as the third argument of its `dataTables` and extension `register()` calls, or pass `--style` when it reports an ambiguous kit),
+   runs `importmap:require` under AssetMapper, and prints an `npm install` line under a bundler:
+   run that line.
+2. Remove `package_loading` from `config/packages/*.yaml` (the command does it for the file it
+   edits). `builtin` fails; `registered` is deprecated and ignored.
+3. In `assets/controllers.json`, `datatable` must be enabled (the command does it; it leaves
+   `datatable_core`, now a deprecated alias, as it is). Replace `pentiminax--ux-datatables--datatable-core` with
+   `pentiminax--ux-datatables--datatable` in code that looks up the controller by identifier.
+4. Replace imports of `@pentiminax/ux-datatables/dist/controller.js`, `dist/index.js` or
+   `BootstrapModalAdapter` with `@pentiminax/ux-datatables/dist/core.js`; the Bootstrap adapter is
+   the copied `assets/datatables_bootstrap_modal.js`.
+5. Replace `StyleFramework::Bootstrap` and `StyleFramework::Bootstrap4` with
+   `StyleFramework::Bootstrap5` or `StyleFramework::DataTables`, and remove `bs` and `bs4` from
+   `style_framework` and `editModalAdapter()`. Remove the `datatables.net-bs`, `-bs4` and
+   `-*-bs`/`-bs4` packages from `importmap.php` or `package.json`.
+6. Remove `--prune` from every `ux-datatables:install` invocation. Replace uses of
+   `DataTablesExtension::CORE_CONTROLLER_NAME`, `CORE_VIEW_ATTRIBUTE`, the `$controllerName`
+   constructor argument and the `datatables.controller_name` parameter with `CONTROLLER_NAME` and
+   `VIEW_ATTRIBUTE`.
+7. Remove the import map entries or `package.json` dependencies for DataTables packages the
+   command did not require.
+
+### Rendering, columns, data providers and row scope
 
 1. Replace `$table->getDataTable()` and `$table->prepareForRendering()` on an `AbstractDataTable`:
    read configuration with `$table->getConfiguredDataTable()`, render with `render_datatable()` in
@@ -263,7 +298,7 @@ change, the application and its test suite must run with no call to a removed me
    table was configured into `configureDataTable()`: 2.0 resolves those opt-ins once. Calls to
    `rows()` from a controller need no change.
 6. If the application constructs `DataTablesExtension` itself, pass only the Stimulus helper, the
-   profiler, the authorization checker and the controller name.
+   profiler, the authorization checker.
 7. Search the payload for a key set both as an option and as an extension: 2.0 throws a
    `LogicException` at render for it. Keep one of the two.
 8. Stop calling `RenderingPreparer`, `FilterEntityOptionsResolver` and `SearchListOptionsResolver`
