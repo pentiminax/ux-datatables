@@ -147,7 +147,7 @@ with it (required on a table with a date column), but not its CSS: import
 1.3 behavior: an unsupported or malformed criterion answers HTTP 400; an incomplete criterion
 (no value yet) is ignored; the `without` condition is not offered, and `searchable(false)` columns
 are excluded. A data source that cannot apply SearchBuilder (API Platform, or a provider whose
-`FeatureAwareDataProviderInterface::supports()` says no) throws a `LogicException` at render time
+`DataProviderInterface::supports()` says no) throws a `LogicException` at render time
 or answers 400. Placing `Feature::SEARCH_BUILDER` in a `layout()` without the extension is deprecated
 since 1.3 (throws in 2.0): call `searchBuilder()` or `addExtension(new SearchBuilderExtension())`.
 

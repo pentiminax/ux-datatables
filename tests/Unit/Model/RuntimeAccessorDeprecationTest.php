@@ -6,7 +6,6 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
-use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
@@ -215,8 +214,13 @@ final class RuntimeAccessorDeprecationTest extends TestCase
     }
 }
 
-final class RuntimeAccessorProvider implements DataProviderInterface, FeatureAwareDataProviderInterface
+final class RuntimeAccessorProvider implements DataProviderInterface
 {
+    public function iterateRows(DataTableRequest $request): iterable
+    {
+        return $this->fetchData($request)->data;
+    }
+
     public function supports(DataSourceFeature $feature): bool
     {
         return true;
@@ -301,8 +305,13 @@ final class CurrentRequestTable extends AbstractDataTable
     }
 }
 
-final class CallbackProvider implements DataProviderInterface, FeatureAwareDataProviderInterface
+final class CallbackProvider implements DataProviderInterface
 {
+    public function iterateRows(DataTableRequest $request): iterable
+    {
+        return $this->fetchData($request)->data;
+    }
+
     public function __construct(private readonly \Closure $callback)
     {
     }

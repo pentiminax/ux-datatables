@@ -13,7 +13,7 @@ use Pentiminax\UX\DataTables\Mutation\RowScopeGuard;
 /**
  * A real RowScopeGuard that lets every row through, for tests that are not about the table scope.
  *
- * Its own registry reports an entity without identifier, so the guard returns before any query.
+ * The tables under test must call unscopedMutations(), so the guard never queries a provider.
  *
  * @internal
  */
@@ -22,7 +22,7 @@ trait BuildsUnscopedRowScopeGuard
     protected function unscopedRowScopeGuard(): RowScopeGuard
     {
         $metadata = $this->createStub(ClassMetadata::class);
-        $metadata->method('getIdentifier')->willReturn([]);
+        $metadata->method('getIdentifier')->willReturn(['id']);
 
         $manager = $this->createStub(ObjectManager::class);
         $manager->method('getClassMetadata')->willReturn($metadata);

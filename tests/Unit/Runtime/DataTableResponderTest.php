@@ -6,7 +6,6 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Runtime;
 
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
-use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
@@ -81,7 +80,12 @@ final class DataTableResponderTest extends TestCase
 
     private function table(): ConfigurableDataTable
     {
-        return new ConfigurableDataTable([TextColumn::new('id')], dataProvider: new class implements DataProviderInterface, FeatureAwareDataProviderInterface {
+        return new ConfigurableDataTable([TextColumn::new('id')], dataProvider: new class implements DataProviderInterface {
+            public function iterateRows(DataTableRequest $request): iterable
+            {
+                return $this->fetchData($request)->data;
+            }
+
             public function supports(DataSourceFeature $feature): bool
             {
                 return true;

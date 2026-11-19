@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Enum;
 
 /**
- * A query feature a data source can refuse; see {@see \Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface}.
+ * A query feature a data source can refuse; see {@see \Pentiminax\UX\DataTables\Contracts\DataProviderInterface}.
  */
 enum DataSourceFeature: string
 {

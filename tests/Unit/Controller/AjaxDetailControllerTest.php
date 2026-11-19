@@ -19,6 +19,7 @@ use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsRowActionGate;
@@ -136,6 +137,11 @@ final class AjaxDetailControllerFixture
 #[AsDataTable(entityClass: AjaxDetailControllerFixture::class)]
 final class AjaxDetailControllerDataTable extends AbstractDataTable
 {
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->unscopedMutations();
+    }
+
     public function configureColumns(): iterable
     {
         yield TextColumn::new('email', 'Email');

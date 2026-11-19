@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Runtime;
 
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
+use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
-use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ApiPlatformCollectionProvider;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
@@ -42,8 +44,8 @@ final class DataSourceFeatureGuard
     }
 
     /**
-     * Render-time check, from the mode alone: no provider is built while rendering, so a server-side
-     * table is checked on its first request instead.
+     * Render-time check, from the mode alone: it builds no provider, which
+     * {@see self::assertMutationsScoped()} does for a table with actions served by the bundle.
      *
      * @throws \LogicException when the table configures a feature its mode cannot apply
      */
@@ -73,6 +75,21 @@ final class DataSourceFeatureGuard
     }
 
     /**
+     * Refuses row actions and bulk actions on a data provider that cannot check the row scope,
+     * unless the table opts out with unscopedMutations().
+     *
+     * @throws \LogicException when the provider cannot check the row scope and the table did not opt out
+     */
+    public function assertMutationsScoped(DataTable $table, DataProviderInterface $provider): void
+    {
+        if (!self::hasMutations($table) || null !== DataSourceCapability::rowScopeChecker($provider) || $table->allowsUnscopedMutations()) {
+            return;
+        }
+
+        throw new \LogicException(\sprintf('Table "%s" has row actions or bulk actions, but its data provider %s cannot check the row scope. Call unscopedMutations() on the table when the scope is enforced elsewhere, or implement IdentifierDataProviderInterface and declare DataSourceFeature::RowScope in supports().', $table->getDataTableClass() ?? $table->getId(), self::providerName($provider)));
+    }
+
+    /**
      * @param list<AbstractColumn> $columns the table's configured columns
      *
      * @throws BadRequestHttpException when the request carries criteria the provider cannot apply
@@ -82,12 +99,6 @@ final class DataSourceFeatureGuard
     {
         if ($provider instanceof DoctrineDataProvider && null !== $request->searchBuilder) {
             SearchBuilderFilter::assertSearchable($request->searchBuilder, array_values($columns));
-        }
-
-        if (!$provider instanceof FeatureAwareDataProviderInterface) {
-            trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Data provider "%s" is not feature aware, so the bundle assumes it supports every query feature: 2.0 requires supports(). Implement FeatureAwareDataProviderInterface.', $provider::class);
-
-            return;
         }
 
         foreach (self::QUERY_FEATURES as $feature) {
@@ -109,9 +120,43 @@ final class DataSourceFeatureGuard
         }
     }
 
+    /**
+     * Whether a column renders an action served by the bundle's Ajax endpoints: delete, edit, a
+     * collapsible detail or a boolean switch. An action that targets a URL or a route never calls them.
+     */
+    public static function hasRowActions(DataTable $table): bool
+    {
+        foreach ($table->getColumns() as $column) {
+            if ($column instanceof BooleanColumn && $column->isRenderedAsSwitch()) {
+                return true;
+            }
+
+            if (!$column instanceof ActionsProvidingColumnInterface) {
+                continue;
+            }
+
+            foreach ($column->getActions()?->getActions() ?? [] as $action) {
+                if ($action->hasTarget()) {
+                    continue;
+                }
+
+                if (ActionType::Delete === $action->getType() || ActionType::Edit === $action->getType() || ($action->isCollapsible() && ActionType::Detail === $action->getType())) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     public static function unsupported(DataSourceFeature $feature, DataProviderInterface $provider): BadRequestHttpException
     {
         return new BadRequestHttpException(\sprintf('%s are not supported by %s. Use a DoctrineDataProvider or a custom DataProviderInterface for this table.', $feature->label(), self::providerName($provider)));
+    }
+
+    private static function hasMutations(DataTable $table): bool
+    {
+        return self::hasRowActions($table) || $table->hasBulkActions();
     }
 
     /**

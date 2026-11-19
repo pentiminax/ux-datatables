@@ -349,7 +349,7 @@ class BulkEntityFixtureDataTable extends AbstractDataTable
 
     public function configureDataTable(DataTable $table): DataTable
     {
-        return $table->serverSide();
+        return $table->serverSide()->unscopedMutations();
     }
 
     public function configureColumns(): iterable

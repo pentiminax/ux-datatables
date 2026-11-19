@@ -220,6 +220,112 @@ public function setMax(int $max): static { /* ... */ }
 public function max(int $max): static { /* ... */ }
 ```
 
+### One data provider contract
+
+`DataProviderInterface` now declares `supports()` and `iterateRows()` next to `fetchData()`. A
+custom provider that implements only `fetchData()` fails to load until it adds both. Export always
+streams through `iterateRows()`, and the bundle no longer assumes that a provider without
+`supports()` handles every feature.
+
+```php
+// Before (1.x)
+final class WarehouseStockProvider implements DataProviderInterface, FeatureAwareDataProviderInterface, StreamingDataProviderInterface
+{
+    public function fetchData(DataTableRequest $request): DataTableResult { /* ... */ }
+
+    public function supports(DataSourceFeature $feature): bool { /* ... */ }
+
+    public function iterateRows(DataTableRequest $request): iterable { /* ... */ }
+}
+
+// After (2.0)
+use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
+use Pentiminax\UX\DataTables\Model\DataTableResult;
+
+final class WarehouseStockProvider implements DataProviderInterface
+{
+    public function fetchData(DataTableRequest $request): DataTableResult
+    {
+        // ...
+    }
+
+    public function supports(DataSourceFeature $feature): bool
+    {
+        return match ($feature) {
+            DataSourceFeature::ConfiguredFilters => true,
+            default                              => false,
+        };
+    }
+
+    public function iterateRows(DataTableRequest $request): iterable
+    {
+        return $this->fetchData($request->withoutPagination())->data;
+    }
+}
+```
+
+The `iterateRows()` above loads every row in memory during an export; yield rows in batches instead
+when the table is large.
+
+A `supports()` that throws an `\UnhandledMatchError` for a feature it does not list still means
+unsupported, but no longer logs a deprecation. Row scope and identifier collection need
+`IdentifierDataProviderInterface` and a `true` answer from `supports()` for
+`DataSourceFeature::RowScope` and `DataSourceFeature::IdentifierCollection`; implementing the
+interface alone no longer declares them. A provider that answers `false` (or `default => false`) for
+`RowScope` cannot check the row scope, and is refused for row actions and bulk actions unless the
+table calls `unscopedMutations()` (see "Row actions and bulk actions refuse an unscoped data
+provider"). For `IdentifierCollection`, a bulk "select all matching" is rejected.
+
+### Row actions and bulk actions refuse an unscoped data provider
+
+Row actions (delete, boolean toggle, edit form, detail row) and bulk actions now fail closed. 1.x let
+them run with a deprecation when the table's data provider could not check the row scope, which is
+the case for an API Platform table, `ArrayDataProvider` and a custom provider that does not declare
+`DataSourceFeature::RowScope`. 2.0 refuses them:
+
+- A table with row actions or bulk actions on such a provider throws a `LogicException` naming
+  `unscopedMutations()` when it renders, whatever its data source mode. Only the actions the bundle
+  serves through its Ajax endpoints count: delete, edit, a collapsible detail, a boolean switch and
+  bulk actions. Link-only actions and custom actions do not. The Ajax endpoints answer `403`.
+- A provider whose `supports()` throws an `\UnhandledMatchError` for `RowScope` counts as unscoped,
+  and is refused the same way.
+- An entity without an identifier field answers `403` instead of skipping the scope check.
+- A mutation that runs without a data table request answers `403`.
+- A boolean toggle on a table without an entity class answers `403`. Give the table an entity class
+  with `#[AsDataTable(entityClass: ...)]`.
+
+If the scope is enforced elsewhere (an API Platform extension, a voter), say so on the table. Otherwise
+make the provider scoped.
+
+```php
+// Before (1.x): logged a deprecation, ran unscoped
+public function configureDataTable(DataTable $table): DataTable
+{
+    return $table->apiPlatform();
+}
+
+// After (2.0): opt out explicitly
+public function configureDataTable(DataTable $table): DataTable
+{
+    return $table->apiPlatform()->unscopedMutations();
+}
+
+// Or: scope a custom provider
+final class TenantProvider implements DataProviderInterface, IdentifierDataProviderInterface
+{
+    public function supports(DataSourceFeature $feature): bool
+    {
+        return \in_array($feature, [DataSourceFeature::RowScope, DataSourceFeature::IdentifierCollection], true);
+    }
+
+    // collectIdentifiers() and filterIdentifiersInScope() keep the ids of the tenant
+}
+```
+
+`unscopedMutations()` adds no check: the scope is yours to enforce. It is not deprecated.
+
 ### Deprecations removed
 
 Everything below was deprecated in 1.x and is removed. Each line names its replacement.
@@ -257,6 +363,11 @@ Everything below was deprecated in 1.x and is removed. Each line names its repla
   authorized the row. Do not call the services from application code.
 - The `$filters` argument of `ArrayDataProvider` and the `$name` argument of
   `FilterTypeMapper::mapType()`.
+- `FeatureAwareDataProviderInterface`: implement `supports()` on `DataProviderInterface`.
+- `StreamingDataProviderInterface`: implement `iterateRows()` on `DataProviderInterface`.
+- `ScopedIdentifierProviderInterface` and `IdentifierCollectingDataProviderInterface`: implement
+  `IdentifierDataProviderInterface` and declare `DataSourceFeature::RowScope` and
+  `DataSourceFeature::IdentifierCollection` in `supports()`.
 
 ### `ArrayDataProvider` loses its `$filters` argument
 

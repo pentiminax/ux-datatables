@@ -10,10 +10,9 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
  * A provider that can name the rows of a request and tell which identifiers belong to the table's
  * permanent scope.
  *
- * A provider implementing this interface is trusted to cover both features. When it is also feature
- * aware, it must answer {@see \Pentiminax\UX\DataTables\Enum\DataSourceFeature::RowScope} and
- * {@see \Pentiminax\UX\DataTables\Enum\DataSourceFeature::IdentifierCollection} through
- * {@see FeatureAwareDataProviderInterface::supports()}, and the bundle uses only what it declares.
+ * Implementing it is not enough: the bundle uses only what supports() declares for
+ * {@see \Pentiminax\UX\DataTables\Enum\DataSourceFeature::RowScope} and
+ * {@see \Pentiminax\UX\DataTables\Enum\DataSourceFeature::IdentifierCollection}.
  */
 interface IdentifierDataProviderInterface
 {

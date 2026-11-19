@@ -7,9 +7,7 @@ namespace Pentiminax\UX\DataTables\DataProvider;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\Rendering\PropertyReader;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
-use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
-use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
@@ -32,7 +30,7 @@ use Pentiminax\UX\DataTables\Runtime\DataSourceFeatureGuard;
  * implemented in memory; {@see self::supports()} declares it, and the bundle answers such a
  * request with HTTP 400 instead of returning unfiltered rows.
  */
-final class ArrayDataProvider implements DataProviderInterface, StreamingDataProviderInterface, FeatureAwareDataProviderInterface
+final class ArrayDataProvider implements DataProviderInterface
 {
     /**
      * @param iterable<object|array> $items
