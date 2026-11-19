@@ -91,16 +91,6 @@ final class Action implements \JsonSerializable, ExecutableActionInterface
         return $this;
     }
 
-    /**
-     * @deprecated since 1.6, use className() instead. Removed in 2.0.
-     */
-    public function setClassName(string $className): self
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "className()" instead.', __METHOD__);
-
-        return $this->className($className);
-    }
-
     public function icon(string|Icon $icon): self
     {
         if ($icon instanceof Icon) {
@@ -137,16 +127,6 @@ final class Action implements \JsonSerializable, ExecutableActionInterface
         return $this;
     }
 
-    /**
-     * @deprecated since 1.6, use entityClass() instead. Removed in 2.0.
-     */
-    public function setEntityClass(string $entityClass): self
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "entityClass()" instead.', __METHOD__);
-
-        return $this->entityClass($entityClass);
-    }
-
     public function getEntityClass(): ?string
     {
         return $this->entityClass;
@@ -167,16 +147,6 @@ final class Action implements \JsonSerializable, ExecutableActionInterface
         $this->idField = $idField;
 
         return $this;
-    }
-
-    /**
-     * @deprecated since 1.6, use idField() instead. Removed in 2.0.
-     */
-    public function setIdField(string $idField): self
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "idField()" instead.', __METHOD__);
-
-        return $this->idField($idField);
     }
 
     public function getIdField(): string
@@ -303,16 +273,6 @@ final class Action implements \JsonSerializable, ExecutableActionInterface
     }
 
     /**
-     * @deprecated since 1.6, use csrfToken() instead. Removed in 2.0.
-     */
-    public function csrfTokenId(string|callable $csrfTokenId): self
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "csrfToken()" instead.', __METHOD__);
-
-        return $this->csrfToken($csrfTokenId);
-    }
-
-    /**
      * Send this action as a same-origin Ajax request instead of navigating to its URL.
      *
      * The CSRF token id is resolved per row and its value is sent as `_token`. The application
@@ -406,16 +366,6 @@ final class Action implements \JsonSerializable, ExecutableActionInterface
             : ($subjectResolver instanceof \Closure ? $subjectResolver : $subjectResolver(...));
 
         return $this;
-    }
-
-    /**
-     * @deprecated since 1.6, use permission() instead. Removed in 2.0.
-     */
-    public function setPermission(string|Expression $attribute, ?callable $subjectResolver = null): self
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "permission()" instead.', __METHOD__);
-
-        return $this->permission($attribute, $subjectResolver);
     }
 
     public function getPermission(): string|Expression|null

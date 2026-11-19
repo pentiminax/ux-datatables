@@ -13,7 +13,6 @@ use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
-use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Query\Intent\ColumnReadReference;
 use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntent;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
@@ -41,20 +40,13 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
      *                                        {@see \Pentiminax\UX\DataTables\Model\AbstractDataTable::getResolvedColumns()}
      *                                        returns. Left empty, nothing is orderable, and a
      *                                        request carrying a search term raises.
-     * @param Filters|null           $filters @deprecated since 1.3, the bundle now rejects a value
-     *                                        for any of the table's configured filters on its own.
-     *                                        Removed in 2.0.
      */
     public function __construct(
         private readonly iterable $items,
         private readonly RowMapperInterface $rowMapper,
         private readonly array $columns = [],
-        ?Filters $filters = null,
         private readonly DefaultDataTableQueryIntentFactory $intentFactory = new DefaultDataTableQueryIntentFactory(),
     ) {
-        if (null !== $filters) {
-            trigger_deprecation('pentiminax/ux-datatables', '1.3', 'Passing $filters to "%s" is deprecated and removed in 2.0: the bundle rejects configured filter values on its own.', self::class);
-        }
     }
 
     public function supports(DataSourceFeature $feature): bool

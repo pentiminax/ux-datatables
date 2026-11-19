@@ -39,32 +39,6 @@ final class FilterTypeMapperTest extends TestCase
         $this->assertSame($expectedFilterClass, (new FilterTypeMapper())->mapType($type));
     }
 
-    /**
-     * @deprecated covers the ignored $name argument kept until 2.0
-     */
-    #[Test]
-    public function it_still_accepts_the_deprecated_name_argument(): void
-    {
-        $type = (new \ReflectionProperty(TypedFixture::class, 'count'))->getType();
-
-        $messages = [];
-        set_error_handler(static function (int $level, string $message) use (&$messages): bool {
-            $messages[] = $message;
-
-            return true;
-        }, \E_USER_DEPRECATED);
-
-        try {
-            $filterClass = (new FilterTypeMapper())->mapType($type, 'count');
-        } finally {
-            restore_error_handler();
-        }
-
-        $this->assertSame(NumberRangeFilter::class, $filterClass);
-        $this->assertCount(1, $messages);
-        $this->assertStringContainsString('Since pentiminax/ux-datatables 1.3: Passing the $name argument', $messages[0]);
-    }
-
     #[Test]
     public function it_falls_back_to_a_text_filter_without_a_type(): void
     {

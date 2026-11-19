@@ -9,12 +9,9 @@ use Pentiminax\UX\DataTables\Ajax\AuthorizedRow;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
-use Pentiminax\UX\DataTables\Enum\ActionType;
-use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\MutationPersistenceException;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\MutationUpdatePublisher;
-use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationContext;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
@@ -50,32 +47,6 @@ final class EditFormService
     }
 
     /**
-     * @deprecated since 1.5, use renderForm() instead. Removed in 2.0.
-     */
-    public function handleView(ResolvedDataTable $dataTable, int|string $id): AjaxActionResult
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.5', 'The "%s()" method is deprecated, use "renderForm()" instead.', __METHOD__);
-
-        $action = $this->resolveEditAction($dataTable);
-        if (null === $action) {
-            return AjaxActionResult::forbidden();
-        }
-
-        try {
-            $this->scopeGuard->assertInScope($dataTable, $id);
-            $context = $this->locator->locate($dataTable->requireEntityClass(), $id);
-        } catch (EntityNotFoundException) {
-            return AjaxActionResult::notFound();
-        }
-
-        if (!$this->isGranted($dataTable, $action, $context->entity)) {
-            return AjaxActionResult::forbidden();
-        }
-
-        return $this->renderContext($dataTable, $context);
-    }
-
-    /**
      * @internal
      *
      * @param array<string, mixed> $formData
@@ -85,36 +56,6 @@ final class EditFormService
     public function submitForm(AuthorizedRow $row, array $formData): AjaxActionResult
     {
         return $this->submitContext($row->table, $row->context, $row->id, $formData);
-    }
-
-    /**
-     * @param array<string, mixed> $formData
-     *
-     * @throws MutationPersistenceException when the persistence layer rejects the flush
-     *
-     * @deprecated since 1.5, use submitForm() instead. Removed in 2.0.
-     */
-    public function handleSubmit(ResolvedDataTable $dataTable, int|string $id, array $formData): AjaxActionResult
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.5', 'The "%s()" method is deprecated, use "submitForm()" instead.', __METHOD__);
-
-        $action = $this->resolveEditAction($dataTable);
-        if (null === $action) {
-            return AjaxActionResult::forbidden();
-        }
-
-        try {
-            $this->scopeGuard->assertInScope($dataTable, $id);
-            $context = $this->locator->locate($dataTable->requireEntityClass(), $id);
-        } catch (EntityNotFoundException) {
-            return AjaxActionResult::notFound();
-        }
-
-        if (!$this->isGranted($dataTable, $action, $context->entity)) {
-            return AjaxActionResult::forbidden();
-        }
-
-        return $this->submitContext($dataTable, $context, $id, $formData);
     }
 
     private function renderContext(ResolvedDataTable $dataTable, MutationContext $context): AjaxActionResult
@@ -172,23 +113,6 @@ final class EditFormService
             columns: $columns,
             identifierFields: $identifierFields,
         );
-    }
-
-    private function resolveEditAction(ResolvedDataTable $dataTable): ?Action
-    {
-        $action = $dataTable->findAction(ActionType::Edit);
-
-        if (null === $action) {
-            return null;
-        }
-
-        return $this->permissionChecker->canExecuteAction($dataTable->dataTableClass, $action) ? $action : null;
-    }
-
-    private function isGranted(ResolvedDataTable $dataTable, Action $action, object $entity): bool
-    {
-        return $this->permissionChecker->canEditRow($entity)
-            && $this->permissionChecker->canExecuteActionOnRow($dataTable->dataTableClass, $action, $entity);
     }
 
     private function createRenderRequest(

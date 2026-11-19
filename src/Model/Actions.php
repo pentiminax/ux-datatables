@@ -70,16 +70,6 @@ final class Actions implements \JsonSerializable
         return $this;
     }
 
-    /**
-     * @deprecated since 1.6, use columnLabel() instead. Removed in 2.0.
-     */
-    public function setColumnLabel(string $label): self
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "columnLabel()" instead.', __METHOD__);
-
-        return $this->columnLabel($label);
-    }
-
     public function getColumnLabel(): string
     {
         return $this->columnLabel;
@@ -90,16 +80,6 @@ final class Actions implements \JsonSerializable
         $this->columnClassName = $className;
 
         return $this;
-    }
-
-    /**
-     * @deprecated since 1.6, use columnClassName() instead. Removed in 2.0.
-     */
-    public function setColumnClassName(?string $className): self
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "columnClassName()" instead.', __METHOD__);
-
-        return $this->columnClassName($className);
     }
 
     public function getColumnClassName(): ?string
@@ -150,16 +130,6 @@ final class Actions implements \JsonSerializable
         $this->columnControl = $columnControl;
 
         return $this;
-    }
-
-    /**
-     * @deprecated since 1.6, use columnControl() instead. Removed in 2.0.
-     */
-    public function setColumnControl(array $columnControl): self
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "columnControl()" instead.', __METHOD__);
-
-        return $this->columnControl($columnControl);
     }
 
     public function getColumnControl(): ?array

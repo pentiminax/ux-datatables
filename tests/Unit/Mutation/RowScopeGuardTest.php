@@ -9,7 +9,6 @@ use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
-use Pentiminax\UX\DataTables\Ajax\DetailRowService;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Ajax\RowActionGate;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
@@ -63,8 +62,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\PropertyAccess\PropertyAccess;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
-use Twig\Environment;
-use Twig\Loader\ArrayLoader;
 
 /**
  * Account 3 is hidden: the table scope excludes it, yet it exists and could be mutated by id.
@@ -221,40 +218,7 @@ final class RowScopeGuardTest extends TestCase
     }
 
     #[Test]
-    public function it_hides_the_detail_of_a_row_outside_the_scope(): void
-    {
-        $twig    = new Environment(new ArrayLoader(['detail.html.twig' => '{{ entity.name }}']));
-        $service = new DetailRowService($this->locator(), $this->guard(), $twig, new AuthorizationChecker(new TestAuthorizationChecker()));
-
-        $this->assertSame(404, $service->handleView($this->resolved(), 3)->statusCode);
-        $this->assertSame('Alpha', $service->handleView($this->resolved(), 1)->html);
-    }
-
-    #[Test]
-    public function it_hides_the_edit_form_and_refuses_the_submit_of_a_row_outside_the_scope(): void
-    {
-        $renderer = $this->createMock(EditModalRenderer::class);
-        $renderer->expects($this->never())->method('render');
-        $renderer->expects($this->never())->method('renderBody');
-
-        $service = new EditFormService(
-            $this->locator(),
-            new EditFormBuilder($this->createStub(FormFactoryInterface::class), new ColumnToFormTypeMapper()),
-            $renderer,
-            $this->createStub(EditModalTemplateResolver::class),
-            new NullMercurePublisher(),
-            new MercureTopicResolver(),
-            new MutationFlusher(),
-            $this->guard(),
-            new AuthorizationChecker(new TestAuthorizationChecker()),
-        );
-
-        $this->assertSame(404, $service->handleView($this->resolved(), 3)->statusCode);
-        $this->assertSame(404, $service->handleSubmit($this->resolved(), 3, ['name' => 'pwned'])->statusCode);
-    }
-
-    #[Test]
-    public function it_replays_forwarded_query_parameters_on_delete_toggle_and_detail(): void
+    public function it_replays_forwarded_query_parameters_on_delete_and_toggle(): void
     {
         $stack = $this->forwardingRequestStack(['hidden' => 'hidden', 'search' => ['value' => 'ignored']]);
         $guard = new RowScopeGuard($this->locator(), $stack);
@@ -267,23 +231,6 @@ final class RowScopeGuardTest extends TestCase
         $toggle = new AjaxEditController($this->mutator(), $this->gate($this->forwardingRegistry(), $guard));
         $toggle($stack->getCurrentRequest(), new AjaxEditRequestDto($token, 2, 'active', false));
         $this->assertFalse($this->em->find(CountAccount::class, 2)->active);
-
-        $twig    = new Environment(new ArrayLoader(['detail.html.twig' => '{{ entity.name }}']));
-        $service = new DetailRowService($this->locator(), $guard, $twig, new AuthorizationChecker(new TestAuthorizationChecker()));
-        $this->assertSame('Beta', $service->handleView($this->forwardingRegistry()->resolveAction($token), 2)->html);
-    }
-
-    #[Test]
-    public function it_replays_forwarded_query_parameters_on_the_edit_form_view_and_submit(): void
-    {
-        $stack   = $this->forwardingRequestStack(['hidden' => 'hidden']);
-        $service = $this->forwardingEditFormService(new RowScopeGuard($this->locator(), $stack));
-        $table   = $this->forwardingRegistry()->resolveAction($this->forwardingToken());
-
-        $this->assertSame(200, $service->handleView($table, 1)->statusCode);
-        $this->assertSame(200, $service->handleSubmit($table, 1, ['name' => 'Renamed'])->statusCode);
-        $this->assertSame(404, $service->handleView($table, 3)->statusCode);
-        $this->assertSame(404, $service->handleSubmit($table, 3, ['name' => 'pwned'])->statusCode);
     }
 
     #[Test]

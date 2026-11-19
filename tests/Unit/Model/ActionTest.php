@@ -292,9 +292,6 @@ final class ActionTest extends TestCase
         $action = Action::new('publish', 'Publish')->csrfToken('custom_token');
         $this->assertSame('custom_token', $action->resolveCsrfTokenId([]));
 
-        $actionWithAlias = Action::new('publish', 'Publish')->csrfTokenId('alias_token');
-        $this->assertSame('alias_token', $actionWithAlias->resolveCsrfTokenId([]));
-
         $actionWithCallable = Action::new('publish', 'Publish')->csrfToken(static fn (object $r): string => 'token_'.$r->id);
         $this->assertSame('token_99', $actionWithCallable->resolveCsrfTokenId((object) ['id' => 99]));
     }
