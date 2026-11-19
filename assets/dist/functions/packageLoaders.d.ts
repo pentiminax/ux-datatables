@@ -8,6 +8,7 @@ export declare class PackageLoaderRegistry {
     private readonly loaders;
     register(name: PackageName, loader: PackageLoader, framework?: StyleFramework): this;
     isRegistered(name: PackageName): boolean;
+    frameworksOf(name: PackageName): StyleFramework[];
     has(name: PackageName, framework?: StyleFramework): boolean;
     load(name: PackageName, framework?: StyleFramework): Promise<unknown>;
     private resolve;

@@ -63,7 +63,7 @@ import {
 } from './functions/urlState.js'
 import { resolveModalAdapter } from './modal/resolveModalAdapter.js'
 import type { DataTableView } from './types/dataTableView.js'
-import { isStyleFramework, type StyleFramework } from './types/styleFramework.js'
+import { isStyleFramework, registeredStyleFramework, type StyleFramework } from './types/styleFramework.js'
 
 /**
  * Maps DataTables payload property keys to the package loader of their extension.
@@ -176,7 +176,9 @@ export default class extends Controller {
             config: payload,
         })
 
-        const framework = isStyleFramework(payload.styleFramework) ? payload.styleFramework : 'dt'
+        const framework = isStyleFramework(payload.styleFramework)
+            ? payload.styleFramework
+            : registeredStyleFramework()
         this.framework = framework
 
         const DataTable = await loadDataTableLibrary(framework)

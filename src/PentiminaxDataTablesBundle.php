@@ -57,12 +57,11 @@ class PentiminaxDataTablesBundle extends AbstractBundle
                 ->end()
                 ->enumNode('style_framework')
                     ->values(['dt', 'bs5'])
-                    ->defaultValue('dt')
                     ->beforeNormalization()
                         ->ifTrue(static fn (mixed $value): bool => \in_array($value, ['bs', 'bs4'], true))
                         ->thenInvalid('Bootstrap 3 and 4 are not supported since 2.0. Use "bs5" for Bootstrap 5, or "dt" for the DataTables.net and Tailwind styles.')
                     ->end()
-                    ->info('CSS framework DataTables.net renders against: "dt" for the DataTables.net and Tailwind styles, "bs5" for Bootstrap 5. A table overrides it with styleFramework(). The style must be registered in the application, which "bin/console ux-datatables:install" does.')
+                    ->info('CSS framework DataTables.net renders against: "dt" for the DataTables.net and Tailwind styles, "bs5" for Bootstrap 5. A table overrides it with styleFramework(). Unset, the frontend uses the style of the loaders the application registered.')
                 ->end()
                 ->integerNode('max_page_length')
                     ->min(1)
@@ -178,7 +177,7 @@ class PentiminaxDataTablesBundle extends AbstractBundle
         $mercureAvailable = interface_exists(HubInterface::class);
 
         $container->parameters()
-            ->set('datatables.options', ($config['options'] ?? []) + ['styleFramework' => $config['style_framework']])
+            ->set('datatables.options', ($config['options'] ?? []) + (isset($config['style_framework']) ? ['styleFramework' => $config['style_framework']] : []))
             ->set('datatables.table_attributes', $config['table_attributes'] ?? [])
             ->set('datatables.extensions', $config['extensions'] ?? [])
             ->set('datatables.edit_modal.template', $config['edit_modal']['template'])

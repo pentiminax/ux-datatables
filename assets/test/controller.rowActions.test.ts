@@ -465,6 +465,7 @@ async function mountTable(extraView: Record<string, unknown> = {}): Promise<HTML
         'data-datatable-view-value',
         JSON.stringify({
             columns: [{ data: 'name', title: 'Name' }],
+            styleFramework: 'dt',
             dataTable: 'token',
             mutationsEnabled: true,
             rowActionUrls: {

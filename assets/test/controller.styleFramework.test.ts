@@ -39,18 +39,6 @@ describe('style framework default', () => {
         vi.clearAllMocks()
     })
 
-    it('uses dt without inspecting the page stylesheets when the payload names no framework', async () => {
-        Object.defineProperty(document, 'styleSheets', {
-            configurable: true,
-            value: [{ href: '/css/dataTables.bootstrap5.min.css' }],
-        })
-
-        await mountTable({})
-
-        await vi.waitFor(() => expect(loadDataTableLibrary).toHaveBeenCalledWith('dt'))
-        expect(warn).not.toHaveBeenCalled()
-    })
-
     it('uses the framework the payload declares', async () => {
         await mountTable({ styleFramework: 'bs5' })
 

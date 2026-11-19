@@ -1,0 +1,1 @@
+../../../../src/Install/stubs/bootstrapModalAdapter.js

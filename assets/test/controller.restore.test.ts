@@ -176,6 +176,7 @@ describe('datatable controller history restore', () => {
 
 function viewValue(): string {
     return JSON.stringify({
+        styleFramework: 'dt',
         columns: [
             { data: 'name', title: 'Name' },
             { data: 'email', title: 'Email' },

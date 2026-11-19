@@ -51,7 +51,14 @@ export class PackageLoaderRegistry {
     }
 
     isRegistered(name: PackageName): boolean {
-        return this.loaders.has(name)
+        return this.resolve(name) !== undefined
+    }
+
+    /** The frameworks a package has a framework-scoped loader for. */
+    frameworksOf(name: PackageName): StyleFramework[] {
+        return [...this.loaders.keys()]
+            .filter((key) => key.startsWith(`${name}:`))
+            .map((key) => key.slice(name.length + 1) as StyleFramework)
     }
 
     has(name: PackageName, framework?: StyleFramework): boolean {
@@ -73,7 +80,15 @@ export class PackageLoaderRegistry {
     }
 
     private resolve(name: PackageName, framework?: StyleFramework): PackageLoader | undefined {
-        return this.loaders.get(this.key(name, framework)) ?? this.loaders.get(name)
+        const loader = this.loaders.get(this.key(name, framework)) ?? this.loaders.get(name)
+
+        if (loader || framework !== undefined) {
+            return loader
+        }
+
+        const [first] = this.frameworksOf(name)
+
+        return first === undefined ? undefined : this.loaders.get(this.key(name, first))
     }
 
     private key(name: PackageName, framework?: StyleFramework): string {

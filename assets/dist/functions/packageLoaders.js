@@ -31,7 +31,12 @@ export class PackageLoaderRegistry {
         return this;
     }
     isRegistered(name) {
-        return this.loaders.has(name);
+        return this.resolve(name) !== undefined;
+    }
+    frameworksOf(name) {
+        return [...this.loaders.keys()]
+            .filter((key) => key.startsWith(`${name}:`))
+            .map((key) => key.slice(name.length + 1));
     }
     has(name, framework) {
         return this.resolve(name, framework) !== undefined;
@@ -44,7 +49,12 @@ export class PackageLoaderRegistry {
         return loader();
     }
     resolve(name, framework) {
-        return this.loaders.get(this.key(name, framework)) ?? this.loaders.get(name);
+        const loader = this.loaders.get(this.key(name, framework)) ?? this.loaders.get(name);
+        if (loader || framework !== undefined) {
+            return loader;
+        }
+        const [first] = this.frameworksOf(name);
+        return first === undefined ? undefined : this.loaders.get(this.key(name, first));
     }
     key(name, framework) {
         return framework === undefined ? name : `${name}:${framework}`;

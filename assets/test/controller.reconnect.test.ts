@@ -158,6 +158,7 @@ function mountTable(extraView: Record<string, unknown> = {}): HTMLTableElement {
         'data-datatable-view-value',
         JSON.stringify({
             columns: [{ data: 'name', title: 'Name' }],
+            styleFramework: 'dt',
             ...extraView,
         })
     )

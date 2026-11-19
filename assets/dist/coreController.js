@@ -43,7 +43,7 @@ import { applyThemeSearchPlaceholder } from './functions/themeSearchField.js';
 import { toggleBooleanValue } from './functions/toggleBooleanValue.js';
 import { applyUrlStateToPayload, isUrlStateEnabled, readUrlState, writeUrlState, } from './functions/urlState.js';
 import { resolveModalAdapter } from './modal/resolveModalAdapter.js';
-import { isStyleFramework } from './types/styleFramework.js';
+import { isStyleFramework, registeredStyleFramework } from './types/styleFramework.js';
 const EXTENSION_MAP = {
     select: 'select',
     responsive: 'responsive',
@@ -108,7 +108,9 @@ class default_1 extends Controller {
         this.dispatchEvent('pre-connect', {
             config: payload,
         });
-        const framework = isStyleFramework(payload.styleFramework) ? payload.styleFramework : 'dt';
+        const framework = isStyleFramework(payload.styleFramework)
+            ? payload.styleFramework
+            : registeredStyleFramework();
         this.framework = framework;
         const DataTable = await loadDataTableLibrary(framework);
         if (this.adoptLiveTable(DataTable)) {

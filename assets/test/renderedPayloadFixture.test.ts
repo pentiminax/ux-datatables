@@ -120,7 +120,7 @@ describe('rendered payload fixture', () => {
     it('initializes a table from the pinned payload and keeps its sections', async () => {
         const table = document.createElement('table')
         table.setAttribute('data-controller', 'datatable')
-        table.setAttribute('data-datatable-view-value', JSON.stringify(view))
+        table.setAttribute('data-datatable-view-value', JSON.stringify({ ...view, styleFramework: 'dt' }))
         document.body.appendChild(table)
 
         await vi.waitFor(() => expect(payloads).toHaveLength(1))
@@ -142,7 +142,7 @@ describe('rendered payload fixture', () => {
     it('renders the CUSTOM action, loads the bundled catalog and reads the row action URLs', async () => {
         const table = document.createElement('table')
         table.setAttribute('data-controller', 'datatable')
-        table.setAttribute('data-datatable-view-value', JSON.stringify(view))
+        table.setAttribute('data-datatable-view-value', JSON.stringify({ ...view, styleFramework: 'dt' }))
         document.body.appendChild(table)
 
         await vi.waitFor(() => expect(payloads).toHaveLength(1))

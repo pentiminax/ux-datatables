@@ -54,11 +54,13 @@ final class PackageLoadingConfigurationTest extends TestCase
     }
 
     #[Test]
-    public function it_defaults_the_style_framework_to_dt(): void
+    public function it_leaves_the_style_framework_to_the_registered_loaders_by_default(): void
     {
         $deprecations = [];
+        $builder      = $this->load([], $deprecations);
 
-        $this->assertSame('dt', $this->process([], $deprecations)['style_framework']);
+        $this->assertArrayNotHasKey('style_framework', $this->process([], $deprecations));
+        $this->assertArrayNotHasKey('styleFramework', $builder->getParameter('datatables.options'));
     }
 
     #[Test]

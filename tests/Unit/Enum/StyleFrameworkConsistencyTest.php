@@ -12,11 +12,11 @@ use PHPUnit\Framework\TestCase;
 /**
  * StyleFramework's cases are serialized into the payload and checked by the frontend's
  * isStyleFramework() (assets/src/types/styleFramework.ts) against its own STYLE_FRAMEWORKS
- * registry before detectStyleFramework() ever runs. The frontend's own tests derive their
+ * registry. The frontend's own tests derive their
  * inputs from STYLE_FRAMEWORKS itself, so they stay green even when this enum drifts from it
  * -- a PHP-only case, or a value that no longer matches its frontend counterpart, makes
- * isStyleFramework() silently reject the declared framework and fall back to autodetection
- * instead of failing loudly. Parsing the frontend source directly is what actually catches
+ * isStyleFramework() silently reject the declared framework and use the registered style
+ * instead of the declared one. Parsing the frontend source directly is what actually catches
  * that, rather than trusting the two declarations to stay in sync by convention.
  *
  * @internal
@@ -37,7 +37,8 @@ final class StyleFrameworkConsistencyTest extends TestCase
 
         $this->assertNotFalse($source, "Could not read {$tsPath}.");
 
-        preg_match_all("/key:\s*'([a-z0-9]+)'/", $source, $matches);
+        preg_match("/STYLE_FRAMEWORKS: StyleFramework\[\] = \[([^\]]*)\]/", $source, $list);
+        preg_match_all("/'([a-z0-9]+)'/", $list[1] ?? '', $matches);
         $frontendValues = $matches[1];
 
         $this->assertNotEmpty(

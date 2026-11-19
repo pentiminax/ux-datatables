@@ -72,7 +72,7 @@ describe('datatable controller DOM wrapping', () => {
         table.setAttribute('data-controller', 'datatable')
         table.setAttribute(
             'data-datatable-view-value',
-            JSON.stringify({ columns: [{ data: 'name', title: 'Name' }] })
+            JSON.stringify({ columns: [{ data: 'name', title: 'Name' }], styleFramework: 'dt' })
         )
         document.body.appendChild(table)
 
