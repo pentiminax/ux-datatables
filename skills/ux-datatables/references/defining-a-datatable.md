@@ -68,12 +68,11 @@ protected function createDataProvider(): ?DataProviderInterface
 
 ### Refusing unsupported features
 
-A custom provider can implement `FeatureAwareDataProviderInterface::supports(DataSourceFeature $feature): bool`
-(cases `SearchBuilder`, `ColumnControl`, `ConfiguredFilters`, `Summaries`). The bundle then refuses
+A custom provider implements `DataProviderInterface::supports(DataSourceFeature $feature): bool`
+(cases `SearchBuilder`, `ColumnControl`, `ConfiguredFilters`, `Summaries`). The bundle refuses
 a request using an unsupported feature instead of letting the provider answer unfiltered data:
 SearchBuilder criteria, ColumnControl searches and configured filter values get HTTP 400, and a table
-declaring summaries throws a `LogicException`. Without the interface every feature is assumed
-supported. `ArrayDataProvider` answers 400 for configured filter values; its 4th `$filters`
+declaring summaries throws a `LogicException`. Answer every case explicitly: a `supports()` that throws an `\UnhandledMatchError` counts as unsupported. `ArrayDataProvider` answers 400 for configured filter values; its 4th `$filters`
 argument is deprecated since 1.3 (removed in 2.0), so drop it.
 
 ## Customizing the query (server-side)

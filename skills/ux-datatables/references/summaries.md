@@ -37,6 +37,6 @@ return new DataTableResult(
 );
 ```
 
-A provider that cannot aggregate should implement `FeatureAwareDataProviderInterface` and return `false` for `DataSourceFeature::Summaries` (see `references/defining-a-datatable.md`).
+A provider that cannot aggregate should return `false` from `DataProviderInterface::supports()` for `DataSourceFeature::Summaries` (see `references/defining-a-datatable.md`).
 
 `DECIMAL` sums come back as floats, so huge totals can lose precision. The bundle creates a `<tfoot>` when missing; style with `--dt-summary-surface`, `--dt-summary-border`, `--dt-summary-text`, `--dt-summary-text-muted`.

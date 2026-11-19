@@ -83,13 +83,10 @@ Two behaviors are worth keeping when you override `cellValue()`:
 | `ExporterRegistry`               | Indexes exporters by `format()->value`; throws a `BadRequestHttpException` for an unknown or unavailable format                                    |
 | `ExportService`                  | Resolves the button, format, exporter, exportable columns, row iterator, and filename — everything that can fail — _before_ returning the response |
 | `ExportStream`                   | The response body, as a named invokable calling `$exporter->write()`                                                                               |
-| `StreamingDataProviderInterface` | Optional provider capability: stream rows without pagination or a `COUNT`                                                                          |
+| `DataProviderInterface`          | `iterateRows()` streams rows without pagination or a `COUNT`                                                                                       |
 
 `ExportService` resolves the row iterator from the table's data provider with pagination removed. A
-provider implementing `StreamingDataProviderInterface` is asked for `iterateRows()`; anything else
-falls back to `fetchData()->data`, which materializes the whole result set and is deprecated since
-1.6: 2.0 requires `iterateRows()`. `DoctrineDataProvider`
-and `ArrayDataProvider` both implement the streaming interface.
+provider is always asked for `iterateRows()`, so an export never loads the whole result set.
 
 Columns come from `filterExportable()`, so `exportable(false)`, hidden columns, action columns,
 and template columns are excluded unless explicitly opted back in. Because the export mapper is

@@ -238,7 +238,8 @@ must log no `pentiminax/ux-datatables` deprecation.
 
 Context: ux-datatables 2.0 removes what 1.x deprecated. This section covers rendering (rendering no
 longer writes to the table, and the option bag holds DataTables.net options only) and columns
-(`AbstractColumn` is the only column implementation, and every column `setX()` method is gone). After this
+(`AbstractColumn` is the only column implementation, and every column `setX()` method is gone) and
+data providers (`DataProviderInterface` is the only provider contract). After this
 change, the application and its test suite must run with no call to a removed method.
 
 ## Required changes
@@ -315,5 +316,18 @@ change, the application and its test suite must run with no call to a removed me
 17. Remove the fourth positional argument (`Filters`) of `new ArrayDataProvider(...)`, and the second
     argument of `FilterTypeMapper::mapType()`. If an intent factory was passed fifth, pass it fourth
     or as `intentFactory:`.
+18. Fix every custom data provider (a class implementing `DataProviderInterface`). The built-in
+    providers need no change.
+    - Add `supports(DataSourceFeature $feature): bool` and `iterateRows(DataTableRequest $request):
+      iterable` to the class: both are now abstract on `DataProviderInterface`. Answer every
+      `DataSourceFeature` case in `supports()`, with `false` for features the provider does not
+      apply; an `\UnhandledMatchError` counts as unsupported.
+    - Remove `FeatureAwareDataProviderInterface` and `StreamingDataProviderInterface` from the
+      `implements` list and their `use` statements: they no longer exist.
+    - Replace `ScopedIdentifierProviderInterface` and `IdentifierCollectingDataProviderInterface`
+      with `IdentifierDataProviderInterface` (`collectIdentifiers()` and
+      `filterIdentifiersInScope()`, same signatures), and return `true` from `supports()` for
+      `DataSourceFeature::RowScope` and `DataSourceFeature::IdentifierCollection`: without that
+      answer the bundle ignores the interface.
 
 </upgrade-prompt>

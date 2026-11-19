@@ -220,6 +220,40 @@ public function setMax(int $max): static { /* ... */ }
 public function max(int $max): static { /* ... */ }
 ```
 
+### One data provider contract
+
+`DataProviderInterface` now declares `supports()` and `iterateRows()` next to `fetchData()`. A
+custom provider that implements only `fetchData()` fails to load until it adds both. Export always
+streams through `iterateRows()`, and the bundle no longer assumes that a provider without
+`supports()` handles every feature.
+
+```php
+// Before (1.x)
+final class WarehouseStockProvider implements DataProviderInterface, FeatureAwareDataProviderInterface, StreamingDataProviderInterface
+{
+    public function fetchData(DataTableRequest $request): DataTableResult { /* ... */ }
+
+    public function supports(DataSourceFeature $feature): bool { /* ... */ }
+
+    public function iterateRows(DataTableRequest $request): iterable { /* ... */ }
+}
+
+// After (2.0)
+final class WarehouseStockProvider implements DataProviderInterface
+{
+    // fetchData(), supports() and iterateRows(): same signatures
+}
+```
+
+A provider that has no streaming implementation can return `$this->fetchData($request->withoutPagination())->data`
+from `iterateRows()`, at the cost of loading every row in memory during an export.
+
+A `supports()` that throws an `\UnhandledMatchError` for a feature it does not list still means
+unsupported, but no longer logs a deprecation. Row scope and identifier collection need
+`IdentifierDataProviderInterface` and a `true` answer from `supports()` for
+`DataSourceFeature::RowScope` and `DataSourceFeature::IdentifierCollection`; implementing the
+interface alone no longer declares them.
+
 ### Deprecations removed
 
 Everything below was deprecated in 1.x and is removed. Each line names its replacement.
@@ -257,6 +291,11 @@ Everything below was deprecated in 1.x and is removed. Each line names its repla
   authorized the row. Do not call the services from application code.
 - The `$filters` argument of `ArrayDataProvider` and the `$name` argument of
   `FilterTypeMapper::mapType()`.
+- `FeatureAwareDataProviderInterface`: implement `supports()` on `DataProviderInterface`.
+- `StreamingDataProviderInterface`: implement `iterateRows()` on `DataProviderInterface`.
+- `ScopedIdentifierProviderInterface` and `IdentifierCollectingDataProviderInterface`: implement
+  `IdentifierDataProviderInterface` and declare `DataSourceFeature::RowScope` and
+  `DataSourceFeature::IdentifierCollection` in `supports()`.
 
 ### `ArrayDataProvider` loses its `$filters` argument
 

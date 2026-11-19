@@ -15,30 +15,35 @@ pipeline. The usual extension points are:
 
 ```php
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 
 interface DataProviderInterface
 {
     public function fetchData(DataTableRequest $request): DataTableResult;
+
+    public function supports(DataSourceFeature $feature): bool;
+
+    /** @return iterable<array<string, mixed>> */
+    public function iterateRows(DataTableRequest $request): iterable;
 }
 ```
 
 ### Refusing data source features
 
 A provider that cannot apply SearchBuilder criteria, ColumnControl searches, configured filter
-values, or column summaries declares it through `FeatureAwareDataProviderInterface`. The bundle then
+values, or column summaries answers `false` from `supports()`. The bundle then
 refuses those requests for every path that reads the provider (data, export, and bulk selection)
 instead of letting the provider answer unfiltered: criteria get HTTP 400, and a table that declares
 summaries throws a `LogicException`.
 
 ```php
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
-use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 
-final class WarehouseStockProvider implements DataProviderInterface, FeatureAwareDataProviderInterface
+final class WarehouseStockProvider implements DataProviderInterface
 {
     public function supports(DataSourceFeature $feature): bool
     {
@@ -49,22 +54,30 @@ final class WarehouseStockProvider implements DataProviderInterface, FeatureAwar
     {
         // ...
     }
+
+    public function iterateRows(DataTableRequest $request): iterable
+    {
+        // ...
+    }
 }
 ```
 
-A provider that does not implement the interface is assumed to support every query feature, which
-is deprecated since 1.6: 2.0 requires `supports()`.
+Answer every case explicitly. A `supports()` that throws an `\UnhandledMatchError`, such as an
+exhaustive `match` lacking a case, counts as unsupported for that feature.
+
+`iterateRows()` streams every row matching the request, without pagination or a `COUNT`, and backs
+server-side export. Apply the same search, ordering, and filters as `fetchData()` and yield rows in
+batches instead of loading the whole result set.
 
 ### Row scope and identifier collection
 
-`DataSourceFeature::RowScope` and `DataSourceFeature::IdentifierCollection` are not assumed for a
-provider that lacks identifier support. A provider that checks which identifiers belong to the
-table's permanent scope, or names every row of a request, implements
-`IdentifierDataProviderInterface`. One that is not feature aware is trusted to cover both features;
-a feature-aware one declares the features it covers through `supports()`. Without `RowScope`, row actions and bulk actions on the table run unscoped, which is deprecated since 1.6 and
-refused in 2.0 unless the table calls `unscopedMutations()`. Without `IdentifierCollection`, a bulk
-"select all matching" is rejected. `IdentifierCollectingDataProviderInterface` and
-`ScopedIdentifierProviderInterface` are deprecated in favor of this pair.
+`DataSourceFeature::RowScope` and `DataSourceFeature::IdentifierCollection` need a provider that
+implements `IdentifierDataProviderInterface`, which checks which identifiers belong to the table's
+permanent scope and names every row of a request. The provider declares the features it covers
+through `supports()`; implementing the interface alone declares nothing. Without `RowScope`, row
+actions and bulk actions on the table run unscoped, which is deprecated since 1.6 and refused in 2.0
+unless the table calls `unscopedMutations()`. Without `IdentifierCollection`, a bulk "select all
+matching" is rejected.
 
 Built-in providers:
 
