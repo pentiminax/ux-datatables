@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Runtime;
 
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
@@ -33,6 +34,8 @@ use Pentiminax\UX\DataTables\Runtime\DataSourceFeatureGuard;
 use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Pentiminax\UX\DataTables\Runtime\ResolvedOptIns;
+use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -440,6 +443,7 @@ final class DataSourceFeatureGuardTest extends TestCase
             table: (new DataTable('people'))->columns($columns),
             dataProviderFactory: static fn (): DataProviderInterface => self::unscopedProvider(),
             columns: $columns,
+            searchListOptionsResolver: new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())),
         );
         $runtime->handleRequest(new Request(query: ['draw' => 1]));
 
@@ -479,6 +483,7 @@ final class DataSourceFeatureGuardTest extends TestCase
             table: $table,
             dataProviderFactory: static fn (): DataProviderInterface => $provider,
             columns: $columns,
+            searchListOptionsResolver: new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())),
         );
     }
 

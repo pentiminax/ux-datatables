@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Runtime;
 
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
@@ -14,6 +15,7 @@ use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -130,6 +132,7 @@ final class DataTableRuntimeTest extends TestCase
 
                 return $provider;
             },
+            searchListOptionsResolver: new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())),
         );
 
         $this->assertSame($provider, $runtime->getDataProvider());
@@ -169,7 +172,7 @@ final class DataTableRuntimeTest extends TestCase
                 }
             },
             columns: [$column],
-            searchListOptionsResolver: new SearchListOptionsResolver(),
+            searchListOptionsResolver: new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())),
         );
         $runtime->handleRequest(new Request(query: ['draw' => 7]));
 
@@ -228,6 +231,7 @@ final class DataTableRuntimeTest extends TestCase
             table: $table,
             dataProviderFactory: static fn (): ?DataProviderInterface => null,
             maxPageLength: 100,
+            searchListOptionsResolver: new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())),
         );
 
         $runtime->handleRequest(new Request(query: ['draw' => 1, 'start' => -5, 'length' => -1]));
@@ -258,6 +262,7 @@ final class DataTableRuntimeTest extends TestCase
             table: (new DataTable('movies'))->lengthMenu($lengthMenu),
             dataProviderFactory: static fn (): ?DataProviderInterface => null,
             maxPageLength: 100,
+            searchListOptionsResolver: new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())),
         );
 
         $runtime->handleRequest(new Request(query: ['draw' => 1, 'length' => -1]));
@@ -285,6 +290,7 @@ final class DataTableRuntimeTest extends TestCase
             table: $table,
             dataProviderFactory: static fn (): ?DataProviderInterface => null,
             maxPageLength: 100,
+            searchListOptionsResolver: new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())),
         );
 
         $runtime->handleRequest(new Request(query: ['draw' => 1, 'length' => $length]));
@@ -300,6 +306,7 @@ final class DataTableRuntimeTest extends TestCase
             table: $table,
             dataProviderFactory: static fn (): ?DataProviderInterface => null,
             maxPageLength: 100,
+            searchListOptionsResolver: new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())),
         );
 
         $runtime->handleRequest(new Request(query: ['draw' => 1, 'length' => $length]));
@@ -365,6 +372,7 @@ final class DataTableRuntimeTest extends TestCase
         return new DataTableRuntime(
             table: new DataTable('movies'),
             dataProviderFactory: static fn (): ?DataProviderInterface => $provider,
+            searchListOptionsResolver: new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())),
         );
     }
 }

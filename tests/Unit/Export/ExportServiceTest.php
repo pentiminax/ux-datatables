@@ -49,7 +49,7 @@ final class ExportServiceTest extends TestCase
     public function it_exports_exportable_columns_in_table_order(): void
     {
         $csv     = new RecordingExporter();
-        $service = new ExportService(new ExporterRegistry([$csv]));
+        $service = new ExportService(new ExporterRegistry([$csv]), columnResolver: new ColumnResolver(new AuthorizationChecker()));
 
         $response = $service->export($this->table(), $this->exportRequest());
         $this->send($response);
@@ -103,7 +103,7 @@ final class ExportServiceTest extends TestCase
             static fn (string $id): string => ['order.total' => 'Total', 'export.boolean.true' => 'Yes'][$id] ?? $id,
         );
 
-        $this->send((new ExportService(new ExporterRegistry([$csv]), translator: $translator))
+        $this->send((new ExportService(new ExporterRegistry([$csv]), columnResolver: new ColumnResolver(new AuthorizationChecker()), translator: $translator))
             ->export($this->priceTable(Button::csv(serverSide: true)), $this->exportRequest()));
 
         $this->assertSame(['Total (EUR)', 'active'], array_map(
@@ -118,7 +118,7 @@ final class ExportServiceTest extends TestCase
     {
         $csv = new RecordingExporter();
 
-        $this->send((new ExportService(new ExporterRegistry([$csv])))
+        $this->send((new ExportService(new ExporterRegistry([$csv]), columnResolver: new ColumnResolver(new AuthorizationChecker())))
             ->export($this->priceTable(Button::csv(serverSide: true)->rawValues()), $this->exportRequest()));
 
         $this->assertSame([['price' => 2500, 'active' => true]], $csv->rows);
@@ -132,7 +132,7 @@ final class ExportServiceTest extends TestCase
     public function it_skips_hidden_columns(): void
     {
         $csv     = new RecordingExporter();
-        $service = new ExportService(new ExporterRegistry([$csv]));
+        $service = new ExportService(new ExporterRegistry([$csv]), columnResolver: new ColumnResolver(new AuthorizationChecker()));
 
         $table = new ConfigurableDataTable(
             [TextColumn::new('email'), TextColumn::new('name')->visible(false)],
@@ -188,7 +188,7 @@ final class ExportServiceTest extends TestCase
     {
         $csv     = new RecordingExporter();
         $xlsx    = new RecordingExporter(ExportFormat::XLSX);
-        $service = new ExportService(new ExporterRegistry([$csv, $xlsx]));
+        $service = new ExportService(new ExporterRegistry([$csv, $xlsx]), columnResolver: new ColumnResolver(new AuthorizationChecker()));
 
         $table = new ConfigurableDataTable(
             [TextColumn::new('email')],
@@ -226,7 +226,7 @@ final class ExportServiceTest extends TestCase
 
         $this->expectException(BadRequestHttpException::class);
 
-        (new ExportService(new ExporterRegistry([new RecordingExporter()])))->export($table, $request);
+        (new ExportService(new ExporterRegistry([new RecordingExporter()]), columnResolver: new ColumnResolver(new AuthorizationChecker())))->export($table, $request);
     }
 
     /**
@@ -237,7 +237,7 @@ final class ExportServiceTest extends TestCase
     public function it_exports_when_the_payload_includes_a_checkbox_column_without_name_or_data(): void
     {
         $csv     = new RecordingExporter();
-        $service = new ExportService(new ExporterRegistry([$csv]));
+        $service = new ExportService(new ExporterRegistry([$csv]), columnResolver: new ColumnResolver(new AuthorizationChecker()));
 
         $response = $service->export($this->table(), Request::create('/datatables/ajax/export', 'POST', [
             'draw'      => 4,
@@ -355,7 +355,7 @@ final class ExportServiceTest extends TestCase
     #[Test]
     public function it_rejects_a_format_whose_writer_is_unavailable(): void
     {
-        $service = new ExportService(new ExporterRegistry([new RecordingExporter(available: false)]));
+        $service = new ExportService(new ExporterRegistry([new RecordingExporter(available: false)]), columnResolver: new ColumnResolver(new AuthorizationChecker()));
 
         $this->expectException(BadRequestHttpException::class);
         $this->expectExceptionMessage('openspout/openspout');
@@ -369,7 +369,7 @@ final class ExportServiceTest extends TestCase
         $csv   = new RecordingExporter();
         $table = $this->priceTable(Button::csv(serverSide: true));
 
-        $service = new ExportService(new ExporterRegistry([$csv]));
+        $service = new ExportService(new ExporterRegistry([$csv]), columnResolver: new ColumnResolver(new AuthorizationChecker()));
         $this->send($service->export($table, $this->exportRequest()));
         $this->send($service->export($table, $this->exportRequest()));
 
@@ -379,7 +379,7 @@ final class ExportServiceTest extends TestCase
 
     private function service(): ExportService
     {
-        return new ExportService(new ExporterRegistry([new RecordingExporter()]));
+        return new ExportService(new ExporterRegistry([new RecordingExporter()]), columnResolver: new ColumnResolver(new AuthorizationChecker()));
     }
 
     private function send(StreamedResponse $response): void

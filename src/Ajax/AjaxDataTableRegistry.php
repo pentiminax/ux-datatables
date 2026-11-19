@@ -12,15 +12,13 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 final class AjaxDataTableRegistry
 {
-    private readonly AuthorizationChecker $permissionChecker;
-
     /**
      * Action tokens are signed under their own prefix so that the read token — which
      * travels in a query string on /ajax/data, and therefore leaks through logs and
      * the Referer header — can never be replayed against an action route. Every route
      * accepting an action token reads it from the request body for the same reason.
      */
-    private const ACTION_TOKEN_PREFIX = 'action:';
+    private const string ACTION_TOKEN_PREFIX = 'action:';
 
     /**
      * @param array<class-string<AbstractDataTable>, string> $serviceIdsByClass
@@ -29,9 +27,8 @@ final class AjaxDataTableRegistry
         private readonly ContainerInterface $locator,
         private readonly AjaxDataTableTokenManager $tokenManager,
         private readonly array $serviceIdsByClass,
-        ?AuthorizationChecker $permissionChecker = null,
+        private readonly AuthorizationChecker $permissionChecker,
     ) {
-        $this->permissionChecker = $permissionChecker ?? AuthorizationChecker::fallbackFor(self::class);
     }
 
     public function getToken(string $dataTableClass): ?string

@@ -14,6 +14,7 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountCustomer;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -55,6 +56,7 @@ final class AbstractDataTableRecordsTotalTest extends TestCase
         $table = new ExcludeBetaCustomerTable();
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             runtimeFactory: new DataTableRuntimeFactory(
+                new AuthorizationChecker(),
                 autoDataProviderFactory: new AutoDataProviderFactory($this->em),
             ),
         ));

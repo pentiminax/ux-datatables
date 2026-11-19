@@ -50,7 +50,7 @@ trait BuildsAjaxRegistry
             },
             new AjaxDataTableTokenManager('test-secret'),
             $serviceIdsByClass,
-            $permissionChecker,
+            $permissionChecker ?? new AuthorizationChecker(),
         );
     }
 }

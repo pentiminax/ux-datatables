@@ -11,6 +11,7 @@ use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Controller\AjaxEditFormController;
 use Pentiminax\UX\DataTables\Controller\AjaxEntityQueryDto;
@@ -26,7 +27,6 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
@@ -143,15 +143,13 @@ final class AjaxEditFormControllerTest extends TestCase
 
         return new AjaxEditFormController(
             new EditFormService(
-                new EntityLocator($registry),
                 new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
                 $renderer,
                 $templateResolver,
                 new NullMercurePublisher(),
                 new MercureTopicResolver(dataTables: $dataTables),
                 new MutationFlusher(),
-                $this->unscopedRowScopeGuard(),
-                new AuthorizationChecker($authorizationChecker),
+                new ColumnResolver(new AuthorizationChecker($authorizationChecker)),
             ),
             $this->rowActionGate($this->tableRegistry(), $registry, $this->createStub(CsrfTokenManagerInterface::class), $this->unscopedRowScopeGuard(), new AuthorizationChecker($authorizationChecker)),
         );
@@ -175,6 +173,7 @@ final class AjaxEditFormControllerTest extends TestCase
             $locator,
             new AjaxDataTableTokenManager(self::TOKEN_SECRET),
             [AjaxEditFormControllerDataTable::class => 'edit_form_table'],
+            new AuthorizationChecker(),
         );
     }
 

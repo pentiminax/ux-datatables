@@ -38,7 +38,7 @@ final class ActionRowDataResolverTest extends TestCase
     {
         $row = ['id' => 1];
 
-        $result = (new ActionRowDataResolver())->resolveRow($row, (object) ['id' => 1], [TextColumn::new('name', 'Name')]);
+        $result = (new ActionRowDataResolver(new AuthorizationChecker()))->resolveRow($row, (object) ['id' => 1], [TextColumn::new('name', 'Name')]);
 
         $this->assertSame($row, $result);
     }
@@ -51,7 +51,7 @@ final class ActionRowDataResolverTest extends TestCase
     #[DataProvider('provideActionsToMap')]
     public function it_maps_resolvable_actions_into_the_row(array $actions, mixed $sourceRow, ?array $expected): void
     {
-        $result = $this->resolveRow(new ActionRowDataResolver(), $sourceRow, ...$actions);
+        $result = $this->resolveRow(new ActionRowDataResolver(new AuthorizationChecker()), $sourceRow, ...$actions);
 
         $this->assertSame($expected, $result[ActionRowDataResolver::ROW_ACTIONS_KEY] ?? null);
     }
@@ -268,7 +268,7 @@ final class ActionRowDataResolverTest extends TestCase
 
         $this->expectException(DuplicateActionNameException::class);
 
-        (new ActionRowDataResolver())->resolveRow(
+        (new ActionRowDataResolver(new AuthorizationChecker()))->resolveRow(
             [],
             (object) ['id' => 42],
             [
@@ -312,7 +312,7 @@ final class ActionRowDataResolverTest extends TestCase
         $action = Action::new('publish', 'Publish')->linkToRoute('book_publish', $routeParameters);
 
         $result = $this->resolveRow(
-            new ActionRowDataResolver(null, null, $urlGenerator),
+            new ActionRowDataResolver(new AuthorizationChecker(), null, $urlGenerator),
             (object) ['id' => 42],
             $action,
         );
@@ -345,7 +345,7 @@ final class ActionRowDataResolverTest extends TestCase
         }
 
         $result = $this->resolveRow(
-            new ActionRowDataResolver(null, null, $urlGenerator),
+            new ActionRowDataResolver(new AuthorizationChecker(), null, $urlGenerator),
             (object) ['id' => 42],
             Action::new('publish', 'Publish')->linkToRoute('book_publish', ['id' => 42]),
         );
@@ -368,7 +368,7 @@ final class ActionRowDataResolverTest extends TestCase
             ->asAjaxRequest(static fn (object $row): string => 'publish_book_'.$row->id);
 
         $result = $this->resolveRow(
-            new ActionRowDataResolver(null, null, null, $csrfTokenManager),
+            new ActionRowDataResolver(new AuthorizationChecker(), null, null, $csrfTokenManager),
             (object) ['id' => 42],
             $action,
         );
@@ -394,7 +394,7 @@ final class ActionRowDataResolverTest extends TestCase
             ->asAjaxRequest();
 
         $result = $this->resolveRow(
-            new ActionRowDataResolver(null, null, null, $csrfTokenManager),
+            new ActionRowDataResolver(new AuthorizationChecker(), null, null, $csrfTokenManager),
             (object) ['id' => 42],
             $action,
         );
@@ -419,7 +419,7 @@ final class ActionRowDataResolverTest extends TestCase
             ->asAjaxRequest();
 
         $result = $this->resolveRow(
-            new ActionRowDataResolver(null, null, null, $csrfTokenManager),
+            new ActionRowDataResolver(new AuthorizationChecker(), null, null, $csrfTokenManager),
             (object) ['id' => 42],
             $action,
         );
@@ -447,7 +447,7 @@ final class ActionRowDataResolverTest extends TestCase
             ->asAjaxRequest('publish_book');
 
         $result = $this->resolveRow(
-            new ActionRowDataResolver(null, null, null, $csrfTokenManager),
+            new ActionRowDataResolver(new AuthorizationChecker(), null, null, $csrfTokenManager),
             (object) ['id' => 42],
             $action,
         );
@@ -462,7 +462,7 @@ final class ActionRowDataResolverTest extends TestCase
         $csrfTokenManager->expects($this->never())->method('getToken');
 
         $result = $this->resolveRow(
-            new ActionRowDataResolver(null, null, null, $csrfTokenManager),
+            new ActionRowDataResolver(new AuthorizationChecker(), null, null, $csrfTokenManager),
             (object) ['id' => 42],
             Action::new('publish', 'Publish')->asAjaxRequest('publish_book'),
         );

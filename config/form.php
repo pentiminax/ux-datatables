@@ -41,16 +41,13 @@ return static function (ContainerConfigurator $container): void {
         ->private();
 
     $services->set('datatables.form.edit_form_service', EditFormService::class)
-        ->arg(0, service('datatables.mutation.locator'))
-        ->arg(1, service('datatables.form.edit_form_builder'))
-        ->arg(2, service('datatables.form.edit_modal_renderer'))
-        ->arg(3, service('datatables.form.edit_modal_template_resolver'))
-        ->arg(4, service(MercurePublisherInterface::class))
-        ->arg(5, service('datatables.mercure.topic_resolver'))
-        ->arg(6, service('datatables.mutation.flusher'))
-        ->arg(7, service('datatables.mutation.row_scope_guard'))
-        ->arg(8, service('datatables.security.authorization_checker'))
-        ->arg(9, service('datatables.column.resolver'))
+        ->arg(0, service('datatables.form.edit_form_builder'))
+        ->arg(1, service('datatables.form.edit_modal_renderer'))
+        ->arg(2, service('datatables.form.edit_modal_template_resolver'))
+        ->arg(3, service(MercurePublisherInterface::class))
+        ->arg(4, service('datatables.mercure.topic_resolver'))
+        ->arg(5, service('datatables.mutation.flusher'))
+        ->arg(6, service('datatables.column.resolver'))
         ->private();
 
     $services->set('datatables.controller.ajax_edit_form', AjaxEditFormController::class)

@@ -185,39 +185,6 @@ final class AjaxBulkControllerTest extends TestCase
     }
 
     /**
-     * Built without a checker -- an application with no SecurityBundle -- the controller must
-     * still run the batch: the bundle's own DT_EXECUTE_ACTION is granted when there is no
-     * firewall to vote on it.
-     */
-    #[Test]
-    public function it_still_runs_the_batch_when_constructed_without_an_authorization_checker(): void
-    {
-        $entity = new BulkEntityFixture();
-
-        $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
-        $csrfTokenManager->method('isTokenValid')->willReturn(true);
-
-        $controller = new AjaxBulkController(
-            $this->runner($this->createDoctrine([1 => $entity]), new AuthorizationChecker()),
-            new MutationTokenValidator($csrfTokenManager),
-            $this->registry(),
-        );
-
-        $response = $controller($this->createRequest(), new AjaxBulkQueryDto(
-            dataTable: $this->dataTableToken(),
-            action: 'approve',
-            ids: [1],
-        ));
-
-        $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame(
-            ['success' => true, 'processed' => 1, 'skipped' => 0],
-            json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR),
-        );
-        $this->assertSame([$entity], $this->touched);
-    }
-
-    /**
      * @param array<int, BulkEntityFixture> $entities keyed by identifier
      */
     private function createDoctrine(array $entities): ManagerRegistry
@@ -281,6 +248,7 @@ final class AjaxBulkControllerTest extends TestCase
             $locator,
             new AjaxDataTableTokenManager(self::TOKEN_SECRET),
             [BulkEntityFixtureDataTable::class => 'bulk_table'],
+            new AuthorizationChecker(),
         );
     }
 

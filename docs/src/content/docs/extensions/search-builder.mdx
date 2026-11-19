@@ -34,7 +34,7 @@ final class EmployeeDataTable extends AbstractDataTable
 row. Pass `position: 'topStart'` to place it elsewhere, or declare `Feature::SEARCH_BUILDER` in
 `layout()` yourself and register the extension with
 `addExtension(new SearchBuilderExtension())`. A layout that places the feature without the
-extension is deprecated since 1.3 and throws in 2.0.
+extension throws a `LogicException`.
 
 ## Advanced Example
 

@@ -272,7 +272,7 @@ scope covers:
     ],
     [
       'Bulk explicit selection, custom provider that does not declare DataSourceFeature::RowScope, or API Platform table',
-      'Refused unless the table calls unscopedMutations(), in which case the handler receives every identifier that exists',
+      'Refused unless the table calls unscopedMutations(), in which case the handler receives the entities of every identifier that exists and must validate each one, declining others with $context->skip()',
     ],
     [
       'Single-row delete, boolean toggle on the table entity, edit form, detail row, built-in Doctrine provider',
@@ -284,7 +284,7 @@ scope covers:
     ],
     [
       'Boolean toggle on a column of another entity (entityClass())',
-      'No: the payload carries only the related id, so the table scope cannot apply',
+      'Through the table row: the payload carries the row id and the related id, and the related id must belong to a row in the table scope',
     ],
     [
       'Single-row permissions',

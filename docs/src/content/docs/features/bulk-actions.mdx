@@ -267,8 +267,9 @@ A data provider you build yourself in `createDataProvider()` must receive the sc
 A custom data provider that does not declare `DataSourceFeature::RowScope`, and an API Platform
 backed table, are refused: the table throws a `LogicException` when it renders and the
 bulk endpoint answers `403`. When the scope is enforced elsewhere, state it on the table with
-`unscopedMutations()`: the handler then receives every identifier that exists, and must scope
-itself.
+`unscopedMutations()`: the handler then receives the entities of every identifier that exists. The bundle cannot
+check the row scope on such a provider, so the handler must validate each entity it receives
+(ownership, tenant, state) and decline the others with `$context->skip()`.
 
 ## Ajax Endpoints
 

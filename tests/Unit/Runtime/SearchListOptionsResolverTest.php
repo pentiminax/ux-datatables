@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Runtime;
 
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchListOptionsProviderInterface;
@@ -13,6 +14,7 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -41,7 +43,7 @@ final class SearchListOptionsResolverTest extends TestCase
         ];
         $table = $this->table($columns, SearchList::new()->ajaxOptionsProvider($provider));
 
-        $resolved = (new SearchListOptionsResolver())->resolve($table, $columns, $this->request());
+        $resolved = (new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())))->resolve($table, $columns, $this->request());
 
         $this->assertSame([[7, 'name'], [7, 'office']], $seen);
         $this->assertSame([
@@ -63,7 +65,7 @@ final class SearchListOptionsResolverTest extends TestCase
             ],
         ));
 
-        $resolved = (new SearchListOptionsResolver())->resolve($table, [$column], $this->request());
+        $resolved = (new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())))->resolve($table, [$column], $this->request());
 
         $this->assertSame(
             ['office' => [
@@ -87,7 +89,7 @@ final class SearchListOptionsResolverTest extends TestCase
             static fn (): array => [],
         ));
 
-        $resolver = new SearchListOptionsResolver();
+        $resolver = new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker()));
 
         $this->assertNull($resolver->resolve($withoutProvider, [$column], $this->request()));
         $this->assertSame('{}', json_encode($resolver->resolve($nullProvider, [$column], $this->request()), \JSON_THROW_ON_ERROR));
@@ -103,7 +105,7 @@ final class SearchListOptionsResolverTest extends TestCase
         $column = TextColumn::new('status')->permission('ROLE_ADMIN');
         $table  = $this->table([$column], SearchList::new());
 
-        $this->assertNull((new SearchListOptionsResolver())->resolve($table, [$column], $this->request()));
+        $this->assertNull((new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())))->resolve($table, [$column], $this->request()));
     }
 
     #[Test]
@@ -115,7 +117,7 @@ final class SearchListOptionsResolverTest extends TestCase
         ]);
         $table = $this->table([$column], SearchList::new()->ajaxOptionsProvider($provider));
 
-        $this->assertNull((new SearchListOptionsResolver())->resolve($table, [$column], $this->request()));
+        $this->assertNull((new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())))->resolve($table, [$column], $this->request()));
     }
 
     #[Test]
@@ -127,7 +129,7 @@ final class SearchListOptionsResolverTest extends TestCase
         ]);
         $table = $this->table([$column], SearchList::new()->ajaxOptionsProvider($provider));
 
-        $resolved = (new SearchListOptionsResolver())->resolve($table, [$column], $this->request());
+        $resolved = (new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())))->resolve($table, [$column], $this->request());
 
         $this->assertSame(
             ['status' => [['label' => 'table', 'value' => 'table']]],
@@ -147,7 +149,7 @@ final class SearchListOptionsResolverTest extends TestCase
         $column = TextColumn::new('status')->disableColumnControl();
         $table  = $this->table([$column], SearchList::new()->ajaxOptionsProvider($provider));
 
-        $this->assertNull((new SearchListOptionsResolver())->resolve($table, [$column], $this->request()));
+        $this->assertNull((new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())))->resolve($table, [$column], $this->request()));
         $this->assertSame(0, $calls);
     }
 
@@ -161,7 +163,7 @@ final class SearchListOptionsResolverTest extends TestCase
         ]);
         $table = $this->table([$column], SearchList::new()->ajaxOptionsProvider($tableProvider));
 
-        $resolved = (new SearchListOptionsResolver())->resolve($table, [$column], $this->request());
+        $resolved = (new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())))->resolve($table, [$column], $this->request());
 
         $this->assertSame(
             ['status' => [['label' => 'column', 'value' => 'column']]],
@@ -184,7 +186,7 @@ final class SearchListOptionsResolverTest extends TestCase
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('Column "status" has more than one effective search list Ajax options provider.');
 
-        (new SearchListOptionsResolver())->resolve($table, [$column], $this->request());
+        (new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())))->resolve($table, [$column], $this->request());
     }
 
     #[Test]
@@ -200,7 +202,7 @@ final class SearchListOptionsResolverTest extends TestCase
                     ->add(1, [SearchList::new()->ajaxOptionsProvider($provider)]),
             );
 
-        $resolved = (new SearchListOptionsResolver())->resolve($table, [$column], $this->request());
+        $resolved = (new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())))->resolve($table, [$column], $this->request());
 
         $this->assertSame(
             ['status' => [['label' => 'active', 'value' => 'active']]],
@@ -219,7 +221,7 @@ final class SearchListOptionsResolverTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Column control target must be an integer or string.');
 
-        (new SearchListOptionsResolver())->resolve($table, [$column], $this->request());
+        (new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())))->resolve($table, [$column], $this->request());
     }
 
     #[Test]
@@ -234,7 +236,7 @@ final class SearchListOptionsResolverTest extends TestCase
 
         $this->assertSame(['Draft', 'Published'], array_column($static->jsonSerialize()['options'], 'label'));
 
-        $resolver = new SearchListOptionsResolver($translator);
+        $resolver = new SearchListOptionsResolver($translator, new ColumnResolver(new AuthorizationChecker()));
 
         $this->assertSame([[
             'extend'  => 'searchList',

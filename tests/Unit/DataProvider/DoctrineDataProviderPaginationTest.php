@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\DataProvider;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
@@ -12,6 +13,8 @@ use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
+use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountCustomer;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountTag;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
@@ -67,6 +70,7 @@ final class DoctrineDataProviderPaginationTest extends TestCase
             table: (new DataTable('customers'))->lengthMenu([10, 25]),
             dataProviderFactory: fn (): ?DataProviderInterface => $this->provider(),
             maxPageLength: 5,
+            searchListOptionsResolver: new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())),
         );
 
         $runtime->handleRequest(new Request(query: ['draw' => 1, 'start' => -5, 'length' => -1]));

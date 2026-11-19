@@ -12,16 +12,13 @@ use Pentiminax\UX\DataTables\Exception\MutationPersistenceException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\MutationUpdatePublisher;
-use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
 final class EntityMutator
 {
     public function __construct(
-        private readonly EntityLocator $locator,
         private readonly PropertyAccessorInterface $propertyAccessor,
         private readonly MercurePublisherInterface $publisher,
-        private readonly AuthorizationChecker $permissionChecker,
         private readonly MercureTopicResolver $topicResolver,
         private readonly MutationFlusher $flusher,
     ) {

@@ -24,12 +24,10 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
-use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsRowActionGate;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
 use PHPUnit\Framework\Attributes\Test;
@@ -78,10 +76,8 @@ final class MutationExceptionHandlingTest extends TestCase
         $accessor->method('isWritable')->with($entity, 'enabled')->willReturn(false);
 
         $controller = $this->editController(new EntityMutator(
-            new EntityLocator($this->registryReturning($entity)),
             $accessor,
             new NullMercurePublisher(),
-            new AuthorizationChecker(new TestAuthorizationChecker()),
             new MercureTopicResolver(),
             new MutationFlusher(),
         ), $entity);
@@ -162,10 +158,8 @@ final class MutationExceptionHandlingTest extends TestCase
     private function mutatorReturning(?object $entity): EntityMutator
     {
         return new EntityMutator(
-            new EntityLocator($this->registryReturning($entity)),
             $this->createStub(PropertyAccessorInterface::class),
             new NullMercurePublisher(),
-            new AuthorizationChecker(new TestAuthorizationChecker()),
             new MercureTopicResolver(),
             new MutationFlusher(),
         );
@@ -224,6 +218,7 @@ final class MutationExceptionHandlingTest extends TestCase
             $locator,
             new AjaxDataTableTokenManager(self::TOKEN_SECRET),
             [MutationExceptionHandlingDataTableFixture::class => 'mutation_exception_table'],
+            new AuthorizationChecker(),
         );
     }
 }

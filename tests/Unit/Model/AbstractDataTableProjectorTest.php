@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountCustomer;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CustomerListDto;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
@@ -46,6 +47,7 @@ final class AbstractDataTableProjectorTest extends TestCase
         $table = new ProjectingCustomerTable();
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             runtimeFactory: new DataTableRuntimeFactory(
+                new AuthorizationChecker(),
                 autoDataProviderFactory: new AutoDataProviderFactory($this->em),
             ),
         ));

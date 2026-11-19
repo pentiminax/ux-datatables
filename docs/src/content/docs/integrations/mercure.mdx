@@ -26,8 +26,8 @@ Mercure 1.0 renamed the subscription parameters. A 0.x hub takes `topic=` with
 [URI Template](https://www.rfc-editor.org/rfc/rfc6570) selectors; a 1.0 hub takes `match=` for an
 exact topic and `match_urlpattern=` for a [URL Pattern](https://urlpattern.spec.whatwg.org) (`:id`
 instead of `{id}`). Neither hub understands the other's spelling, so the bundle asks the configured
-hub which protocol it speaks (`HubInterface::getProtocolVersion()`, available with
-`symfony/mercure` 0.8+) and builds the subscription accordingly.
+hub which protocol it speaks (`HubInterface::getProtocolVersion()`, which needs
+`symfony/mercure` 0.8 or later, the minimum the bundle supports) and builds the subscription accordingly.
 
 **Nothing to configure in the bundle.** The dialect follows your hub:
 
@@ -57,10 +57,6 @@ behavior, and this bundle's own publish path) and publishers that publish concre
 A topic using a URI Template operator (`{?page}`, `{+path}`, …) has no URL Pattern equivalent, and
 is sent as an exact `match=` on its literal value rather than as an invalid pattern the hub would
 reject with a `400`.
-
-Where the protocol version does not reach the bundle — an older `symfony/mercure` without
-`HubInterface::getProtocolVersion()` — the legacy `topic=` parameters are used, which is what those
-installations have always sent.
 
 Migrating a hub to 1.0 is a breaking change for every client, and the hub will not enable
 compatibility by itself: see the [Mercure upgrade guide](https://github.com/dunglas/mercure/blob/main/docs/UPGRADE.md).

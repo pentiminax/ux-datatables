@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Runtime;
 
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -37,11 +40,23 @@ final class DataTableInfrastructureTest extends TestCase
     }
 
     #[Test]
+    public function the_default_rendering_preparer_filters_columns_by_permission(): void
+    {
+        $preparer = DataTableInfrastructure::createDefault()->renderingPreparer;
+        $table    = (new DataTable('secured'))->add(TextColumn::new('secret')->permission('ROLE_ADMIN'));
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('ROLE_ADMIN');
+
+        $preparer->prepareAfterDataHydration($table, $preparer->resolveOptIns($table, null));
+    }
+
+    #[Test]
     public function it_returns_the_collaborators_it_was_given(): void
     {
-        $columnResolver      = new ColumnResolver();
-        $renderingPreparer   = new RenderingPreparer();
-        $runtimeFactory      = new DataTableRuntimeFactory();
+        $columnResolver      = new ColumnResolver(new AuthorizationChecker());
+        $renderingPreparer   = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()));
+        $runtimeFactory      = new DataTableRuntimeFactory(new AuthorizationChecker());
         $intentFactory       = new DefaultDataTableQueryIntentFactory();
         $queryFilterPipeline = new QueryFilterPipeline($intentFactory);
         $profiler            = new DataTableProfiler();

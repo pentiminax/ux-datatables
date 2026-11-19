@@ -37,7 +37,7 @@ final class ColumnResolverTest extends TestCase
     #[Test]
     public function a_column_declared_on_the_table_class_wins_over_the_entity(): void
     {
-        $columns = (new ColumnResolver())->resolveColumns(
+        $columns = (new ColumnResolver(new AuthorizationChecker()))->resolveColumns(
             new AsDataTable(entityClass: ResolverEntityFixture::class),
             dataTableClass: ResolverTableFixture::class,
         );
@@ -48,7 +48,7 @@ final class ColumnResolverTest extends TestCase
     #[Test]
     public function it_falls_back_to_the_entity_when_the_table_class_declares_nothing(): void
     {
-        $columns = (new ColumnResolver())->resolveColumns(
+        $columns = (new ColumnResolver(new AuthorizationChecker()))->resolveColumns(
             new AsDataTable(entityClass: ResolverEntityFixture::class),
             dataTableClass: SilentTableFixture::class,
         );
@@ -59,7 +59,7 @@ final class ColumnResolverTest extends TestCase
     #[Test]
     public function it_reads_the_columns_on_the_data_class_not_the_entity_class(): void
     {
-        $columns = (new ColumnResolver())->resolveColumns(
+        $columns = (new ColumnResolver(new AuthorizationChecker()))->resolveColumns(
             new AsDataTable(dataClass: ResolverDataClassFixture::class, entityClass: ResolverEntityFixture::class),
             dataTableClass: SilentTableFixture::class,
         );
@@ -71,7 +71,7 @@ final class ColumnResolverTest extends TestCase
     #[DataProvider('provideEmptyResolutions')]
     public function it_resolves_no_column_without_usable_configuration(\Closure $resolve): void
     {
-        $this->assertSame([], $resolve(new ColumnResolver()));
+        $this->assertSame([], $resolve(new ColumnResolver(new AuthorizationChecker())));
     }
 
     /**
@@ -99,7 +99,7 @@ final class ColumnResolverTest extends TestCase
             ->willReturn(false);
         $detector->expects($this->never())->method('detectColumns');
 
-        $resolver = new ColumnResolver(columnAutoDetector: $detector);
+        $resolver = new ColumnResolver(new AuthorizationChecker(), columnAutoDetector: $detector);
 
         $this->assertSame([], $resolver->autoDetectColumns(new AsDataTable(entityClass: \stdClass::class, apiPlatform: $apiPlatform)));
     }
@@ -116,7 +116,7 @@ final class ColumnResolverTest extends TestCase
         $detector->method('supports')->with(\stdClass::class)->willReturn(true);
         $detector->method('detectColumns')->with(\stdClass::class, [])->willReturn($expected);
 
-        $resolver = new ColumnResolver(columnAutoDetector: $detector);
+        $resolver = new ColumnResolver(new AuthorizationChecker(), columnAutoDetector: $detector);
 
         $this->assertSame($expected, $resolver->autoDetectColumns(new AsDataTable(entityClass: \stdClass::class, apiPlatform: true)));
     }
@@ -133,7 +133,7 @@ final class ColumnResolverTest extends TestCase
             ->with(\stdClass::class, [])
             ->willReturn($expected);
 
-        $resolver = new ColumnResolver(columnAutoDetector: $detector);
+        $resolver = new ColumnResolver(new AuthorizationChecker(), columnAutoDetector: $detector);
 
         $this->assertSame(
             $expected,
@@ -158,7 +158,7 @@ final class ColumnResolverTest extends TestCase
             ->with(\stdClass::class, $expectedGroups)
             ->willReturn([]);
 
-        $resolver = new ColumnResolver(columnAutoDetector: $detector);
+        $resolver = new ColumnResolver(new AuthorizationChecker(), columnAutoDetector: $detector);
 
         $resolver->autoDetectColumns(
             new AsDataTable(entityClass: \stdClass::class, serializationGroups: ['product:list'], apiPlatform: true),
@@ -177,6 +177,7 @@ final class ColumnResolverTest extends TestCase
 
         // stdClass has no #[Column] attributes, so AttributeColumnReader returns []
         $resolver = new ColumnResolver(
+            new AuthorizationChecker(),
             attributeColumnReader: new AttributeColumnReader(),
             columnAutoDetector: $detector,
         );
@@ -192,7 +193,7 @@ final class ColumnResolverTest extends TestCase
     #[TestWith([null])]
     public function configure_action_entity_class_only_applies_with_an_attribute(?string $entityClass): void
     {
-        $resolver = new ColumnResolver();
+        $resolver = new ColumnResolver(new AuthorizationChecker());
 
         $actions = new Actions();
         $actions->add(Action::delete());
@@ -230,7 +231,7 @@ final class ColumnResolverTest extends TestCase
 
         $this->assertSame(['email', 'name'], array_map(
             static fn (ColumnInterface $column): string => $column->getName(),
-            (new ColumnResolver())->filterExportable($columns),
+            (new ColumnResolver(new AuthorizationChecker()))->filterExportable($columns),
         ));
     }
 
@@ -427,7 +428,7 @@ final class ColumnResolverTest extends TestCase
     #[DataProvider('provideColumnsKeptWithoutPermissionCheck')]
     public function filter_static_permissions_keeps_columns_it_cannot_deny(AbstractColumn $column): void
     {
-        $this->assertSame([$column], (new ColumnResolver())->filterStaticPermissions([$column]));
+        $this->assertSame([$column], (new ColumnResolver(new AuthorizationChecker()))->filterStaticPermissions([$column]));
     }
 
     /**
@@ -443,7 +444,7 @@ final class ColumnResolverTest extends TestCase
     {
         $this->expectException(\LogicException::class);
 
-        (new ColumnResolver())->filterStaticPermissions([TextColumn::new('salary', 'Salary')->permission('ROLE_HR')]);
+        (new ColumnResolver(new AuthorizationChecker()))->filterStaticPermissions([TextColumn::new('salary', 'Salary')->permission('ROLE_HR')]);
     }
 
     /**

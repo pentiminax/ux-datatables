@@ -11,6 +11,7 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Psr\Log\LoggerInterface;
 
 final class DataTableInfrastructure
@@ -48,12 +49,15 @@ final class DataTableInfrastructure
         ?LoggerInterface $logger = null,
         int $hydrationRowThreshold = 0,
     ): self {
+        $permissionChecker = new AuthorizationChecker();
+        $columnResolver ??= new ColumnResolver($permissionChecker);
+
         $queryFilterPipeline ??= new QueryFilterPipeline($queryIntentFactory ?? new DefaultDataTableQueryIntentFactory());
 
         return new self(
-            columnResolver: $columnResolver       ?? new ColumnResolver(),
-            renderingPreparer: $renderingPreparer ?? new RenderingPreparer(),
-            runtimeFactory: $runtimeFactory       ?? new DataTableRuntimeFactory(),
+            columnResolver: $columnResolver,
+            renderingPreparer: $renderingPreparer ?? new RenderingPreparer($permissionChecker, $columnResolver),
+            runtimeFactory: $runtimeFactory       ?? new DataTableRuntimeFactory($permissionChecker),
             queryFilterPipeline: $queryFilterPipeline,
             options: $options,
             attributes: $attributes,

@@ -11,6 +11,7 @@ use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Controller\AjaxEditFormRequestDto;
 use Pentiminax\UX\DataTables\Controller\AjaxEditFormSubmitController;
@@ -29,7 +30,6 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
@@ -80,15 +80,13 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         $doctrine = $this->createRegistry($entityManager);
 
         $controller = $this->controller(new EditFormService(
-            new EntityLocator($doctrine),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
             new NullMercurePublisher(),
             new MercureTopicResolver(dataTables: $this->registeredDataTables()),
             new MutationFlusher(),
-            $this->unscopedRowScopeGuard(),
-            $this->permissionCheckerGranting(true),
+            new ColumnResolver($this->permissionCheckerGranting(true)),
         ), doctrine: $doctrine);
 
         $response = $controller($this->validTokenRequest(), $this->payload());
@@ -133,15 +131,13 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         $doctrine = $this->createRegistry($entityManager);
 
         $controller = $this->controller(new EditFormService(
-            new EntityLocator($doctrine),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
             new NullMercurePublisher(),
             new MercureTopicResolver(),
             new MutationFlusher(),
-            $this->unscopedRowScopeGuard(),
-            new AuthorizationChecker($authorizationChecker),
+            new ColumnResolver(new AuthorizationChecker($authorizationChecker)),
         ), doctrine: $doctrine, permissionChecker: new AuthorizationChecker($authorizationChecker));
 
         try {
@@ -200,15 +196,13 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         $doctrine = $this->createRegistry($entityManager);
 
         $controller = $this->controller(new EditFormService(
-            new EntityLocator($doctrine),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
             new MercureUpdatePublisher($hub),
             new MercureTopicResolver($resolver, $this->registeredDataTables()),
             new MutationFlusher(),
-            $this->unscopedRowScopeGuard(),
-            $this->permissionCheckerGranting(true),
+            new ColumnResolver($this->permissionCheckerGranting(true)),
         ), doctrine: $doctrine);
 
         $response = $controller($this->validTokenRequest(), $this->payload());
@@ -258,6 +252,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             $locator,
             new AjaxDataTableTokenManager(self::TOKEN_SECRET),
             [AjaxEditFormSubmitControllerDataTable::class => 'submit_table'],
+            new AuthorizationChecker(),
         );
     }
 

@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
@@ -24,14 +25,12 @@ use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
-use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsRowActionGate;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -157,10 +156,8 @@ final class AjaxEditControllerTest extends TestCase
         $doctrine = $this->managerRegistry($entity, 799, expectFlush: true);
 
         $mutator = new EntityMutator(
-            new EntityLocator($doctrine),
             $this->writableAccessor($entity, true),
             $publisher,
-            new AuthorizationChecker(new TestAuthorizationChecker()),
             new MercureTopicResolver($resolver, $dataTables),
             new MutationFlusher(),
         );
@@ -183,10 +180,8 @@ final class AjaxEditControllerTest extends TestCase
         $doctrine = $this->managerRegistry($entity, $id, $expectFlush);
 
         $mutator = new EntityMutator(
-            new EntityLocator($doctrine),
             $accessor,
             new NullMercurePublisher(),
-            new AuthorizationChecker(new TestAuthorizationChecker()),
             new MercureTopicResolver(),
             new MutationFlusher(),
         );
@@ -261,6 +256,7 @@ final class AjaxEditControllerTest extends TestCase
             $locator,
             new AjaxDataTableTokenManager(self::TOKEN_SECRET),
             [ToggleBooleanEntityFixtureDataTable::class => 'toggle_table'],
+            new AuthorizationChecker(),
         );
     }
 
@@ -306,6 +302,7 @@ final class ToggleBooleanEntityFixtureDataTable extends AbstractDataTable
     ) {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             renderingPreparer: new RenderingPreparer(
+                new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()),
                 mercureHubUrlResolver: $this->mercureHubUrlResolver,
             )
         ));

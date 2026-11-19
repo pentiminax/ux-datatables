@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
@@ -15,6 +16,7 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -166,7 +168,7 @@ final class AbstractDataTableBulkActionsTest extends TestCase
     public function it_sends_the_resolved_row_id_field_on_the_bulk_actions_payload(): void
     {
         $table    = $this->table();
-        $preparer = new RenderingPreparer();
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()));
         $payload  = $preparer->prepareAfterDataHydration($table->getConfiguredDataTable(), $table->getResolvedOptIns(), bulkRowIdField: 'sku');
 
         $this->assertSame('sku', $payload->getView()['bulkActions']['idField']);

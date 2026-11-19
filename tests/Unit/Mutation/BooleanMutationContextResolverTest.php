@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\InvalidBooleanMutationContextException;
 use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
@@ -71,10 +72,9 @@ final class BooleanMutationContextResolverTest extends TestCase
     }
 
     #[Test]
-    public function it_rejects_a_datatable_without_an_entity_class(): void
+    public function it_answers_a_datatable_without_an_entity_class_as_a_missing_row(): void
     {
-        $this->expectException(InvalidDataTableTokenException::class);
-        $this->expectExceptionMessage('must define an entity class');
+        $this->expectException(EntityNotFoundException::class);
 
         $this->resolve(MissingEntityClassDataTableFixture::class, 'enabled');
     }
@@ -149,6 +149,7 @@ final class BooleanMutationContextResolverTest extends TestCase
                 $locator,
                 new AjaxDataTableTokenManager(self::TOKEN_SECRET),
                 [$dataTableClass => 'table'],
+                new AuthorizationChecker(),
             ),
             $permissionChecker ?? new AuthorizationChecker(),
         );
@@ -163,6 +164,7 @@ final class BooleanMutationContextResolverTest extends TestCase
             $this->createStub(ContainerInterface::class),
             new AjaxDataTableTokenManager(self::TOKEN_SECRET),
             [$dataTableClass => 'table'],
+            new AuthorizationChecker(),
         ))->getActionToken($dataTableClass);
 
         $this->assertNotNull($token);

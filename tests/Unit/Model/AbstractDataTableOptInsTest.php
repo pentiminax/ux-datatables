@@ -14,6 +14,7 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -205,8 +206,8 @@ abstract class OptInFixture extends AbstractDataTable
     public function __construct(?ApiResourceCollectionUrlResolver $urlResolver, ?ColumnAutoDetector $detector = null)
     {
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            columnResolver: new ColumnResolver(columnAutoDetector: $detector),
-            renderingPreparer: new RenderingPreparer(urlResolver: $urlResolver),
+            columnResolver: new ColumnResolver(new AuthorizationChecker(), columnAutoDetector: $detector),
+            renderingPreparer: new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), urlResolver: $urlResolver),
         ));
     }
 

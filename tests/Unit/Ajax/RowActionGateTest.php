@@ -115,7 +115,7 @@ final class RowActionGateTest extends TestCase
             GateDeniedActionAccountDataTable::class => 'denied-action',
             GateOrderDataTable::class               => 'orders',
             GateManualDataTable::class              => 'manual',
-        ]);
+        ], new AuthorizationChecker());
     }
 
     /**
@@ -186,9 +186,9 @@ final class RowActionGateTest extends TestCase
     }
 
     #[Test]
-    public function it_refuses_a_toggle_on_a_table_without_an_entity_class(): void
+    public function it_refuses_a_toggle_on_a_table_without_an_entity_class_as_a_missing_row(): void
     {
-        $this->expectException(MutationNotAllowedException::class);
+        $this->expectException(EntityNotFoundException::class);
 
         $this->authorize(RowActionRequest::toggle($this->token(GateManualDataTable::class), 'vip', 30));
     }

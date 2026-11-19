@@ -139,26 +139,14 @@ final class DataTableTest extends TestCase
     }
 
     #[Test]
-    public function a_layout_slot_for_search_builder_without_the_extension_is_deprecated(): void
+    public function a_layout_slot_for_search_builder_without_the_extension_throws(): void
     {
         $table = (new DataTable('testTable'))->layout(['top1' => Feature::SEARCH_BUILDER]);
 
-        $messages = [];
-        set_error_handler(static function (int $level, string $message) use (&$messages): bool {
-            $messages[] = $message;
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('The "searchBuilder" feature is placed in the layout without the SearchBuilder extension, call searchBuilder() or addExtension(new SearchBuilderExtension()).');
 
-            return true;
-        }, \E_USER_DEPRECATED);
-
-        try {
-            $options = $table->getOptions();
-        } finally {
-            restore_error_handler();
-        }
-
-        $this->assertSame('searchBuilder', $options['layout']['top1']);
-        $this->assertCount(1, $messages);
-        $this->assertStringContainsString('Since pentiminax/ux-datatables 1.3: Placing the "searchBuilder" feature', $messages[0]);
+        $table->getOptions();
     }
 
     #[Test]

@@ -20,7 +20,6 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsRowActionGate;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
@@ -80,10 +79,7 @@ final class AjaxDetailControllerTest extends TestCase
         $authorizationChecker->method('isGranted')->willReturn($granted);
 
         $service = new DetailRowService(
-            new EntityLocator($registry),
-            $this->unscopedRowScopeGuard(),
             new Environment(new ArrayLoader(['detail.html.twig' => 'Email: {{ entity.email }}'])),
-            new AuthorizationChecker($authorizationChecker),
         );
 
         $csrf = $this->createStub(CsrfTokenManagerInterface::class);
@@ -114,6 +110,7 @@ final class AjaxDetailControllerTest extends TestCase
             $locator,
             new AjaxDataTableTokenManager(self::TOKEN_SECRET),
             [AjaxDetailControllerDataTable::class => 'detail_table'],
+            new AuthorizationChecker(),
         );
     }
 

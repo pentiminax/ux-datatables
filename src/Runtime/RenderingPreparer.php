@@ -37,11 +37,11 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final class RenderingPreparer
 {
-    public const AJAX_DATA_ROUTE   = 'ux_datatables_ajax_data';
-    public const AJAX_EXPORT_ROUTE = 'ux_datatables_ajax_export';
-    public const AJAX_BULK_ROUTE   = 'ux_datatables_ajax_bulk';
+    public const string AJAX_DATA_ROUTE   = 'ux_datatables_ajax_data';
+    public const string AJAX_EXPORT_ROUTE = 'ux_datatables_ajax_export';
+    public const string AJAX_BULK_ROUTE   = 'ux_datatables_ajax_bulk';
 
-    private const ROW_ACTION_ROUTES = [
+    private const array ROW_ACTION_ROUTES = [
         'delete'         => 'ux_datatables_ajax_delete',
         'toggle'         => 'ux_datatables_ajax_edit',
         'detail'         => 'ux_datatables_ajax_detail',
@@ -54,7 +54,7 @@ final class RenderingPreparer
      *
      * @var array<string, string>
      */
-    private const BULK_LABEL_KEYS = [
+    private const array BULK_LABEL_KEYS = [
         'trigger'             => 'bulk.bar.trigger',
         'selected'            => 'bulk.bar.selected',
         'selectAllMatching'   => 'bulk.bar.selectAllMatching',
@@ -73,7 +73,7 @@ final class RenderingPreparer
      *
      * @var array<string, string>
      */
-    private const ACTION_LABEL_KEYS = [
+    private const array ACTION_LABEL_KEYS = [
         'failed'    => 'action.row.failed',
         'forbidden' => 'action.row.forbidden',
         'confirm'   => 'action.row.confirm',
@@ -85,13 +85,15 @@ final class RenderingPreparer
      *
      * @var array<string, string>
      */
-    private const EMPTY_STATE_LABEL_KEYS = [
+    private const array EMPTY_STATE_LABEL_KEYS = [
         'noResults'     => 'empty.noResults',
         'noResultsHint' => 'empty.noResultsHint',
         'resetFilters'  => 'empty.resetFilters',
     ];
 
     public function __construct(
+        private readonly AuthorizationChecker $permissionChecker,
+        private readonly ColumnResolver $columnResolver,
         private readonly ?ApiResourceCollectionUrlResolver $urlResolver = null,
         private readonly ?MercureConfigResolver $mercureResolver = null,
         private readonly ?TranslatorInterface $translator = null,
@@ -101,10 +103,8 @@ final class RenderingPreparer
         private readonly ?RequestStack $requestStack = null,
         private readonly ?SearchListOptionsResolver $searchListOptionsResolver = null,
         private readonly ?FilterEntityOptionsResolver $filterEntityOptionsResolver = null,
-        private readonly ?ColumnResolver $columnResolver = null,
         private readonly DataSourceFeatureGuard $featureGuard = new DataSourceFeatureGuard(),
         private readonly ?CsrfTokenManagerInterface $csrfTokenManager = null,
-        private readonly ?AuthorizationChecker $permissionChecker = null,
     ) {
     }
 
@@ -151,7 +151,7 @@ final class RenderingPreparer
     {
         $dataTableClass    = $table->getDataTableClass();
         $configuredColumns = $this->translatedColumns($table->getColumns());
-        $columns           = array_values($this->columnResolver?->filterStaticPermissions($configuredColumns, $dataTableClass) ?? $configuredColumns);
+        $columns           = array_values($this->columnResolver->filterStaticPermissions($configuredColumns, $dataTableClass));
 
         $options = $table->getOptions();
         if (null !== $rows) {
@@ -429,7 +429,7 @@ final class RenderingPreparer
         }
 
         $allowed = (clone $bulkActions)->filterStaticPermissions(
-            $this->permissionChecker ?? AuthorizationChecker::fallbackFor(self::class),
+            $this->permissionChecker,
             $dataTableClass,
         );
 

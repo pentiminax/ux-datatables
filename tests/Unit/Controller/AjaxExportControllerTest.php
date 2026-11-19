@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Controller;
 
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
@@ -65,7 +66,7 @@ final class AjaxExportControllerTest extends TestCase
         $registry = $this->createRegistry($table, $table::class);
         $token    = $registry->getToken($table::class);
 
-        $controller = new AjaxExportController($registry, new ExportService(new ExporterRegistry([$exporter])));
+        $controller = new AjaxExportController($registry, new ExportService(new ExporterRegistry([$exporter]), columnResolver: new ColumnResolver(new AuthorizationChecker())));
         $response   = $controller(new Request(
             query: ['table' => $token],
             request: ['draw' => 1, 'start' => 0, 'length' => 10, 'exportKey' => 'csv'],
@@ -92,7 +93,7 @@ final class AjaxExportControllerTest extends TestCase
         $registry = $this->createRegistry($table, $table::class, $this->denyingPermissionChecker());
         $token    = $registry->getToken($table::class);
 
-        $controller = new AjaxExportController($registry, new ExportService(new ExporterRegistry([$exporter])));
+        $controller = new AjaxExportController($registry, new ExportService(new ExporterRegistry([$exporter]), columnResolver: new ColumnResolver(new AuthorizationChecker())));
 
         try {
             $controller(new Request(
@@ -118,7 +119,7 @@ final class AjaxExportControllerTest extends TestCase
         $table    = $this->exportTable();
         $registry = $this->createRegistry($table, $table::class);
 
-        $controller = new AjaxExportController($registry, new ExportService(new ExporterRegistry([$exporter])));
+        $controller = new AjaxExportController($registry, new ExportService(new ExporterRegistry([$exporter]), columnResolver: new ColumnResolver(new AuthorizationChecker())));
 
         try {
             $controller(new Request(
@@ -188,6 +189,8 @@ final class AjaxExportControllerTest extends TestCase
     {
         return new ExportService(new ExporterRegistry([
             new RecordingExporter(failure: new \LogicException('Export service should not run.')),
-        ]));
+        ]),
+            columnResolver: new ColumnResolver(new AuthorizationChecker()),
+        );
     }
 }

@@ -26,10 +26,10 @@ final class DataTableRuntime
     public function __construct(
         private readonly DataTable $table,
         private readonly \Closure $dataProviderFactory,
+        private readonly SearchListOptionsResolver $searchListOptionsResolver,
         private readonly int $maxPageLength = 1000,
         /** @var list<AbstractColumn> */
         private readonly array $columns = [],
-        private readonly SearchListOptionsResolver $searchListOptionsResolver = new SearchListOptionsResolver(),
         private readonly DataSourceFeatureGuard $featureGuard = new DataSourceFeatureGuard(),
         /** @var (\Closure():VisibleColumns)|null */
         private readonly ?\Closure $visibleColumns = null,

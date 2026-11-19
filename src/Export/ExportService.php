@@ -21,7 +21,7 @@ final class ExportService
 {
     public function __construct(
         private readonly ExporterRegistry $exporters,
-        private readonly ColumnResolver $columnResolver = new ColumnResolver(),
+        private readonly ColumnResolver $columnResolver,
         private readonly ?TranslatorInterface $translator = null,
     ) {
     }

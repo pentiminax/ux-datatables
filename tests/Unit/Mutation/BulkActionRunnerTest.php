@@ -866,7 +866,7 @@ final class BulkActionRunnerTest extends TestCase
 
         $registry = $this->createStub(ManagerRegistry::class);
         $registry->method('getManagerForClass')->willReturn($em);
-        $row = (new DataTableRuntimeFactory(doctrine: $registry))->createRowMapper(
+        $row = (new DataTableRuntimeFactory(new AuthorizationChecker(), doctrine: $registry))->createRowMapper(
             baseMapper: static fn (): array => [],
             columns: [],
             highlight: $dataTable->getHighlightConfig(),
@@ -908,7 +908,7 @@ final class BulkActionRunnerTest extends TestCase
 
         $registry = $this->createStub(ManagerRegistry::class);
         $registry->method('getManagerForClass')->willReturn($em);
-        $row = (new DataTableRuntimeFactory(doctrine: $registry))->createRowMapper(
+        $row = (new DataTableRuntimeFactory(new AuthorizationChecker(), doctrine: $registry))->createRowMapper(
             baseMapper: static fn (): array => [],
             columns: [],
             rowIdField: 'id',

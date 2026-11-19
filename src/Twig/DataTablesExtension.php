@@ -14,23 +14,20 @@ use Twig\TwigFunction;
 
 class DataTablesExtension extends AbstractExtension
 {
-    private readonly AuthorizationChecker $permissionChecker;
-
     /**
      * The Stimulus controller a rendered table is bound to, and the data attribute carrying its
      * serialized view. {@see \Pentiminax\UX\DataTables\Test\DataTableView} reads the attribute,
      * so both names are part of the bundle's public contract.
      */
-    public const CONTROLLER_NAME = '@pentiminax/ux-datatables/datatable';
+    public const string CONTROLLER_NAME = '@pentiminax/ux-datatables/datatable';
 
-    public const VIEW_ATTRIBUTE = 'data-pentiminax--ux-datatables--datatable-view-value';
+    public const string VIEW_ATTRIBUTE = 'data-pentiminax--ux-datatables--datatable-view-value';
 
     public function __construct(
         private readonly StimulusHelper $stimulus,
+        private readonly AuthorizationChecker $permissionChecker,
         private readonly ?DataTableProfiler $profiler = null,
-        ?AuthorizationChecker $permissionChecker = null,
     ) {
-        $this->permissionChecker = $permissionChecker ?? AuthorizationChecker::fallbackFor(self::class);
     }
 
     public function getFunctions(): array

@@ -14,14 +14,11 @@ use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 
 final class ColumnResolver
 {
-    private readonly AuthorizationChecker $permissionChecker;
-
     public function __construct(
+        private readonly AuthorizationChecker $permissionChecker,
         private readonly ?AttributeColumnReader $attributeColumnReader = null,
         private readonly ?ColumnAutoDetector $columnAutoDetector = null,
-        ?AuthorizationChecker $permissionChecker = null,
     ) {
-        $this->permissionChecker = $permissionChecker ?? AuthorizationChecker::fallbackFor(self::class);
     }
 
     /**

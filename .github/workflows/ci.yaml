@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php: ['8.2', '8.3', '8.4', '8.5']
+        php: ['8.3', '8.4', '8.5']
     name: PHP ${{ matrix.php }}
     steps:
       - name: Checkout
@@ -51,10 +51,10 @@ jobs:
       matrix:
         include:
           - name: Lowest dependencies
-            php: '8.2'
+            php: '8.3'
             composer-flags: '--prefer-lowest --prefer-stable'
           - name: Symfony 7.4
-            php: '8.2'
+            php: '8.3'
             symfony: '7.4.*'
           - name: Symfony 8
             php: '8.4'
