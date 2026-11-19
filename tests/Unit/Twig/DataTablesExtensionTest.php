@@ -49,29 +49,12 @@ final class DataTablesExtensionTest extends TestCase
     use CollectsDeprecations;
 
     #[Test]
-    public function it_renders_the_legacy_controller_by_default(): void
+    public function it_renders_the_datatable_controller(): void
     {
         $tableEl = $this->renderTableElement($this->inlineTable([TextColumn::new('name')]));
 
         $this->assertSame('pentiminax--ux-datatables--datatable', $tableEl->getAttribute('data-controller'));
         $this->assertTrue($tableEl->hasAttribute(DataTablesExtension::VIEW_ATTRIBUTE));
-    }
-
-    #[Test]
-    public function it_renders_the_core_controller_when_configured(): void
-    {
-        $extension = new DataTablesExtension(
-            new StimulusHelper($this->container->get('twig')),
-            controllerName: DataTablesExtension::CORE_CONTROLLER_NAME,
-        );
-
-        $dom = new \DOMDocument();
-        $dom->loadHTML($extension->renderDataTable($this->inlineTable([TextColumn::new('name')])));
-        $tableEl = $dom->getElementsByTagName('table')->item(0);
-
-        $this->assertSame('pentiminax--ux-datatables--datatable-core', $tableEl->getAttribute('data-controller'));
-        $this->assertTrue($tableEl->hasAttribute(DataTablesExtension::CORE_VIEW_ATTRIBUTE));
-        $this->assertFalse($tableEl->hasAttribute(DataTablesExtension::VIEW_ATTRIBUTE));
     }
 
     #[Test]

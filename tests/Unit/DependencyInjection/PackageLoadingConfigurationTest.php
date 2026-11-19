@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\DependencyInjection;
 
 use Pentiminax\UX\DataTables\PentiminaxDataTablesBundle;
-use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Config\Definition\Processor;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -22,47 +23,49 @@ use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 final class PackageLoadingConfigurationTest extends TestCase
 {
     #[Test]
-    public function it_deprecates_an_unset_package_loading_and_keeps_the_builtin_loaders(): void
+    public function it_needs_no_package_loading_option(): void
     {
         $deprecations = [];
-        $builder      = $this->collect(static fn (): ContainerBuilder => new ContainerBuilder(), $deprecations);
-
-        $this->assertCount(1, $deprecations);
-        $this->assertStringContainsString('becomes "registered" in 2.0', $deprecations[0]);
-        $this->assertStringContainsString('ux-datatables:install', $deprecations[0]);
-        $this->assertFalse($builder->hasParameter('datatables.package_loading'), 'An unset package_loading must not be checked against controllers.json.');
-        $this->assertSame(DataTablesExtension::CONTROLLER_NAME, $builder->getParameter('datatables.controller_name'));
-    }
-
-    #[Test]
-    public function it_deprecates_an_explicit_builtin_package_loading_and_keeps_the_builtin_loaders(): void
-    {
-        $deprecations = [];
-        $builder      = $this->collect(static fn (): ContainerBuilder => new ContainerBuilder(), $deprecations, ['package_loading' => 'builtin']);
-
-        $this->assertCount(1, $deprecations);
-        $this->assertStringContainsString('"builtin" is deprecated', $deprecations[0]);
-        $this->assertStringContainsString('ux-datatables:install', $deprecations[0]);
-        $this->assertSame('builtin', $builder->getParameter('datatables.package_loading'));
-        $this->assertSame(DataTablesExtension::CONTROLLER_NAME, $builder->getParameter('datatables.controller_name'));
-    }
-
-    #[Test]
-    public function it_accepts_registered_package_loading_without_deprecation(): void
-    {
-        $deprecations = [];
-        $builder      = $this->collect(static fn (): ContainerBuilder => new ContainerBuilder(), $deprecations, ['package_loading' => 'registered']);
+        $config       = $this->process([], $deprecations);
 
         $this->assertSame([], $deprecations);
-        $this->assertSame('registered', $builder->getParameter('datatables.package_loading'));
-        $this->assertSame(DataTablesExtension::CORE_CONTROLLER_NAME, $builder->getParameter('datatables.controller_name'));
+        $this->assertArrayNotHasKey('package_loading', $config);
     }
 
     #[Test]
-    public function it_stamps_a_declared_style_framework_into_the_default_options(): void
+    public function it_accepts_registered_package_loading_with_a_deprecation(): void
     {
         $deprecations = [];
-        $builder      = $this->collect(static fn (): ContainerBuilder => new ContainerBuilder(), $deprecations, ['style_framework' => 'bs5', 'options' => ['stateSave' => true]]);
+        $this->process(['package_loading' => 'registered'], $deprecations);
+
+        $this->assertCount(1, $deprecations);
+        $this->assertStringContainsString('"data_tables.package_loading" option is deprecated and ignored', $deprecations[0]);
+    }
+
+    #[Test]
+    public function it_rejects_builtin_package_loading_and_points_to_the_install_command(): void
+    {
+        $deprecations = [];
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('ux-datatables:install');
+
+        $this->process(['package_loading' => 'builtin'], $deprecations);
+    }
+
+    #[Test]
+    public function it_defaults_the_style_framework_to_dt(): void
+    {
+        $deprecations = [];
+
+        $this->assertSame('dt', $this->process([], $deprecations)['style_framework']);
+    }
+
+    #[Test]
+    public function it_stamps_the_style_framework_into_the_default_options(): void
+    {
+        $deprecations = [];
+        $builder      = $this->load(['style_framework' => 'bs5', 'options' => ['stateSave' => true]], $deprecations);
 
         $options = $builder->getParameter('datatables.options');
 
@@ -71,40 +74,36 @@ final class PackageLoadingConfigurationTest extends TestCase
     }
 
     #[Test]
-    public function it_leaves_the_style_framework_unset_by_default(): void
+    #[DataProvider('removedStyleFrameworks')]
+    public function it_rejects_bootstrap_3_and_4_naming_the_supported_styles(string $value): void
     {
         $deprecations = [];
-        $builder      = $this->collect(static fn (): ContainerBuilder => new ContainerBuilder(), $deprecations);
 
-        $this->assertArrayNotHasKey('styleFramework', $builder->getParameter('datatables.options'));
-    }
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Use "bs5" for Bootstrap 5, or "dt"');
 
-    #[Test]
-    public function it_rejects_a_deprecated_style_framework(): void
-    {
-        $deprecations = [];
-        $this->expectException(\Symfony\Component\Config\Definition\Exception\InvalidConfigurationException::class);
-
-        $this->collect(static fn (): ContainerBuilder => new ContainerBuilder(), $deprecations, ['style_framework' => 'bs4']);
+        $this->process(['style_framework' => $value], $deprecations);
     }
 
     /**
-     * @param list<string>         $deprecations
-     * @param array<string, mixed> $config
+     * @return iterable<string, array{string}>
      */
-    private function collect(callable $newBuilder, array &$deprecations, array $config = []): ContainerBuilder
+    public static function removedStyleFrameworks(): iterable
     {
-        $bundle  = new PentiminaxDataTablesBundle();
-        $builder = $newBuilder();
-        $builder->setParameter('kernel.debug', false);
-        $builder->setParameter('kernel.bundles', []);
-        $builder->setParameter('kernel.bundles_metadata', []);
+        yield 'Bootstrap 3' => ['bs'];
+        yield 'Bootstrap 4' => ['bs4'];
+    }
 
-        $tree      = $bundle->getContainerExtension()->getConfiguration([], $builder)->getConfigTreeBuilder()->buildTree();
-        $processed = (new Processor())->process($tree, [$config]);
-
-        $instanceof   = [];
-        $configurator = new ContainerConfigurator($builder, new PhpFileLoader($builder, new FileLocator()), $instanceof, \dirname(__DIR__, 3).'/src/PentiminaxDataTablesBundle.php', 'PentiminaxDataTablesBundle.php');
+    /**
+     * @param array<string, mixed> $config
+     * @param list<string>         $deprecations
+     *
+     * @return array<string, mixed>
+     */
+    private function process(array $config, array &$deprecations): array
+    {
+        $builder = $this->newBuilder();
+        $tree    = (new PentiminaxDataTablesBundle())->getContainerExtension()->getConfiguration([], $builder)->getConfigTreeBuilder()->buildTree();
 
         set_error_handler(static function (int $level, string $message) use (&$deprecations): bool {
             $deprecations[] = $message;
@@ -113,10 +112,34 @@ final class PackageLoadingConfigurationTest extends TestCase
         }, \E_USER_DEPRECATED);
 
         try {
-            $bundle->loadExtension($processed, $configurator, $builder);
+            return (new Processor())->process($tree, [$config]);
         } finally {
             restore_error_handler();
         }
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     * @param list<string>         $deprecations
+     */
+    private function load(array $config, array &$deprecations): ContainerBuilder
+    {
+        $builder      = $this->newBuilder();
+        $processed    = $this->process($config, $deprecations);
+        $instanceof   = [];
+        $configurator = new ContainerConfigurator($builder, new PhpFileLoader($builder, new FileLocator()), $instanceof, \dirname(__DIR__, 3).'/src/PentiminaxDataTablesBundle.php', 'PentiminaxDataTablesBundle.php');
+
+        (new PentiminaxDataTablesBundle())->loadExtension($processed, $configurator, $builder);
+
+        return $builder;
+    }
+
+    private function newBuilder(): ContainerBuilder
+    {
+        $builder = new ContainerBuilder();
+        $builder->setParameter('kernel.debug', false);
+        $builder->setParameter('kernel.bundles', []);
+        $builder->setParameter('kernel.bundles_metadata', []);
 
         return $builder;
     }

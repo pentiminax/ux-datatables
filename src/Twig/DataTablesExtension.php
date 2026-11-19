@@ -23,17 +23,12 @@ class DataTablesExtension extends AbstractExtension
      */
     public const CONTROLLER_NAME = '@pentiminax/ux-datatables/datatable';
 
-    public const CORE_CONTROLLER_NAME = '@pentiminax/ux-datatables/datatable_core';
-
     public const VIEW_ATTRIBUTE = 'data-pentiminax--ux-datatables--datatable-view-value';
-
-    public const CORE_VIEW_ATTRIBUTE = 'data-pentiminax--ux-datatables--datatable-core-view-value';
 
     public function __construct(
         private readonly StimulusHelper $stimulus,
         private readonly ?DataTableProfiler $profiler = null,
         ?AuthorizationChecker $permissionChecker = null,
-        private readonly string $controllerName = self::CONTROLLER_NAME,
     ) {
         $this->permissionChecker = $permissionChecker ?? AuthorizationChecker::fallbackFor(self::class);
     }
@@ -66,7 +61,7 @@ class DataTablesExtension extends AbstractExtension
             $controllers[$attributes['data-controller']] = [];
         }
 
-        $controllers[$this->controllerName] = [
+        $controllers[self::CONTROLLER_NAME] = [
             'view' => $view,
         ];
 
