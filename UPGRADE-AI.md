@@ -41,7 +41,7 @@ test suite and the application must log no `pentiminax/ux-datatables` deprecatio
 - `BulkActions`: `setIdField()` → `idField()`
 - `DataTableOptions`: `setLanguage()` → `language()`, `setSearch()` → `search()`
 - `DataTable`: `setAttributes()` → `attributes()`, `setPermission()` → `permission()`, `setHighlightConfig()` → `highlightConfig()`
-- `AbstractDataTable`: `setData()` → the `rows` argument of `render_datatable()` (`rows()` is removed in 2.0, see the 2.0 prompt)
+- `AbstractDataTable`: `setData()` → `rows()` (1.8+: the `rows` argument of `render_datatable()` replaces both, see the 1.8 prompt; `rows()` is removed in 2.0)
 
    Before:
 
@@ -269,7 +269,7 @@ Context: ux-datatables 2.0 removes what 1.x deprecated. This section covers the 
 hand-built services (an authorization checker is required), configuration that only warned in 1.x,
 rendering (rendering no longer writes to the table, and the option bag holds DataTables.net options
 only), columns (`AbstractColumn` is the only column implementation, and every column `setX()` method
-is gone), data providers (`DataProviderInterface` is the only provider contract) and the frontend
+is gone), data providers (`DataProviderInterface` is the only provider contract) inline rows (`rows()` is replaced by the `rows` render argument, and the `kernel.reset` tag on tables is gone), and the frontend
 distribution (built-in package loaders, `package_loading`, Bootstrap 3 and 4, style autodetection
 and `--prune` are removed). After this change, the application and its test suite must run with no
 call to a removed method.
@@ -482,7 +482,16 @@ call to a removed method.
     use `DataTableRuntime::render($table, rows: $x)`. `rows: []` renders an empty table, `null`
     renders the configured source. `rows()`, `getInlineRows()` and `resetDataTableState()` no longer
     exist.
+
+    ```php
+    $table->rows($users);                                  // before
+    $prepared = $runtime->render($table, rows: $users);    // after, without Twig
+    ```
 28. Remove the `kernel.reset` tag (method `resetDataTableState`) from every table registered by
     hand, and every test call to `resetDataTableState()`: tables hold no state.
+
+    ```php
+    ->addTag('kernel.reset', ['method' => 'resetDataTableState']) // before: delete this line
+    ```
 
 </upgrade-prompt>

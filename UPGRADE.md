@@ -176,7 +176,9 @@ hooks.
   "Inline rows are passed to `render_datatable()`".
 - **The `kernel.reset` tag and `resetDataTableState()` are gone.** A table holds no state, so the
   bundle no longer tags tables with `kernel.reset`. Remove the tag from tables you register by hand,
-  and the `resetDataTableState()` calls from your tests.
+  and the `resetDataTableState()` calls from your tests. A hand-written `kernel.reset` tag with
+  `method: resetDataTableState` fails on service reset now that the method no longer exists, so
+  removing it is required.
 - **Services that were built by hand.** `DataTableInfrastructure`, `DataTableRuntimeFactory` and the
   `datatables.infrastructure` and `datatables.runtime.factory` services are removed; `datatables.runtime`
   and `datatables.definition_builder` replace them. `DataTablesExtension` only declares
@@ -280,7 +282,7 @@ Both 1.6 deprecations now throw a `LogicException`:
 - an API Platform opt-in with no collection to read (no collection operation, or API Platform not
   installed) throws at render. The data and export routes keep answering 404. Expose a collection
   operation or drop the opt-in;
-- `data()` or the `rows` render argument combined with an API Platform opt-in throws when the table is configured.
+- `data()` or the `rows` render argument combined with an API Platform opt-in throws when the table is rendered.
   Keep one of them, or add `apiPlatform(false)` over an attribute opt-in.
 
 ### Row actions need the URLs from the payload
