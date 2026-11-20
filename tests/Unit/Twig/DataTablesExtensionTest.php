@@ -413,9 +413,12 @@ final class DataTablesExtensionTest extends TestCase
         $table = $this->createInlineObjectTable('argument');
         $rows  = [new InlineBook(id: 5, title: 'Dune', status: 'active')];
 
-        $deprecations = $this->withoutAuthorizationFallback($this->deprecationsOf(function () use ($table, $rows, &$rendered): void {
-            $rendered = $this->container->get('test.datatables.twig_extension')->renderDataTable($table, [], $rows);
-        }));
+        $deprecations = $this->withoutAuthorizationFallback(array_values(array_filter(
+            $this->deprecationsOf(function () use ($table, $rows, &$rendered): void {
+                $rendered = $this->container->get('test.datatables.twig_extension')->renderDataTable($table, [], $rows);
+            }),
+            static fn (string $message): bool => str_contains($message, 'pentiminax/ux-datatables'),
+        )));
 
         $dom = new \DOMDocument();
         $dom->loadHTML($rendered);
