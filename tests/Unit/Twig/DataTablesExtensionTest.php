@@ -279,9 +279,6 @@ final class DataTablesExtensionTest extends TestCase
     /**
      * @param array<string, mixed> $expectedRow
      */
-    /**
-     * @param array<string, mixed> $expectedRow
-     */
     #[Test]
     #[DataProvider('inlineObjectRowCases')]
     public function it_prepares_inline_object_rows_during_rendering(string $mode, array $expectedRow): void
@@ -359,6 +356,9 @@ final class DataTablesExtensionTest extends TestCase
         $this->assertSame([], $payload['data']);
     }
 
+    /**
+     * @param array<string, mixed> $expectedRow
+     */
     #[Test]
     #[DataProvider('inlineObjectRowCases')]
     public function it_renders_the_same_payload_twice(string $mode, array $expectedRow): void
