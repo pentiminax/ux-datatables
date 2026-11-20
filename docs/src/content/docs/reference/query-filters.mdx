@@ -137,7 +137,7 @@ final class InvoiceDataTable extends AbstractDataTable
         yield MoneyColumn::new('total', 'Total')->currency('EUR');
     }
 
-    public function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+    protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
     {
         $user = $this->security->getUser();
 

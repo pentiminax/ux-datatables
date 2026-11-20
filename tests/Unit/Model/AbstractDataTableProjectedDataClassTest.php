@@ -113,7 +113,7 @@ final class ProjectedCustomersDataTable extends AbstractDataTable
         return $table->serverSide(true);
     }
 
-    public function projectPage(array $items): ?array
+    protected function projectPage(array $items): ?array
     {
         return array_map(
             static fn (CountCustomer $customer): ProjectedCustomerRow => new ProjectedCustomerRow($customer->id, 'CUSTOMER:'.$customer->name),

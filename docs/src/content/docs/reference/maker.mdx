@@ -67,7 +67,7 @@ final class UserDataTable extends AbstractDataTable
         // Add more columns as needed
     }
 
-    public function mapRow(mixed $row): array
+    protected function mapRow(mixed $row): array
     {
         /** @var User $row */
         return [
@@ -145,7 +145,7 @@ public function configureDataTable(DataTable $table): DataTable
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 
-public function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
 {
     return $qb
         ->andWhere('e.active = :active')

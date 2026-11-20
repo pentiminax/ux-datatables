@@ -41,7 +41,7 @@ final class AbstractDataTableMapRowTest extends TestCase
     {
         $table = new MapRowTestTable($columns, $detailActionUrl);
 
-        $this->assertSame($expected, $this->runtime()->open($table)->hooks->mapRowPublic($row));
+        $this->assertSame($expected, $this->runtime()->open($table)->hooks->table->mapRowPublic($row));
     }
 
     /**

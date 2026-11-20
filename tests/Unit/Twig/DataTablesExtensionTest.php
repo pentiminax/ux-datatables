@@ -795,7 +795,7 @@ final class LinkEditDataTable extends AbstractDataTable
         return $actions->add(Action::edit()->linkToUrl('/books/edit'));
     }
 
-    public function createDataProvider(): ?DataProviderInterface
+    protected function createDataProvider(): ?DataProviderInterface
     {
         ++$this->providerCalls['count'];
 
@@ -828,7 +828,7 @@ final class UnscopedActionsDataTable extends AbstractDataTable
         return $actions->add(Action::delete());
     }
 
-    public function createDataProvider(): ?DataProviderInterface
+    protected function createDataProvider(): ?DataProviderInterface
     {
         return new ArrayDataProvider([], $this->createRowMapper());
     }
@@ -877,7 +877,7 @@ final class ProviderHydratedDataTable extends AbstractDataTable
         );
     }
 
-    public function createDataProvider(): ?DataProviderInterface
+    protected function createDataProvider(): ?DataProviderInterface
     {
         ++$this->providerCalls['count'];
 

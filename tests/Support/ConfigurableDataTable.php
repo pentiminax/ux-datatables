@@ -59,7 +59,7 @@ final class ConfigurableDataTable extends AbstractDataTable
         return null === $this->bulkActions ? $actions : ($this->bulkActions)($actions);
     }
 
-    public function createDataProvider(): ?DataProviderInterface
+    protected function createDataProvider(): ?DataProviderInterface
     {
         return $this->dataProvider;
     }

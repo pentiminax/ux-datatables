@@ -113,8 +113,8 @@ final class DataTableRuntimeTest extends TestCase
         $table   = new RuntimeTestTable();
         $request = new Request(query: ['draw' => 7, 'genre' => 'sci-fi']);
 
-        $this->assertSame($request, $runtime->handle($table, $request)->hooks->probeHttpRequest());
-        $this->assertNull($runtime->open($table)->hooks->probeHttpRequest());
+        $this->assertSame($request, $runtime->handle($table, $request)->hooks->table->probeHttpRequest());
+        $this->assertNull($runtime->open($table)->hooks->table->probeHttpRequest());
         $this->assertNull($table->probeHttpRequest());
     }
 
@@ -136,11 +136,11 @@ final class DataTableRuntimeTest extends TestCase
         $table   = new RuntimeTestTable([TextColumn::new('id'), TextColumn::new('secret')->permission('ROLE_ADMIN')]);
         $request = new Request(query: ['draw' => 1]);
 
-        $this->assertSame(['id'], $runtime->handle($table, $request)->hooks->probeColumnNames());
+        $this->assertSame(['id'], $runtime->handle($table, $request)->hooks->table->probeColumnNames());
 
         $granted['secret'] = true;
 
-        $this->assertSame(['id', 'secret'], $runtime->handle($table, $request)->hooks->probeColumnNames());
+        $this->assertSame(['id', 'secret'], $runtime->handle($table, $request)->hooks->table->probeColumnNames());
         $this->assertSame(['id', 'secret'], array_map(static fn (ColumnInterface $column): string => $column->getName(), $runtime->definition($table)->columns));
     }
 
@@ -506,7 +506,7 @@ final class DataTableRuntimeTest extends TestCase
         $table = new RuntimeTestTable(mapRow: static fn (mixed $row): array => ['value' => $row * 2]);
 
         $this->assertSame(['value' => 10], self::buildRuntime()->open($table)->rowMapper()->map(5));
-        $this->assertSame(['value' => 10], self::buildRuntime()->open($table)->hooks->probeMapRow(5));
+        $this->assertSame(['value' => 10], self::buildRuntime()->open($table)->hooks->table->probeMapRow(5));
     }
 
     #[Test]

@@ -486,7 +486,7 @@ final class QueryScopedExportTable extends AbstractDataTable
         return $table->buttons([Button::csv(serverSide: true)]);
     }
 
-    public function createDataProvider(): DataProviderInterface
+    protected function createDataProvider(): DataProviderInterface
     {
         return new class($this) implements DataProviderInterface {
             public function supports(\Pentiminax\UX\DataTables\Enum\DataSourceFeature $feature): bool

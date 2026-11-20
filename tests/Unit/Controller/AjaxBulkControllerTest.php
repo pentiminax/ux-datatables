@@ -337,7 +337,7 @@ class BulkEntityFixtureDataTable extends AbstractDataTable
         yield TextColumn::new('id');
     }
 
-    public function createDataProvider(): ?DataProviderInterface
+    protected function createDataProvider(): ?DataProviderInterface
     {
         return new ArrayDataProvider([], new DefaultRowMapper([]));
     }

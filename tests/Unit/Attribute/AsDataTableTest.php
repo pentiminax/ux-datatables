@@ -425,7 +425,7 @@ final class FluentEditModalOverrideDataTable extends AbstractDataTable
         return [];
     }
 
-    public function createDataProvider(): ?DataProviderInterface
+    protected function createDataProvider(): ?DataProviderInterface
     {
         return new ArrayDataProvider([], $this->createRowMapper());
     }

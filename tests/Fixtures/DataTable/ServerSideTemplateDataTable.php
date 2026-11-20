@@ -28,7 +28,7 @@ final class ServerSideTemplateDataTable extends AbstractDataTable
             ->template('datatable/columns/status_badge.html.twig');
     }
 
-    public function createDataProvider(): ?DataProviderInterface
+    protected function createDataProvider(): ?DataProviderInterface
     {
         return new ArrayDataProvider([
             new ServerSideTemplateRow(id: 7, status: 'active'),

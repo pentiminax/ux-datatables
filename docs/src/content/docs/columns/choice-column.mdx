@@ -145,7 +145,7 @@ final class OrdersDataTable extends AbstractDataTable
             ]);
     }
 
-    public function mapRow(mixed $row): array
+    protected function mapRow(mixed $row): array
     {
         return [
             'id'        => $row->getId(),

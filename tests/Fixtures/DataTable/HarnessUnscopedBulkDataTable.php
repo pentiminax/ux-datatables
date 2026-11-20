@@ -34,7 +34,7 @@ final class HarnessUnscopedBulkDataTable extends AbstractDataTable
         return $actions->add(BulkAction::new('touch')->handler(static fn () => null));
     }
 
-    public function createDataProvider(): ?DataProviderInterface
+    protected function createDataProvider(): ?DataProviderInterface
     {
         return new ArrayDataProvider([], $this->createRowMapper(), $this->getResolvedColumns());
     }

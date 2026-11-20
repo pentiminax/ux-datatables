@@ -73,7 +73,7 @@ public function configureDataTable(DataTable $table): DataTable
         ->forwardQueryParameters(['q', 'pending']);
 }
 
-public function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
 {
     $request = $this->getHttpRequest();
 
@@ -100,7 +100,7 @@ public function configureColumns(): iterable
         ->disableGlobalSearch();
 }
 
-public function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
 {
     return $qb->addSelect(
         '(SELECT COUNT(inv.id) FROM App\Entity\Invoice inv WHERE inv.customer = e.id) AS HIDDEN invoiceCount'

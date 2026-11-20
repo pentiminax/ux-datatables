@@ -30,7 +30,7 @@ final class AbstractDataTableTemplateColumnTest extends TestCase
             'datatable/columns/status_badge.html.twig' => '<span>{{ row.id }}-{{ data }}</span>',
         ])));
 
-        $table = self::buildRuntime(templateColumnRenderer: $renderer)->open(new TemplatePipelineTable())->hooks;
+        $table = self::buildRuntime(templateColumnRenderer: $renderer)->open(new TemplatePipelineTable())->hooks->table;
 
         $row = $table->mapViaPipeline(new TemplatePipelineEntity(id: 9, status: 'active'));
 
@@ -51,7 +51,7 @@ final class TemplatePipelineTable extends AbstractDataTable
             ->template('datatable/columns/status_badge.html.twig');
     }
 
-    public function mapRow(mixed $row): array
+    protected function mapRow(mixed $row): array
     {
         return ['id' => $row->getId()];
     }

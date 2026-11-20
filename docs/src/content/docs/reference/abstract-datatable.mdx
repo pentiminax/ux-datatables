@@ -38,7 +38,7 @@ final class UsersDataTable extends AbstractDataTable
         yield TextColumn::new('email', 'Email');
     }
 
-    public function mapRow(mixed $row): array
+    protected function mapRow(mixed $row): array
     {
         /** @var User $row */
         return [
@@ -166,7 +166,7 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 #[AsDataTable(User::class)]
 final class ActiveUsersDataTable extends AbstractDataTable
 {
-    public function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+    protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
     {
         return $qb
             ->andWhere('e.active = :active')
@@ -191,7 +191,7 @@ are layered on top for `recordsFiltered`; `recordsTotal` reflects your base data
 Use request parameters for dynamic filters:
 
 ```php
-public function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
 {
     // Access the current Symfony HTTP request for custom parameters
     if ($roleId = $this->getHttpRequest()?->query->get('role')) {
@@ -375,7 +375,7 @@ use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 #[AsDataTable(User::class)] // Auto Doctrine wiring is skipped when createDataProvider() returns a provider
 final class CustomUsersDataTable extends AbstractDataTable
 {
-    public function createDataProvider(): ?DataProviderInterface
+    protected function createDataProvider(): ?DataProviderInterface
     {
         // Static data
         $rows = [
@@ -386,7 +386,7 @@ final class CustomUsersDataTable extends AbstractDataTable
         return new ArrayDataProvider($rows, $this->createRowMapper(), $this->getResolvedColumns());
     }
 
-    public function mapRow(mixed $row): array
+    protected function mapRow(mixed $row): array
     {
         // For arrays, just return as-is
         return is_array($row) ? $row : (array) $row;

@@ -239,7 +239,7 @@ final class RelatedToggleOrderDataTable extends AbstractDataTable
             ->toggleAjax(idField: 'customer.id');
     }
 
-    public function createDataProvider(): DataProviderInterface
+    protected function createDataProvider(): DataProviderInterface
     {
         return $this->dataProvider;
     }

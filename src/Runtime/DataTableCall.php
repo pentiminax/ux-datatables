@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\BoundTableHooks;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -27,7 +28,7 @@ final class DataTableCall
     /**
      * The table bound to this call, so the hooks it overrides read this request and nothing shared.
      */
-    public readonly AbstractDataTable $hooks;
+    public readonly BoundTableHooks $hooks;
 
     private ?VisibleColumns $visibleColumns = null;
 

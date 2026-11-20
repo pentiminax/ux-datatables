@@ -121,7 +121,7 @@ final class ArticlesDataTable extends AbstractDataTable
         yield DateColumn::new('updatedAt', 'Updated')->format('Y-m-d H:i');
     }
 
-    public function mapRow(mixed $row): array
+    protected function mapRow(mixed $row): array
     {
         return [
             'id'          => $row->getId(),

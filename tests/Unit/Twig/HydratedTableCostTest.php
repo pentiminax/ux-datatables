@@ -136,7 +136,7 @@ abstract class HydrationTestTable extends AbstractDataTable
         yield TextColumn::new('name');
     }
 
-    public function createDataProvider(): ?DataProviderInterface
+    protected function createDataProvider(): ?DataProviderInterface
     {
         return new ArrayDataProvider([['name' => 'Ada'], ['name' => 'Grace']], $this->createRowMapper(), $this->getResolvedColumns());
     }
@@ -172,7 +172,7 @@ final class RecordingHydrationTable extends HydrationTestTable
         return $table->serverSide(false);
     }
 
-    public function createDataProvider(): ?DataProviderInterface
+    protected function createDataProvider(): ?DataProviderInterface
     {
         $inner = parent::createDataProvider();
 

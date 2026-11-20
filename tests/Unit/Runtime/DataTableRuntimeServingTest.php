@@ -192,8 +192,8 @@ final class DataTableRuntimeServingTest extends TestCase
         $request = new Request(query: ['draw' => 3, 'genre' => 'sci-fi']);
 
         $this->assertNull($table->exposedHttpRequest());
-        $this->assertNull($runtime->open($table)->hooks->exposedHttpRequest());
-        $this->assertSame($request, $runtime->handle($table, $request)->hooks->exposedHttpRequest());
+        $this->assertNull($runtime->open($table)->hooks->table->exposedHttpRequest());
+        $this->assertSame($request, $runtime->handle($table, $request)->hooks->table->exposedHttpRequest());
         $this->assertNull($table->exposedHttpRequest());
     }
 
@@ -222,7 +222,7 @@ final class DataTableRuntimeServingTest extends TestCase
 
         $call->response();
 
-        $this->assertSame(7, $call->hooks->seenDraw);
+        $this->assertSame(7, $call->hooks->table->seenDraw);
     }
 }
 

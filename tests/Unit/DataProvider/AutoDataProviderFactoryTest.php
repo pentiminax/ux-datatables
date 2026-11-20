@@ -20,6 +20,7 @@ use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Pentiminax\UX\DataTables\Runtime\ResolvedOptIns;
+use Pentiminax\UX\DataTables\Runtime\TableContext;
 use Pentiminax\UX\DataTables\Runtime\TableDefinition;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsApiPlatformProviderFactory;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
@@ -170,7 +171,7 @@ final class AutoDataProviderFactoryTest extends TestCase
 
         return (new AutoDataProviderFactory($em, $apiPlatformProviderFactory))->create(
             definition: $definition,
-            hooks: $hooks,
+            hooks: $hooks->bindContext(new TableContext()),
             rowMapper: new DefaultRowMapper([]),
             queryFilterPipeline: new QueryFilterPipeline(new DefaultDataTableQueryIntentFactory()),
             visibleColumns: new VisibleColumns([], [], $hooks::class),

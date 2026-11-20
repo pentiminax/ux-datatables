@@ -23,7 +23,7 @@ final class AutoAjaxServerSideDataTable extends AbstractDataTable
         yield TextColumn::new('title');
     }
 
-    public function createDataProvider(): ?DataProviderInterface
+    protected function createDataProvider(): ?DataProviderInterface
     {
         return new ArrayDataProvider([
             new AutoAjaxServerSideRow(id: 11, title: 'Generated endpoint'),

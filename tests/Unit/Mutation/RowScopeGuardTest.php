@@ -507,7 +507,7 @@ class ScopedAccountDataTable extends AbstractDataTable
             ->add(Action::detail()->collapsible('detail.html.twig'));
     }
 
-    public function createDataProvider(): DataProviderInterface
+    protected function createDataProvider(): DataProviderInterface
     {
         return $this->dataProvider;
     }
@@ -539,7 +539,7 @@ final class ForwardedScopeAccountDataTable extends AbstractDataTable
             ->add(Action::detail()->collapsible('detail.html.twig'));
     }
 
-    public function createDataProvider(): DataProviderInterface
+    protected function createDataProvider(): DataProviderInterface
     {
         $scope = fn (QueryBuilder $qb): QueryBuilder => $qb
             ->andWhere('e.name <> :hidden')

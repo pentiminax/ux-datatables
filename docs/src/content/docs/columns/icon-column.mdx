@@ -162,7 +162,7 @@ final class UsersDataTable extends AbstractDataTable
             ]);
     }
 
-    public function mapRow(mixed $row): array
+    protected function mapRow(mixed $row): array
     {
         return [
             'name'   => $row->getName(),

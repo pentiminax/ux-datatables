@@ -232,7 +232,7 @@ final class TopicResolverServerSideFixtureDataTable extends AbstractDataTable
         yield TextColumn::new('id');
     }
 
-    public function createDataProvider(): ?DataProviderInterface
+    protected function createDataProvider(): ?DataProviderInterface
     {
         return $this->dataProviderSpy;
     }
@@ -282,7 +282,7 @@ final class TopicResolverClientSideFixtureDataTable extends AbstractDataTable
         yield TextColumn::new('id');
     }
 
-    public function createDataProvider(): ?DataProviderInterface
+    protected function createDataProvider(): ?DataProviderInterface
     {
         return $this->dataProviderSpy;
     }

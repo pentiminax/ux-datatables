@@ -60,7 +60,7 @@ For client-side tables (no `serverSide()`), provide rows in one of three ways:
 - **`ArrayDataProvider`** — for non-Doctrine / external data. Provide it by overriding:
 
 ```php
-public function createDataProvider(): ?DataProviderInterface
+protected function createDataProvider(): ?DataProviderInterface
 {
     return new ArrayDataProvider($items, $this->createRowMapper());
 }
@@ -80,7 +80,7 @@ argument is deprecated since 1.3 (removed in 2.0), so drop it.
 Add joins / filters without touching the bundle's filtering pipeline:
 
 ```php
-public function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
 {
     return $qb->andWhere('e.status != :s')->setParameter('s', 'archived');
 }
@@ -93,7 +93,7 @@ The root alias is `e`. The bundle's search/order filters run *after* this hook v
 To enrich or map a **whole page at once** — batch-load metrics, project entities to DTOs — without an N+1, override `projectPage()`. It receives the already-paginated, hydrated page and returns the projected list:
 
 ```php
-public function projectPage(array $items): ?array
+protected function projectPage(array $items): ?array
 {
     return array_map(
         static fn (Customer $c): CustomerListDto => new CustomerListDto(

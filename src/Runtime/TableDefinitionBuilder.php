@@ -94,47 +94,51 @@ final class TableDefinitionBuilder
         $configured = null;
         $optIns     = null;
 
-        $hooks = $table->bindContext(new TableContext(
+        $context = new TableContext(
             defaultColumns: function () use (&$configured, &$optIns, $asDataTable, $class): iterable {
                 $columns = $configured?->getColumns() ?? [];
 
                 return [] !== $columns ? $columns : $this->columnResolver->resolveColumns($asDataTable, dataTableClass: $class, optIns: $optIns);
             },
-        ));
+        );
 
-        $configured = $hooks->configureDataTable($dataTable);
-        $configured->setDataTableClass($class);
+        [$columns, $filters] = $table->configureWith($context, function (AbstractDataTable $hooks) use ($dataTable, $class, $asDataTable, $defaultSelect, $defaultSelectState, &$configured, &$optIns): array {
+            $configured = $hooks->configureDataTable($dataTable);
+            $configured->setDataTableClass($class);
 
-        $optIns  = ResolvedOptIns::resolve($configured, $asDataTable, $this->collectionUrlResolver);
-        $columns = iterator_to_array($hooks->configureColumns());
+            $optIns  = ResolvedOptIns::resolve($configured, $asDataTable, $this->collectionUrlResolver);
+            $columns = iterator_to_array($hooks->configureColumns());
 
-        $actions = $hooks->configureActions(new Actions());
+            $actions = $hooks->configureActions(new Actions());
 
-        $this->columnResolver->configureActionEntityClass($actions, $asDataTable);
+            $this->columnResolver->configureActionEntityClass($actions, $asDataTable);
 
-        // Permission filtering is request-scoped and happens at the serialization and query
-        // boundaries; applying it here would give every user the first user's columns.
-        $columns = $this->withActionColumns($columns, $actions);
+            // Permission filtering is request-scoped and happens at the serialization and query
+            // boundaries; applying it here would give every user the first user's columns.
+            $columns = $this->withActionColumns($columns, $actions);
 
-        $configured->columns($columns);
+            $configured->columns($columns);
 
-        $filters = $hooks->configureFilters(new Filters());
+            $filters = $hooks->configureFilters(new Filters());
 
-        if ($filters->isEmpty()) {
-            foreach ($this->filtersFromAttributes($class, $asDataTable) as $filter) {
-                $filters->add($filter);
+            if ($filters->isEmpty()) {
+                foreach ($this->filtersFromAttributes($class, $asDataTable) as $filter) {
+                    $filters->add($filter);
+                }
             }
-        }
 
-        $configured->setFilters($filters);
+            $configured->setFilters($filters);
 
-        $bulkActions = $hooks->configureBulkActions(new BulkActions());
+            $bulkActions = $hooks->configureBulkActions(new BulkActions());
 
-        if (!$bulkActions->isEmpty()) {
-            $this->enableSelectionForBulkActions($class, $configured, $defaultSelect, $defaultSelectState);
-        }
+            if (!$bulkActions->isEmpty()) {
+                $this->enableSelectionForBulkActions($class, $configured, $defaultSelect, $defaultSelectState);
+            }
 
-        $configured->setBulkActions($bulkActions);
+            $configured->setBulkActions($bulkActions);
+
+            return [$columns, $filters];
+        });
 
         return new TableDefinition($class, $configured, $columns, $filters, $asDataTable, $optIns);
     }

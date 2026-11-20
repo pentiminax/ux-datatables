@@ -22,7 +22,7 @@ use Symfony\Component\HttpFoundation\Request;
  * extensions, and options, from which the bundle runtime builds rendering payloads and Ajax responses.
  *
  * A table only declares. The bundle calls the configure*() methods once, keeps the result as an
- * immutable definition, and calls the hooks of {@see DataTableHooksInterface} (mapRow(),
+ * immutable definition, and calls the hooks ({@see DataTableHooksInterface}) (mapRow(),
  * projectPage(), customizeQueryBuilder(), createDataProvider()) while it serves a request. The
  * instance is container-shared and holds no request, user, or runtime state of its own. The one
  * exception is rows() -- see its documentation.
@@ -37,7 +37,7 @@ use Symfony\Component\HttpFoundation\Request;
  * the sanctioned way to inject rows a controller has already resolved -- for inline data, which
  * runs them through the same row-processing pipeline a provider would use.
  */
-abstract class AbstractDataTable implements DataTableHooksInterface
+abstract class AbstractDataTable
 {
     private ?TableContext $context = null;
 
@@ -45,16 +45,48 @@ abstract class AbstractDataTable implements DataTableHooksInterface
     private ?array $inlineRows = null;
 
     /**
-     * The same table, bound to the context of one call the runtime makes into it.
+     * The hooks of a copy of this table, bound to the context of one call the runtime makes.
      *
      * @internal
      */
-    final public function bindContext(TableContext $context): static
+    final public function bindContext(TableContext $context): BoundTableHooks
     {
         $bound          = clone $this;
         $bound->context = $context;
 
-        return $bound;
+        return new BoundTableHooks(
+            $bound,
+            $bound->mapRow(...),
+            $bound->projectPage(...),
+            $bound->customizeQueryBuilder(...),
+            $bound->createDataProvider(...),
+            $bound->createSearchStrategyRegistry(...),
+            $bound->createSearchPredicateBuilder(...),
+        );
+    }
+
+    /**
+     * Runs the bundle's configuration step on this instance, so state a configure method sets
+     * reaches the hooks, and unbinds the context afterwards.
+     *
+     * @template T
+     *
+     * @param \Closure(self):T $configure
+     *
+     * @return T
+     *
+     * @internal
+     */
+    final public function configureWith(TableContext $context, \Closure $configure): mixed
+    {
+        $previous      = $this->context;
+        $this->context = $context;
+
+        try {
+            return $configure($this);
+        } finally {
+            $this->context = $previous;
+        }
     }
 
     /**
@@ -132,7 +164,7 @@ abstract class AbstractDataTable implements DataTableHooksInterface
         return $filters;
     }
 
-    public function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+    protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
     {
         return $qb;
     }
@@ -142,7 +174,7 @@ abstract class AbstractDataTable implements DataTableHooksInterface
      *
      * Override this method to register custom search strategies.
      */
-    public function createSearchStrategyRegistry(): SearchStrategyRegistry
+    protected function createSearchStrategyRegistry(): SearchStrategyRegistry
     {
         return new DefaultSearchStrategyRegistry();
     }
@@ -153,12 +185,12 @@ abstract class AbstractDataTable implements DataTableHooksInterface
      * Override this method to customize how global search builds a condition for a column,
      * e.g. to add type handling DefaultSearchPredicateBuilder does not cover.
      */
-    public function createSearchPredicateBuilder(): SearchPredicateBuilderInterface
+    protected function createSearchPredicateBuilder(): SearchPredicateBuilderInterface
     {
         return new DefaultSearchPredicateBuilder();
     }
 
-    public function mapRow(mixed $row): array
+    protected function mapRow(mixed $row): array
     {
         $mapper = $this->context?->defaultRowMapper
             ?? throw new \LogicException('mapRow() maps a row while the bundle runtime serves the table; it cannot run on a table used on its own.');
@@ -166,7 +198,7 @@ abstract class AbstractDataTable implements DataTableHooksInterface
         return $mapper($row);
     }
 
-    public function createDataProvider(): ?DataProviderInterface
+    protected function createDataProvider(): ?DataProviderInterface
     {
         return null;
     }
@@ -193,7 +225,7 @@ abstract class AbstractDataTable implements DataTableHooksInterface
      *
      * @return list<mixed>|null
      */
-    public function projectPage(array $items): ?array
+    protected function projectPage(array $items): ?array
     {
         return null;
     }

@@ -456,7 +456,7 @@ abstract class GateDataTable extends AbstractDataTable
         return $table->serverSide();
     }
 
-    public function createDataProvider(): DataProviderInterface
+    protected function createDataProvider(): DataProviderInterface
     {
         return $this->dataProvider;
     }

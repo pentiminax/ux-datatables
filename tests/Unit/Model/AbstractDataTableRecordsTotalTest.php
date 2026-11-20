@@ -72,7 +72,7 @@ final class ExcludeBetaCustomerTable extends AbstractDataTable
         yield TextColumn::new('name');
     }
 
-    public function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+    protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
     {
         return $qb->andWhere("e.name != 'Beta'");
     }

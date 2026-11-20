@@ -126,7 +126,7 @@ abstract class ApiPlatformUnavailableFixture extends AbstractDataTable
     /**
      * Reading through Doctrine would skip the authorization the collection operation applies.
      */
-    public function createDataProvider(): ?DataProviderInterface
+    protected function createDataProvider(): ?DataProviderInterface
     {
         throw new \LogicException('An API Platform table without a collection must read no rows.');
     }

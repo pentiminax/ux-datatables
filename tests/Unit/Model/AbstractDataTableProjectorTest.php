@@ -65,7 +65,7 @@ final class ProjectingCustomerTable extends AbstractDataTable
         yield TextColumn::new('badge');
     }
 
-    public function projectPage(array $items): array
+    protected function projectPage(array $items): array
     {
         return array_map(
             static fn (CountCustomer $c): CustomerListDto => new CustomerListDto($c->id, $c->name, 'BADGE:'.$c->name),

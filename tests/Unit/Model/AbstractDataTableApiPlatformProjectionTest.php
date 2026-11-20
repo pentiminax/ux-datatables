@@ -133,7 +133,7 @@ final class ProjectedApiBooksDataTable extends AbstractDataTable
             ->template('datatable/columns/book_badge.html.twig');
     }
 
-    public function projectPage(array $items): ?array
+    protected function projectPage(array $items): ?array
     {
         return array_map(
             static fn (ProjectedApiBook $book): ProjectedApiBookRow => new ProjectedApiBookRow($book->id, 'BOOK:'.$book->title),
