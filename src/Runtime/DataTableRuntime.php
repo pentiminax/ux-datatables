@@ -108,7 +108,8 @@ final class DataTableRuntime
             ? $this->resolveRowIdField(null, $definition->table->getBulkActions()?->getIdField(), $definition->entityClass())
             : null;
 
-        return $this->renderingPreparer->prepareAfterDataHydration($definition->table, $optIns, $rows, $bulkRowIdField, $this->mercure->resolve($optIns));
+        // Resolved last, so a table failing both reports the preparer's own error first.
+        return $this->renderingPreparer->prepareAfterDataHydration($definition->table, $optIns, $rows, $bulkRowIdField, fn (): ?MercureConfig => $this->mercure->resolve($optIns));
     }
 
     /**

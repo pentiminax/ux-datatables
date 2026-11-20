@@ -153,8 +153,8 @@ return static function (ContainerConfigurator $container): void {
     $services->alias(MercurePublisherInterface::class, 'datatables.mercure.null_publisher')
         ->private();
 
-    // Registered here rather than in config/mercure.php: mutations must resolve
-    // topics (to an empty list) even when Mercure is not installed.
+    // Registered here rather than in config/mercure.php: tables and mutations must resolve
+    // their Mercure config (to none, or an empty topic list) even when Mercure is not installed.
     $services->set('datatables.mercure.table_config_resolver', MercureTableConfigResolver::class)
         ->arg(0, service(MercureConfigResolver::class)->nullOnInvalid())
         ->arg(1, service(MercureHubUrlResolver::class)->nullOnInvalid())

@@ -40,7 +40,9 @@ use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsAjaxRegistry;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
+use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
+use Pentiminax\UX\DataTables\Tests\Support\TestRuntime;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -106,6 +108,17 @@ final class RenderingPreparerTest extends TestCase
         $this->expectExceptionMessage('The payload key "select" of table "t" is set twice. Rename the option or the extension that sets it.');
 
         self::payloadOf($table);
+    }
+
+    #[Test]
+    public function it_reports_the_polling_error_before_an_unresolvable_mercure_hub(): void
+    {
+        $table = (new ConfigurableDataTable([], configureTable: static fn (DataTable $table): DataTable => $table->poll('10s')->mercure(topics: ['/books/{id}'])));
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Polling requires an Ajax source');
+
+        TestRuntime::make()->render($table);
     }
 
     #[Test]

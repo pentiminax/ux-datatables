@@ -31,7 +31,7 @@ final class MercureTableConfigResolverTest extends TestCase
         $autoConfig = new MercureConfig(topics: ['/products/{id}'], hubUrl: self::HUB_URL);
 
         $configResolver = $this->createMock(MercureConfigResolver::class);
-        $configResolver->method('resolveMercureConfig')->with(\stdClass::class)->willReturn($autoConfig);
+        $configResolver->expects($this->once())->method('resolveMercureConfig')->with(\stdClass::class)->willReturn($autoConfig);
 
         $resolver = new MercureTableConfigResolver($configResolver, $this->hub(self::HUB_URL));
 
@@ -79,6 +79,7 @@ final class MercureTableConfigResolverTest extends TestCase
     public function it_keeps_an_explicit_with_credentials_false_over_the_private_metadata(): void
     {
         $metadata = $this->createMock(ApiResourceMercureMetadataResolver::class);
+        $metadata->expects($this->never())->method('resolveTopics');
         $metadata->expects($this->never())->method('resolvePrivate');
 
         $hub    = $this->hub(self::HUB_URL);
@@ -169,6 +170,17 @@ final class MercureTableConfigResolverTest extends TestCase
             new AsDataTable(entityClass: \stdClass::class, mercure: true),
             static fn (DataTable $table): DataTable => $table->data([['id' => 1]]),
         ];
+    }
+
+    #[Test]
+    public function it_resolves_nothing_when_the_auto_resolver_finds_no_config_for_an_ajax_table(): void
+    {
+        $configResolver = $this->createStub(MercureConfigResolver::class);
+        $configResolver->method('resolveMercureConfig')->willReturn(null);
+
+        $resolver = new MercureTableConfigResolver($configResolver, $this->hub(self::HUB_URL));
+
+        $this->assertNull($resolver->resolve($this->optIns((new DataTable('t'))->ajax('/api/books'), new AsDataTable(entityClass: \stdClass::class, mercure: true))));
     }
 
     #[Test]

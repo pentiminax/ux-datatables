@@ -138,11 +138,12 @@ final class RenderingPreparer
     /**
      * Build the payload of one render. Nothing is written back to the table.
      *
-     * @param list<array<string, mixed>>|null $rows rows read for this render, replacing the table's `data`
+     * @param list<array<string, mixed>>|null $rows    rows read for this render, replacing the table's `data`
+     * @param \Closure(): ?MercureConfig      $mercure resolves the Mercure config once the payload checks have passed
      *
      * @throws \LogicException when the table polls without an Ajax source, or the payload sets a key twice
      */
-    public function prepareAfterDataHydration(DataTable $table, ResolvedOptIns $optIns, ?array $rows = null, ?string $bulkRowIdField = null, ?MercureConfig $mercure = null): PreparedDataTable
+    public function prepareAfterDataHydration(DataTable $table, ResolvedOptIns $optIns, ?array $rows = null, ?string $bulkRowIdField, \Closure $mercure): PreparedDataTable
     {
         $dataTableClass    = $table->getDataTableClass();
         $configuredColumns = $this->translatedColumns($table->getColumns());
@@ -232,7 +233,7 @@ final class RenderingPreparer
             apiPlatform: $apiPlatform,
             apiPlatformServerSide: $apiPlatformServerSide,
             exportUrl: $table->getBundleOption('exportUrl') ?? $this->exportUrl($table),
-            mercure: $mercure,
+            mercure: $mercure(),
             highlight: $table->getHighlightConfig()?->jsonSerialize(),
             bulkActions: null === $bulkActions ? null : [
                 'actions'               => $bulkActions['actions'],
