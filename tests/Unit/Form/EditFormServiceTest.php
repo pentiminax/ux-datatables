@@ -31,7 +31,6 @@ use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Mutation\MutationContext;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
@@ -83,7 +82,7 @@ final class EditFormServiceTest extends TestCase
             $renderer,
             $this->createRenderingTemplateResolver(EditFormServiceFixtureDataTable::class),
             new NullMercurePublisher(),
-            new MercureTopicResolver(),
+            new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()),
             new MutationFlusher(),
             new ColumnResolver(new AuthorizationChecker(new TestAuthorizationChecker())),
         );
@@ -119,7 +118,7 @@ final class EditFormServiceTest extends TestCase
             $renderer,
             $this->createRenderingTemplateResolver(EditFormServiceFixtureDataTable::class),
             new NullMercurePublisher(),
-            new MercureTopicResolver(),
+            new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()),
             new MutationFlusher(),
             new ColumnResolver(new AuthorizationChecker(new TestAuthorizationChecker())),
         );
@@ -144,7 +143,7 @@ final class EditFormServiceTest extends TestCase
             }))
             ->willReturn('urn:uuid:edit');
 
-        $result = $this->handleValidSubmit(new MercureUpdatePublisher($hub));
+        $result = $this->handleValidSubmit(new MercureUpdatePublisher($hub, self::buildRuntime()));
 
         $this->assertTrue($result->success);
         $this->assertNull($result->html);
@@ -162,7 +161,7 @@ final class EditFormServiceTest extends TestCase
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())->method('error');
 
-        $result = $this->handleValidSubmit(new MercureUpdatePublisher($hub, $logger));
+        $result = $this->handleValidSubmit(new MercureUpdatePublisher($hub, self::buildRuntime(), $logger));
 
         $this->assertTrue($result->success);
         $this->assertNull($result->html);
@@ -203,7 +202,7 @@ final class EditFormServiceTest extends TestCase
         $dataTable = new EditFormServiceFixtureDataTable();
 
         return new AuthorizedRow(
-            table: new ResolvedDataTable($dataTable, EditFormServiceFixture::class, $dataTable::class),
+            table: new ResolvedDataTable($dataTable, EditFormServiceFixture::class, $dataTable::class, self::definitionOf($dataTable)),
             action: null,
             context: new MutationContext($entity, $entityManager),
             id: 42,
@@ -341,11 +340,6 @@ final class EditFormServiceFixture
 #[AsDataTable(entityClass: EditFormServiceFixture::class)]
 class EditFormServiceFixtureDataTable extends AbstractDataTable
 {
-    public function __construct()
-    {
-        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
-    }
-
     public function configureColumns(): iterable
     {
         yield TextColumn::new('id');

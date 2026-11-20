@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Profiler;
 
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Pentiminax\UX\DataTables\Tests\Kernel\ProfilerDisabledAppKernel;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -16,7 +16,7 @@ final class ProfilerDisabledIntegrationTest extends TestCase
 {
     /**
      * datatables.profiler and datatables.data_collector eagerly record on every request from
-     * plain application code (AbstractDataTable::getResponse(), DataTablesExtension::
+     * plain application code (DataTableRuntime::respond(), DataTablesRuntime::
      * renderDataTable()), not just when Symfony's own profiler pulls a collect() -- so they
      * must not exist in the container at all when kernel.debug is off, not merely go unread.
      */
@@ -38,20 +38,20 @@ final class ProfilerDisabledIntegrationTest extends TestCase
     }
 
     /**
-     * datatables.infrastructure's profiler argument must resolve to null rather than fail
+     * datatables.runtime's profiler argument must resolve to null rather than fail
      * container compilation when datatables.profiler does not exist -- proving the
      * nullOnInvalid() wiring, not just the absence of the service on its own.
      */
     #[Test]
-    public function infrastructure_resolves_a_null_profiler_when_debug_is_off(): void
+    public function runtime_resolves_a_null_profiler_when_debug_is_off(): void
     {
         $kernel = new ProfilerDisabledAppKernel('test', false);
         $kernel->boot();
         $container = $kernel->getContainer()->get('test.service_container');
 
-        /** @var DataTableInfrastructure $infrastructure */
-        $infrastructure = $container->get('test.datatables.infrastructure');
+        $runtime = $container->get('test.datatables.runtime');
 
-        $this->assertNull($infrastructure->profiler);
+        $this->assertInstanceOf(DataTableRuntime::class, $runtime);
+        $this->assertNull((new \ReflectionProperty($runtime, 'profiler'))->getValue($runtime));
     }
 }

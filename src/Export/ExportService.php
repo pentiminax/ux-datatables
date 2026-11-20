@@ -11,6 +11,9 @@ use Pentiminax\UX\DataTables\DataTableRequest\RequestInputBag;
 use Pentiminax\UX\DataTables\Enum\ExportFormat;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
+use Pentiminax\UX\DataTables\Runtime\DataTableCall;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
+use Pentiminax\UX\DataTables\Runtime\TableDefinition;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -22,6 +25,7 @@ final class ExportService
     public function __construct(
         private readonly ExporterRegistry $exporters,
         private readonly ColumnResolver $columnResolver,
+        private readonly DataTableRuntime $runtime,
         private readonly ?TranslatorInterface $translator = null,
     ) {
     }
@@ -34,18 +38,18 @@ final class ExportService
     {
         RequestInputBag::exposeBodyParametersOnQuery($request);
 
-        $table->handleDataTableRequest($request);
+        $call = $this->runtime->handle($table, $request);
 
-        if (!$table->isDataTableRequestHandled()) {
+        if (!$call->isHandled()) {
             throw new BadRequestHttpException('Invalid DataTables request.');
         }
 
-        $button = $this->resolveButton($table, $this->exportKeyFromRequest($request));
+        $button = $this->resolveButton($call->definition, $this->exportKeyFromRequest($request));
         $format = $button->getExportFormat() ?? ExportFormat::CSV;
 
         $exporter  = $this->exporters->get($format);
-        $columns   = $this->exportableColumns($table);
-        $rows      = $this->iterateRows($table);
+        $columns   = $this->exportableColumns($call->definition);
+        $rows      = $this->iterateRows($call);
         $formatter = new ExportValueFormatter($this->translator);
 
         if (!$button->usesRawValues()) {
@@ -102,10 +106,9 @@ final class ExportService
         }
     }
 
-    private function resolveButton(AbstractDataTable $table, ?string $exportKey): Button
+    private function resolveButton(TableDefinition $definition, ?string $exportKey): Button
     {
-        $button = $table
-            ->getConfiguredDataTable()
+        $button = $definition->table
             ->getExtensionsCollection()
             ->getButtonsExtension()
             ?->findServerExportButton($exportKey);
@@ -120,10 +123,10 @@ final class ExportService
     /**
      * @return list<AbstractColumn>
      */
-    private function exportableColumns(AbstractDataTable $table): array
+    private function exportableColumns(TableDefinition $definition): array
     {
         $columns = $this->columnResolver->filterExportable(
-            $this->columnResolver->filterStaticPermissions($table->getConfiguredDataTable()->getColumns(), $table::class),
+            $this->columnResolver->filterStaticPermissions($definition->table->getColumns(), $definition->class),
         );
 
         if ([] === $columns) {
@@ -136,16 +139,16 @@ final class ExportService
     /**
      * @return iterable<array<string, mixed>>
      */
-    private function iterateRows(AbstractDataTable $table): iterable
+    private function iterateRows(DataTableCall $call): iterable
     {
-        $request = $table->getDataTableRequest();
+        $request = $call->request;
         if (null === $request) {
             throw new BadRequestHttpException('Invalid DataTables request.');
         }
 
-        $provider = $table->getResolvedDataProvider();
+        $provider = $call->dataProvider();
         if (null === $provider) {
-            throw new \LogicException(\sprintf('Table "%s" has no data provider, so it cannot be exported.', $table::class));
+            throw new \LogicException(\sprintf('Table "%s" has no data provider, so it cannot be exported.', $call->definition->class));
         }
 
         $request = $request->withoutPagination();

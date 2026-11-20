@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\Exception\DuplicateActionNameException;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -22,10 +23,12 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(ResolvedDataTable::class)]
 final class ResolvedDataTableTest extends TestCase
 {
+    use BuildsRuntime;
+
     #[Test]
     public function it_returns_null_when_no_action_of_the_requested_type_exists(): void
     {
-        $resolved = new ResolvedDataTable(new NoActionsDataTableFixture(), NoActionsDataTableFixture::class, NoActionsDataTableFixture::class);
+        $resolved = $this->resolve(new NoActionsDataTableFixture());
 
         $this->assertNull($resolved->findAction(ActionType::Delete));
     }
@@ -33,7 +36,7 @@ final class ResolvedDataTableTest extends TestCase
     #[Test]
     public function it_returns_the_single_matching_action(): void
     {
-        $resolved = new ResolvedDataTable(new SingleDeleteActionDataTableFixture(), SingleDeleteActionDataTableFixture::class, SingleDeleteActionDataTableFixture::class);
+        $resolved = $this->resolve(new SingleDeleteActionDataTableFixture());
 
         $action = $resolved->findAction(ActionType::Delete);
 
@@ -49,11 +52,16 @@ final class ResolvedDataTableTest extends TestCase
     #[Test]
     public function it_throws_when_two_action_columns_share_a_colliding_action_name(): void
     {
-        $resolved = new ResolvedDataTable(new DuplicateDeleteActionsDataTableFixture(), DuplicateDeleteActionsDataTableFixture::class, DuplicateDeleteActionsDataTableFixture::class);
+        $resolved = $this->resolve(new DuplicateDeleteActionsDataTableFixture());
 
         $this->expectException(DuplicateActionNameException::class);
 
         $resolved->findAction(ActionType::Delete);
+    }
+
+    private function resolve(AbstractDataTable $table): ResolvedDataTable
+    {
+        return new ResolvedDataTable($table, $table::class, $table::class, self::definitionOf($table));
     }
 }
 

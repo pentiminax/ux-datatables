@@ -20,7 +20,7 @@ trait PreparesPayload
      */
     private static function payloadOf(DataTable $table, RenderingPreparer $preparer = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()))): array
     {
-        return self::prepareWith($preparer, $table, $preparer->resolveOptIns($table, null))->getView();
+        return self::prepareWith($preparer, $table, ResolvedOptIns::resolve($table, null))->getView();
     }
 
     private static function prepareWith(RenderingPreparer $preparer, DataTable $table, ResolvedOptIns $optIns): PreparedDataTable

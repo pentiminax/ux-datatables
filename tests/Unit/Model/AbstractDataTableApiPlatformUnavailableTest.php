@@ -6,14 +6,11 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
-use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
-use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
-use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -27,22 +24,25 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 #[CoversClass(AbstractDataTable::class)]
 final class AbstractDataTableApiPlatformUnavailableTest extends TestCase
 {
+    use BuildsRuntime;
+
     #[Test]
     #[DataProvider('provideUnresolvableCollections')]
     public function it_refuses_to_render_an_api_platform_table_without_a_collection(
         string $tableClass,
         ?ApiResourceCollectionUrlResolver $urlResolver,
     ): void {
-        $table = new $tableClass($urlResolver);
+        $runtime = self::buildRuntime(collectionUrlResolver: $urlResolver);
+        $table   = new $tableClass();
 
         try {
-            $table->prepareRendering();
+            $runtime->render($table);
             $this->fail('Rendering an API Platform table without a collection must throw.');
         } catch (\LogicException $exception) {
             $this->assertStringContainsString('exposes no collection operation', $exception->getMessage());
         }
 
-        $this->assertNull($table->getConfiguredDataTable()->getOption('data'));
+        $this->assertNull($runtime->definition($table)->table->getOption('data'));
     }
 
     #[Test]
@@ -51,18 +51,17 @@ final class AbstractDataTableApiPlatformUnavailableTest extends TestCase
         string $tableClass,
         ?ApiResourceCollectionUrlResolver $urlResolver,
     ): void {
-        $table = new $tableClass($urlResolver);
+        $runtime = self::buildRuntime(collectionUrlResolver: $urlResolver);
+        $table   = new $tableClass();
 
         try {
-            $table->prepareRendering();
+            $runtime->render($table);
         } catch (\LogicException) {
         }
 
-        $table->handleDataTableRequest($this->dataTablesRequest());
-
         $this->expectException(NotFoundHttpException::class);
 
-        $table->createDataTableResponse();
+        $runtime->respond($table, $this->dataTablesRequest());
     }
 
     #[Test]
@@ -71,12 +70,9 @@ final class AbstractDataTableApiPlatformUnavailableTest extends TestCase
         string $tableClass,
         ?ApiResourceCollectionUrlResolver $urlResolver,
     ): void {
-        $table = new $tableClass($urlResolver);
-        $table->handleDataTableRequest($this->dataTablesRequest());
-
         $this->expectException(NotFoundHttpException::class);
 
-        $table->createDataTableResponse();
+        self::buildRuntime(collectionUrlResolver: $urlResolver)->respond(new $tableClass(), $this->dataTablesRequest());
     }
 
     #[Test]
@@ -85,12 +81,11 @@ final class AbstractDataTableApiPlatformUnavailableTest extends TestCase
         string $tableClass,
         ?ApiResourceCollectionUrlResolver $urlResolver,
     ): void {
-        $table = new $tableClass($urlResolver);
-        $table->handleDataTableRequest($this->dataTablesRequest());
+        $call = self::buildRuntime(collectionUrlResolver: $urlResolver)->handle(new $tableClass(), $this->dataTablesRequest());
 
         $this->expectException(NotFoundHttpException::class);
 
-        $table->getResolvedDataProvider();
+        $call->dataProvider();
     }
 
     private function dataTablesRequest(): Request
@@ -123,13 +118,6 @@ final class AbstractDataTableApiPlatformUnavailableTest extends TestCase
 
 abstract class ApiPlatformUnavailableFixture extends AbstractDataTable
 {
-    public function __construct(?ApiResourceCollectionUrlResolver $urlResolver)
-    {
-        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), urlResolver: $urlResolver),
-        ));
-    }
-
     public function configureColumns(): iterable
     {
         yield TextColumn::new('id');

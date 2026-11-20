@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -23,6 +24,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(Button::class)]
 final class AbstractDataTableExtensionsTest extends TestCase
 {
+    use BuildsRuntime;
+
     #[Test]
     public function it_configures_all_extensions_through_configure_data_table(): void
     {
@@ -53,7 +56,7 @@ final class AbstractDataTableExtensionsTest extends TestCase
             'topEnd'      => 'search',
             'bottomStart' => 'info',
             'bottomEnd'   => 'paging',
-        ], $table->prepareRendering()->getView()['layout']);
+        ], self::buildRuntime()->render($table)->getView()['layout']);
 
         $this->assertSame([
             'columnControl' => [
@@ -88,7 +91,7 @@ final class AbstractDataTableExtensionsTest extends TestCase
                 'headerCheckbox' => false,
                 'withCheckbox'   => false,
             ],
-        ], $table->getConfiguredDataTable()->getExtensions());
+        ], self::definitionOf($table)->table->getExtensions());
     }
 
     /**
@@ -105,7 +108,7 @@ final class AbstractDataTableExtensionsTest extends TestCase
             static fn (DataTable $table): DataTable => $table->buttons($buttons, $position),
         );
 
-        $this->assertSame($expectedLayout, $table->prepareRendering()->getView()['layout']);
+        $this->assertSame($expectedLayout, self::buildRuntime()->render($table)->getView()['layout']);
     }
 
     /**
@@ -177,7 +180,7 @@ final class AbstractDataTableExtensionsTest extends TestCase
             ),
         );
 
-        $extensions = $table->getConfiguredDataTable()->getExtensions();
+        $extensions = self::definitionOf($table)->table->getExtensions();
 
         $this->assertTrue($extensions['select']['withCheckbox']);
         $this->assertTrue($extensions['select']['headerCheckbox']);

@@ -11,6 +11,8 @@ use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\RowMapper\RowIdNormalizer;
 use Pentiminax\UX\DataTables\Runtime\DataSourceCapability;
+use Pentiminax\UX\DataTables\Runtime\DataTableCall;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -23,6 +25,7 @@ final class RowScopeGuard
 {
     public function __construct(
         private readonly EntityLocator $locator,
+        private readonly DataTableRuntime $runtime,
         private readonly ?RequestStack $requestStack = null,
     ) {
     }
@@ -37,23 +40,18 @@ final class RowScopeGuard
      *
      * @throws MutationNotAllowedException when the scope cannot be checked
      */
-    public static function keepInScope(ResolvedDataTable $table, Request $request, string $field, array $ids): array
+    public function keepInScope(ResolvedDataTable $table, Request $request, string $field, array $ids): array
     {
-        $checker = self::scopeChecker($table);
-
-        if (null === $checker) {
+        // Refused before the request is read, so a refusal never depends on the request.
+        if (null === $this->scopeChecker($table)) {
             return $ids;
         }
 
-        $table->table->handleDataTableRequest($request);
+        $call = $this->runtime->handle($table->table, $request);
 
-        $dataTableRequest = $table->table->getDataTableRequest();
+        $checker = DataSourceCapability::rowScopeChecker($call->dataProvider()) ?? throw new MutationNotAllowedException();
 
-        if (null === $dataTableRequest) {
-            throw new MutationNotAllowedException();
-        }
-
-        return $checker->filterIdentifiersInScope($dataTableRequest->withoutPagination(), $ids, $field);
+        return $checker->filterIdentifiersInScope($call->request->withoutPagination(), $ids, $field);
     }
 
     /**
@@ -64,13 +62,18 @@ final class RowScopeGuard
      *
      * @internal
      */
-    public static function scopeChecker(ResolvedDataTable $table): ?IdentifierDataProviderInterface
+    public function scopeChecker(ResolvedDataTable $table): ?IdentifierDataProviderInterface
     {
-        if ($table->table->getConfiguredDataTable()->allowsUnscopedMutations()) {
+        return $this->checkerOf($table, $this->runtime->open($table->table));
+    }
+
+    private function checkerOf(ResolvedDataTable $table, DataTableCall $open): ?IdentifierDataProviderInterface
+    {
+        if ($table->definition->table->allowsUnscopedMutations()) {
             return null;
         }
 
-        return DataSourceCapability::rowScopeChecker($table->table->getResolvedDataProvider())
+        return DataSourceCapability::rowScopeChecker($open->dataProvider())
             ?? throw new MutationNotAllowedException();
     }
 
@@ -103,16 +106,16 @@ final class RowScopeGuard
             throw new MutationNotAllowedException();
         }
 
-        if ($table->table->getConfiguredDataTable()->allowsUnscopedMutations()) {
+        if ($table->definition->table->allowsUnscopedMutations()) {
             return;
         }
 
         $request = $this->requestStack?->getCurrentRequest() ?? throw new MutationNotAllowedException();
 
-        $names = $table->table->getConfiguredDataTable()->getForwardedQueryParameters();
+        $names = $table->definition->table->getForwardedQueryParameters();
         RequestQueryHydrator::hydrate($request, RequestQueryHydrator::forwardedFromBody($request, $names));
 
-        if ([] === self::keepInScope($table, $request, $field, [$id])) {
+        if ([] === $this->keepInScope($table, $request, $field, [$id])) {
             throw new EntityNotFoundException();
         }
     }

@@ -6,12 +6,13 @@ namespace Pentiminax\UX\DataTables\DataProvider;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
-use Pentiminax\UX\DataTables\Attribute\AsDataTable;
-use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\VisibleColumns;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\Contracts\DataTableHooksInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
+use Pentiminax\UX\DataTables\Runtime\TableDefinition;
 
 final class AutoDataProviderFactory
 {
@@ -22,23 +23,22 @@ final class AutoDataProviderFactory
     }
 
     /**
-     * @param callable(QueryBuilder, DataTableRequest):QueryBuilder      $configureQueryBuilder
-     * @param callable(QueryBuilder, DataTableRequest):QueryBuilder|null $configureBaseQueryBuilder
-     * @param list<AbstractColumn>                                       $columns
+     * @param VisibleColumns $visibleColumns the permission-filtered columns the provider queries with
      */
     public function create(
-        ?AsDataTable $asDataTable,
+        TableDefinition $definition,
+        DataTableHooksInterface $hooks,
         RowMapperInterface $rowMapper,
-        callable $configureQueryBuilder,
+        QueryFilterPipeline $queryFilterPipeline,
+        VisibleColumns $visibleColumns,
         ?RowMapperInterface $exportRowMapper = null,
-        ?\Closure $pageProjector = null,
-        ?callable $configureBaseQueryBuilder = null,
-        bool $apiPlatform = false,
-        array $columns = [],
-        ?string $dataTableClass = null,
-        bool $summarize = true,
-        ?VisibleColumns $visibleColumns = null,
     ): ?DataProviderInterface {
+        $asDataTable    = $definition->asDataTable;
+        $columns        = $visibleColumns->columns;
+        $apiPlatform    = $definition->optIns->optsIntoApiPlatform();
+        $dataTableClass = $definition->class;
+        $pageProjector  = $hooks->projectPage(...);
+
         if (null === $asDataTable) {
             return null;
         }
@@ -77,12 +77,20 @@ final class AutoDataProviderFactory
             em: $this->em,
             entityClass: $asDataTable->entityClass,
             rowMapper: $rowMapper,
-            configureQueryBuilder: $configureQueryBuilder,
+            configureQueryBuilder: static fn (QueryBuilder $qb, DataTableRequest $request): QueryBuilder => $queryFilterPipeline->apply(
+                qb: $hooks->customizeQueryBuilder($qb, $request),
+                request: $request,
+                columns: $columns,
+                filters: $definition->filters,
+                registry: $hooks->createSearchStrategyRegistry(),
+                predicateBuilder: $hooks->createSearchPredicateBuilder(),
+            ),
             exportRowMapper: $exportRowMapper,
             pageProjector: $pageProjector,
-            configureBaseQueryBuilder: $configureBaseQueryBuilder,
+            configureBaseQueryBuilder: $hooks->customizeQueryBuilder(...),
             columns: $columns,
-            summarize: $summarize,
+            // A client-side table sums its rows in the browser, and its hydration drops the result.
+            summarize: $definition->optIns->serverSide,
         );
     }
 }

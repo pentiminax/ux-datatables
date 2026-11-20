@@ -417,4 +417,35 @@ call to a removed method.
     `installBulkActionBar()` (`bulk/BulkActionBar.js`), and `confirmBulkAction()` with
     `confirmAction()`.
 
+24. Hooks stay `protected`: do not change the visibility of `mapRow()`, `projectPage()`,
+    `customizeQueryBuilder()`, `createDataProvider()`, `createSearchStrategyRegistry()` or
+    `createSearchPredicateBuilder()`. Replace an override or call of `configureQueryBuilder()` (removed
+    without a 1.x deprecation) with `customizeQueryBuilder()`.
+    The definition is built once per table instance, once per worker lifetime under a worker runtime.
+    Remove any read of the user, request, session or locale from `configure*()` methods and from
+    `DataTableDefaultsConfiguratorInterface` services; move it to `permission()` or
+    `customizeQueryBuilder()`.
+25. Replace the removed table methods in controllers and services. Inject
+    `Pentiminax\UX\DataTables\Runtime\DataTableRuntime` (or `DataTableResponder` for endpoints).
+    - `$table->handleRequest($r)` + `isRequestHandled()` + `getResponse()` become
+      `$responder->respond($table, $r)`, which returns `null` when the request is not a DataTables
+      request. Delete subclass overrides of those methods, of `getRequest()`, and of `fetchData()`.
+    - `$table->getConfiguredDataTable()` becomes `$runtime->definition($table)->table`;
+      `getEntityClass()` becomes `$runtime->definition($table)->entityClass()`;
+      `getResolvedOptIns()` becomes `$runtime->definition($table)->optIns` (public, read-only);
+      `getColumnByName($n)` becomes `$runtime->definition($table)->table->getColumnByName($n)`;
+      `prepareRendering()` becomes `$runtime->render($table)`;
+      `resolveMercureConfigWithoutHydration()` becomes `$runtime->mercureConfig($table)`.
+    - `getDataProvider()` and `fetchData()` have no replacement: call the provider you built.
+26. Remove every use of `DataTableInfrastructure`, `DataTableRuntimeFactory`,
+    `setDataTableInfrastructure()` and the container services `datatables.infrastructure` and
+    `datatables.runtime.factory`. A table built by hand needs nothing: let the container serve it, or
+    wire `DataTableRuntime` through `datatables.runtime`. If the application builds `DataTablesExtension`,
+    `AjaxDataTableRegistry`, `SecurityVoter`, `RowScopeGuard`, `BulkActionRunner`, `ExportService`,
+    `MercureUpdatePublisher`, `MercureTopicResolver`, `EditModalTemplateResolver`, `DataTableResponder`
+    or `ExtensionDetector` itself, stop doing so and inject the service instead. In the rare case it
+    must, `DataTablesRuntime` (not `DataTablesExtension`) renders tables, and the services above now
+    require a `DataTableRuntime` or `TableDefinitionBuilder` argument (1-based positions: `MercureTopicResolver` runtime first and required, the other arguments shift by one; `RowScopeGuard` 2; `ExportService` 3; `MercureUpdatePublisher` 2; `EditModalTemplateResolver` 4; `ExtensionDetector` 2; `SecurityVoter` builder 2; appended: `BulkActionRunner` scope guard 6 and runtime 7, `AjaxDataTableRegistry` builder 5, `InstallCommand` runtime 3; `DataTableResponder` takes only the runtime).
+    A mapping error from `rows()` now surfaces inside `render_datatable()`, wrapped by Twig.
+
 </upgrade-prompt>

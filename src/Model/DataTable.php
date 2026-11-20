@@ -1280,6 +1280,11 @@ class DataTable
         return $this->options->get('serverSide') ?? false;
     }
 
+    public function __clone()
+    {
+        $this->options = clone $this->options;
+    }
+
     /**
      * @internal
      */

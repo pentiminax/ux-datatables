@@ -8,9 +8,10 @@ use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -27,6 +28,7 @@ use Symfony\Component\Mercure\Update;
 #[CoversClass(MercureUpdatePublisher::class)]
 final class MercureUpdatePublisherTest extends TestCase
 {
+    use BuildsRuntime;
     use CollectsDeprecations;
 
     /**
@@ -45,7 +47,7 @@ final class MercureUpdatePublisherTest extends TestCase
             }))
             ->willReturn('urn:uuid:1234');
 
-        $publisher = new MercureUpdatePublisher($hub);
+        $publisher = new MercureUpdatePublisher($hub, $this->runtime());
 
         $this->assertSame('urn:uuid:1234', $publisher->publish('datatables/MyTable', $data));
     }
@@ -68,7 +70,7 @@ final class MercureUpdatePublisherTest extends TestCase
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())->method('error');
 
-        $publisher = new MercureUpdatePublisher($hub, $logger);
+        $publisher = new MercureUpdatePublisher($hub, $this->runtime(), $logger);
 
         $this->assertSame('', $publisher->publish('datatables/MyTable', ['id' => "\xB1\x31"]));
     }
@@ -84,7 +86,7 @@ final class MercureUpdatePublisherTest extends TestCase
             return 'urn:uuid:1';
         });
 
-        $publisher = new MercureUpdatePublisher($hub);
+        $publisher = new MercureUpdatePublisher($hub, $this->runtime());
         $publisher->publish('/topic', ['type' => 'edit']);
         $publisher->publishPrivate('/topic', ['type' => 'edit']);
 
@@ -97,7 +99,7 @@ final class MercureUpdatePublisherTest extends TestCase
         $hub = $this->createMock(HubInterface::class);
         $hub->expects($this->never())->method('publish');
 
-        $publisher = new MercureUpdatePublisher($hub);
+        $publisher = new MercureUpdatePublisher($hub, $this->runtime());
 
         $this->assertSame('', $publisher->publish([], ['type' => 'edit', 'id' => 1]));
     }
@@ -125,7 +127,7 @@ final class MercureUpdatePublisherTest extends TestCase
                 })
             );
 
-        $publisher = new MercureUpdatePublisher($hub, $logger);
+        $publisher = new MercureUpdatePublisher($hub, $this->runtime(), $logger);
 
         $this->assertSame('', $publisher->publish(['/topic/42'], ['type' => 'edit', 'id' => 42]));
     }
@@ -143,7 +145,7 @@ final class MercureUpdatePublisherTest extends TestCase
             }))
             ->willReturn('urn:uuid:abcd');
 
-        $publisher = new MercureUpdatePublisher($hub);
+        $publisher = new MercureUpdatePublisher($hub, $this->runtime());
         $this->deprecationsOf(static fn () => $publisher->publishForDataTable($table, ['action' => 'updated']));
     }
 
@@ -160,7 +162,7 @@ final class MercureUpdatePublisherTest extends TestCase
             }))
             ->willReturn('urn:uuid:topics');
 
-        $publisher = new MercureUpdatePublisher($hub);
+        $publisher = new MercureUpdatePublisher($hub, $this->runtime());
         $this->deprecationsOf(static fn () => $publisher->publishForDataTable($table, ['action' => 'updated']));
     }
 
@@ -170,7 +172,7 @@ final class MercureUpdatePublisherTest extends TestCase
         $hub = $this->createMock(HubInterface::class);
         $hub->expects($this->never())->method('publish');
 
-        $publisher = new MercureUpdatePublisher($hub);
+        $publisher = new MercureUpdatePublisher($hub, $this->runtime());
         $table     = $this->mercureTable(static fn (DataTable $table): DataTable => $table);
 
         $this->expectException(\LogicException::class);
@@ -188,14 +190,8 @@ final class MercureUpdatePublisherTest extends TestCase
             ->with($this->callback(static fn (Update $update): bool => ['/api/products/{id}'] === $update->getTopics()))
             ->willReturn('urn:uuid:abstract');
 
-        $publisher      = new MercureUpdatePublisher($hub);
-        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
-        $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
-
-        $table = new ConfigurableDataTable([], configureTable: static fn (DataTable $table): DataTable => $table->serverSide()->mercure(topics: ['/api/products/{id}']));
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), mercureHubUrlResolver: $hubUrlResolver),
-        ));
+        $publisher = new MercureUpdatePublisher($hub, $this->runtime());
+        $table     = new ConfigurableDataTable([], configureTable: static fn (DataTable $table): DataTable => $table->serverSide()->mercure(topics: ['/api/products/{id}']));
 
         $deprecations = $this->deprecationsOf(static fn () => $publisher->publishForDataTable($table, ['action' => 'updated']));
 
@@ -207,14 +203,19 @@ final class MercureUpdatePublisherTest extends TestCase
      */
     private function mercureTable(\Closure $configure): ConfigurableDataTable
     {
+        return new ConfigurableDataTable([], configureTable: static fn (DataTable $table): DataTable => $configure($table->serverSide()));
+    }
+
+    private function runtime(): DataTableRuntime
+    {
         $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
 
-        $table = new ConfigurableDataTable([], configureTable: static fn (DataTable $table): DataTable => $configure($table->serverSide()));
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), mercureHubUrlResolver: $hubUrlResolver),
-        ));
+        $checker = new AuthorizationChecker();
 
-        return $table;
+        return self::buildRuntime(
+            checker: $checker,
+            preparer: new RenderingPreparer($checker, new ColumnResolver($checker), mercureHubUrlResolver: $hubUrlResolver),
+        );
     }
 }

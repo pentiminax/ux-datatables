@@ -6,7 +6,6 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Runtime;
 
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
-use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
@@ -17,6 +16,7 @@ use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Filter\TextFilter;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\BulkAction;
@@ -32,10 +32,8 @@ use Pentiminax\UX\DataTables\Model\Summary\Sum;
 use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Pentiminax\UX\DataTables\Runtime\DataSourceFeatureGuard;
 use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
-use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Pentiminax\UX\DataTables\Runtime\ResolvedOptIns;
-use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
-use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -50,6 +48,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 #[CoversClass(DataSourceFeatureGuard::class)]
 final class DataSourceFeatureGuardTest extends TestCase
 {
+    use BuildsRuntime;
     use CollectsDeprecations;
 
     #[Test]
@@ -199,13 +198,12 @@ final class DataSourceFeatureGuardTest extends TestCase
     #[DataProvider('refusedRequests')]
     public function it_refuses_a_request_the_provider_cannot_apply(array $query, string $message): void
     {
-        $runtime = $this->runtime(new ArrayDataProvider([], new DefaultRowMapper([]), self::columns()));
+        $table = self::table(new ArrayDataProvider([], new DefaultRowMapper([]), self::columns()));
 
         $this->expectException(BadRequestHttpException::class);
         $this->expectExceptionMessage($message);
 
-        $runtime->handleRequest(new Request(query: ['draw' => 1, ...$query]));
-        $runtime->getDataProvider();
+        self::buildRuntime()->handle($table, new Request(query: ['draw' => 1, ...$query]))->dataProvider();
     }
 
     /**
@@ -230,23 +228,12 @@ final class DataSourceFeatureGuardTest extends TestCase
     }
 
     #[Test]
-    public function it_refuses_a_request_handled_after_the_provider_was_resolved(): void
-    {
-        $runtime = $this->runtime(new ArrayDataProvider([], new DefaultRowMapper([]), self::columns()));
-        $runtime->getDataProvider();
-
-        $this->expectException(BadRequestHttpException::class);
-
-        $runtime->handleRequest(new Request(query: ['draw' => 1, 'filters' => ['status' => 'active']]));
-    }
-
-    #[Test]
     public function it_ignores_the_query_string_of_a_page_load(): void
     {
-        $runtime = $this->runtime(new ArrayDataProvider([], new DefaultRowMapper([]), self::columns()));
-        $runtime->handleRequest(new Request(query: ['filters' => ['status' => 'active']]));
+        $table = self::table(new ArrayDataProvider([], new DefaultRowMapper([]), self::columns()));
+        $call  = self::buildRuntime()->handle($table, new Request(query: ['filters' => ['status' => 'active']]));
 
-        $result = $runtime->fetchData(new DataTableRequest(draw: 1, columns: new Columns([])));
+        $result = $call->fetchData(new DataTableRequest(draw: 1, columns: new Columns([])));
 
         $this->assertSame(0, $result->recordsTotal);
     }
@@ -254,37 +241,37 @@ final class DataSourceFeatureGuardTest extends TestCase
     #[Test]
     public function it_checks_the_request_fetch_data_serves(): void
     {
-        $runtime = $this->runtime(new ArrayDataProvider([], new DefaultRowMapper([]), self::columns()));
+        $table = self::table(new ArrayDataProvider([], new DefaultRowMapper([]), self::columns()));
 
         $this->expectException(BadRequestHttpException::class);
 
-        $runtime->fetchData(new DataTableRequest(draw: 1, columns: new Columns([]), filters: ['status' => 'active']));
+        self::buildRuntime()->open($table)->fetchData(new DataTableRequest(draw: 1, columns: new Columns([]), filters: ['status' => 'active']));
     }
 
     #[Test]
     public function it_checks_the_provider_again_after_a_refusal(): void
     {
-        $runtime = $this->runtime(new ArrayDataProvider([], new DefaultRowMapper([]), self::columns()));
-        $runtime->handleRequest(new Request(query: ['draw' => 1, 'filters' => ['status' => 'active']]));
+        $table = self::table(new ArrayDataProvider([], new DefaultRowMapper([]), self::columns()));
+        $call  = self::buildRuntime()->handle($table, new Request(query: ['draw' => 1, 'filters' => ['status' => 'active']]));
 
         try {
-            $runtime->getDataProvider();
+            $call->dataProvider();
             $this->fail('The first call must refuse the request.');
         } catch (BadRequestHttpException) {
         }
 
         $this->expectException(BadRequestHttpException::class);
 
-        $runtime->getDataProvider();
+        $call->dataProvider();
     }
 
     #[Test]
     public function it_accepts_empty_filter_values(): void
     {
-        $runtime = $this->runtime(new ArrayDataProvider([], new DefaultRowMapper([]), self::columns()));
-        $runtime->handleRequest(new Request(query: ['draw' => 1, 'filters' => ['status' => '']]));
+        $table = self::table(new ArrayDataProvider([], new DefaultRowMapper([]), self::columns()));
+        $call  = self::buildRuntime()->handle($table, new Request(query: ['draw' => 1, 'filters' => ['status' => '']]));
 
-        $this->assertInstanceOf(ArrayDataProvider::class, $runtime->getDataProvider());
+        $this->assertInstanceOf(ArrayDataProvider::class, $call->dataProvider());
     }
 
     #[Test]
@@ -309,10 +296,9 @@ final class DataSourceFeatureGuardTest extends TestCase
             }
         };
 
-        $runtime = $this->runtime($provider);
-        $runtime->handleRequest(new Request(query: ['draw' => 1]));
+        $call = self::buildRuntime()->handle(self::table($provider), new Request(query: ['draw' => 1]));
 
-        $this->assertSame([], $this->deprecationsOf(fn () => $this->assertSame($provider, $runtime->getDataProvider())));
+        $this->assertSame([], $this->deprecationsOf(fn () => $this->assertSame($provider, $call->dataProvider())));
     }
 
     #[Test]
@@ -337,22 +323,20 @@ final class DataSourceFeatureGuardTest extends TestCase
             }
         };
 
-        $runtime = $this->runtime($provider);
-        $runtime->handleRequest(new Request(query: ['draw' => 1, 'filters' => ['status' => 'active']]));
+        $call = self::buildRuntime()->handle(self::table($provider), new Request(query: ['draw' => 1, 'filters' => ['status' => 'active']]));
 
         $this->expectException(BadRequestHttpException::class);
         $this->expectExceptionMessage('Configured filters are not supported by');
 
-        $runtime->getDataProvider();
+        $call->dataProvider();
     }
 
     #[Test]
     public function it_raises_nothing_for_a_provider_that_declares_every_feature(): void
     {
-        $runtime = $this->runtime(new ArrayDataProvider([], new DefaultRowMapper([]), self::columns()));
-        $runtime->handleRequest(new Request(query: ['draw' => 1]));
+        $call = self::buildRuntime()->handle(self::table(new ArrayDataProvider([], new DefaultRowMapper([]), self::columns())), new Request(query: ['draw' => 1]));
 
-        $this->assertSame([], $this->deprecationsOf(static fn () => $runtime->getDataProvider()));
+        $this->assertSame([], $this->deprecationsOf(static fn () => $call->dataProvider()));
     }
 
     #[Test]
@@ -375,13 +359,12 @@ final class DataSourceFeatureGuardTest extends TestCase
             }
         };
 
-        $runtime = $this->runtime($provider, [NumberColumn::new('price')->summarize(new Sum())]);
-        $runtime->handleRequest(new Request(query: ['draw' => 1]));
+        $call = self::buildRuntime()->handle(self::table($provider, [NumberColumn::new('price')->summarize(new Sum())]), new Request(query: ['draw' => 1]));
 
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('Column summaries are not supported by');
 
-        $runtime->getDataProvider();
+        $call->dataProvider();
     }
 
     #[Test]
@@ -438,19 +421,13 @@ final class DataSourceFeatureGuardTest extends TestCase
     #[Test]
     public function it_refuses_the_first_data_request_of_a_table_with_actions_on_an_unscoped_provider(): void
     {
-        $columns = [BooleanColumn::new('active')->renderAsSwitch()];
-        $runtime = new DataTableRuntime(
-            table: (new DataTable('people'))->columns($columns),
-            dataProviderFactory: static fn (): DataProviderInterface => self::unscopedProvider(),
-            columns: $columns,
-            searchListOptionsResolver: new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())),
-        );
-        $runtime->handleRequest(new Request(query: ['draw' => 1]));
+        $table = self::table(self::unscopedProvider(), [BooleanColumn::new('active')->renderAsSwitch()]);
+        $call  = self::buildRuntime()->handle($table, new Request(query: ['draw' => 1]));
 
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('unscopedMutations()');
 
-        $runtime->getDataProvider();
+        $call->dataProvider();
     }
 
     /**
@@ -472,19 +449,9 @@ final class DataSourceFeatureGuardTest extends TestCase
     /**
      * @param list<ColumnInterface>|null $columns
      */
-    private function runtime(DataProviderInterface $provider, ?array $columns = null): DataTableRuntime
+    private static function table(DataProviderInterface $provider, ?array $columns = null): GuardedTable
     {
-        $columns ??= self::columns();
-        $table = (new DataTable('people'))
-            ->columns($columns)
-            ->setFilters((new Filters())->add(TextFilter::new('status')));
-
-        return new DataTableRuntime(
-            table: $table,
-            dataProviderFactory: static fn (): DataProviderInterface => $provider,
-            columns: $columns,
-            searchListOptionsResolver: new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())),
-        );
+        return new GuardedTable($provider, $columns ?? self::columns());
     }
 
     /**
@@ -556,5 +523,32 @@ final class ExhaustiveMatchScopedProvider extends ScopedProvider
         return match ($feature) {
             DataSourceFeature::SearchBuilder => true,
         };
+    }
+}
+
+final class GuardedTable extends AbstractDataTable
+{
+    /**
+     * @param list<ColumnInterface> $columns
+     */
+    public function __construct(
+        private readonly DataProviderInterface $provider,
+        private readonly array $columns,
+    ) {
+    }
+
+    public function configureColumns(): iterable
+    {
+        return $this->columns;
+    }
+
+    public function configureFilters(Filters $filters): Filters
+    {
+        return $filters->add(TextFilter::new('status'));
+    }
+
+    public function createDataProvider(): DataProviderInterface
+    {
+        return $this->provider;
     }
 }

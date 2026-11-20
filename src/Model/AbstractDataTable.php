@@ -5,50 +5,30 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Model;
 
 use Doctrine\ORM\QueryBuilder;
-use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
-use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
-use Pentiminax\UX\DataTables\DataTableRequest\Column as RequestColumn;
-use Pentiminax\UX\DataTables\DataTableRequest\Columns as RequestColumns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
-use Pentiminax\UX\DataTables\Enum\ActionsPosition;
-use Pentiminax\UX\DataTables\Enum\SelectStyle;
-use Pentiminax\UX\DataTables\Filter\AbstractFilter;
-use Pentiminax\UX\DataTables\Mercure\MercureConfig;
-use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
 use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
-use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
-use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
-use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
-use Pentiminax\UX\DataTables\Runtime\PreparedDataTable;
-use Pentiminax\UX\DataTables\Runtime\ResolvedOptIns;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use Pentiminax\UX\DataTables\Runtime\TableContext;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Base class for every table the bundle renders: a class declaring its columns, actions, filters,
- * extensions, and options, from which the runtime builds rendering payloads and Ajax responses.
+ * extensions, and options, from which the bundle runtime builds rendering payloads and Ajax responses.
  *
- * setDataTableInfrastructure() must run before any accessor. Symfony's autoconfiguration calls it
- * on every subclass (see PentiminaxDataTablesBundle::loadExtension()); an instance built by hand falls back
- * to {@see DataTableInfrastructure::createDefault()}, which has no profiler, no Twig, and no
- * bundle-wide `data_tables` defaults. Calling it once the table has initialized throws
- * \LogicException, so it can never swap the infrastructure a table was already configured with.
+ * A table only declares. The bundle calls the configure*() methods once, keeps the result as an
+ * immutable definition, and calls the protected hooks (mapRow(),
+ * projectPage(), customizeQueryBuilder(), createDataProvider()) while it serves a request. The
+ * instance is container-shared and holds no request, user, or runtime state of its own. The one
+ * exception is rows() -- see its documentation.
  *
- * Every accessor -- as opposed to the configure*() hooks themselves -- triggers initialize()
- * implicitly, and initialization is idempotent: the first accessor runs the configure*() methods
- * and later calls reuse their result. Instances are
- * container-shared and survive across requests under a worker runtime, so the `kernel.reset` tag
- * calls resetDataTableState() between requests to clear that per-request state. Treat the
- * configure*() methods as pure functions of the class regardless: they must not read the request,
- * the security token, the session, or the locale. See the purity contract in
+ * Treat the configure*() methods as pure functions of the class: they must not read the request,
+ * the security token, the session, or the locale, and the definition they build is never rebuilt
+ * for another request. See the purity contract in
  * docs/src/content/docs/reference/abstract-datatable.mdx ("Configuration Methods Must Be Pure").
  *
  * Request-dependent behavior belongs at the request-scoped boundaries instead: permission() on
@@ -58,42 +38,54 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 abstract class AbstractDataTable
 {
-    protected DataTable $table;
+    private ?TableContext $context = null;
+
+    /** @var array<array-key, mixed>|null */
+    private ?array $inlineRows = null;
 
     /**
-     * @var AbstractColumn[]
-     */
-    private array $columns;
-
-    private Filters $filters;
-
-    private ?RowMapperInterface $defaultRowMapper = null;
-
-    private ?AsDataTable $asDataTable = null;
-
-    private ?ResolvedOptIns $optIns = null;
-
-    private ?DataTableInfrastructure $infrastructure = null;
-
-    private ?DataTableRuntime $runtime = null;
-
-    private bool $initialized = false;
-
-    private bool $rowsMapped = false;
-
-    /** @var array<string, true> */
-    private static array $overrideReported = [];
-
-    /**
+     * The hooks of a copy of this table, bound to the context of one call the runtime makes.
+     *
      * @internal
      */
-    final public function setDataTableInfrastructure(DataTableInfrastructure $infrastructure): void
+    final public function bindContext(TableContext $context): BoundTableHooks
     {
-        if ($this->initialized || null !== $this->runtime) {
-            throw new \LogicException('DataTable infrastructure must be injected before the table is initialized.');
-        }
+        $bound          = clone $this;
+        $bound->context = $context;
 
-        $this->infrastructure = $infrastructure;
+        return new BoundTableHooks(
+            $bound,
+            $bound->mapRow(...),
+            $bound->projectPage(...),
+            $bound->customizeQueryBuilder(...),
+            $bound->createDataProvider(...),
+            $bound->createSearchStrategyRegistry(...),
+            $bound->createSearchPredicateBuilder(...),
+        );
+    }
+
+    /**
+     * Runs the bundle's configuration step on this instance, so state a configure method sets
+     * reaches the hooks, and unbinds the context afterwards.
+     *
+     * @template T
+     *
+     * @param \Closure(self):T $configure
+     *
+     * @return T
+     *
+     * @internal
+     */
+    final public function configureWith(TableContext $context, \Closure $configure): mixed
+    {
+        $previous      = $this->context;
+        $this->context = $context;
+
+        try {
+            return $configure($this);
+        } finally {
+            $this->context = $previous;
+        }
     }
 
     /**
@@ -101,78 +93,19 @@ abstract class AbstractDataTable
      */
     final public function resetDataTableState(): void
     {
-        unset($this->table, $this->columns, $this->filters);
-
-        $this->defaultRowMapper = null;
-        $this->asDataTable      = null;
-        $this->optIns           = null;
-        $this->runtime          = null;
-        $this->initialized      = false;
-        $this->rowsMapped       = false;
-    }
-
-    private function initialize(): void
-    {
-        if ($this->initialized) {
-            return;
-        }
-
-        $this->asDataTable = $this->resolveAsDataTable();
-
-        $table              = $this->infrastructure()->createDataTable($this->getClassName());
-        $defaultSelect      = $table->getExtensionsCollection()->getSelectExtension();
-        $defaultSelectState = $defaultSelect?->jsonSerialize();
-
-        $this->table = $this->configureDataTable($table);
-
-        $this->table->setDataTableClass(static::class);
-
-        $this->optIns = $this->resolveOptIns();
-
-        $this->columns = iterator_to_array($this->configureColumns());
-
-        $columnResolver = $this->infrastructure()->columnResolver;
-
-        $actions = $this->configureActions(new Actions());
-
-        $columnResolver->configureActionEntityClass($actions, $this->asDataTable);
-
-        // Permission filtering is request-scoped and happens at the serialization
-        // and query boundaries. Applying it here would lock this container-shared
-        // instance to the first user who initialized it.
-        $this->configureActionColumn($actions);
-
-        $this->table->columns($this->columns);
-
-        $this->filters = $this->configureFilters(new Filters());
-
-        if ($this->filters->isEmpty()) {
-            foreach ($this->filtersFromAttributes() as $filter) {
-                $this->filters->add($filter);
-            }
-        }
-
-        $this->table->setFilters($this->filters);
-
-        $bulkActions = $this->configureBulkActions(new BulkActions());
-
-        if (!$bulkActions->isEmpty()) {
-            $this->enableSelectionForBulkActions($defaultSelect, $defaultSelectState);
-        }
-
-        $this->table->setBulkActions($bulkActions);
-
-        $this->initialized = true;
+        $this->inlineRows = null;
     }
 
     /**
-     * @deprecated since 1.7, use getCurrentRequest() inside the table, or the $request argument of customizeQueryBuilder(). Removed in 2.0.
+     * The rows rows() received, not yet mapped.
+     *
+     * @return array<array-key, mixed>|null
+     *
+     * @internal
      */
-    public function getRequest(): ?DataTableRequest
+    final public function getInlineRows(): ?array
     {
-        trigger_deprecation('pentiminax/ux-datatables', '1.7', 'The "%s()" method is deprecated, use getCurrentRequest() inside the table, or the $request argument of customizeQueryBuilder(). Removed in 2.0.', __METHOD__);
-
-        return $this->runtime()->getRequest();
+        return $this->inlineRows;
     }
 
     /**
@@ -180,188 +113,12 @@ abstract class AbstractDataTable
      */
     final protected function getCurrentRequest(): ?DataTableRequest
     {
-        return $this->runtime()->getRequest();
+        return $this->context?->request;
     }
 
     protected function getHttpRequest(): ?Request
     {
-        return $this->runtime()->getHttpRequest();
-    }
-
-    /**
-     * @deprecated since 1.7, use DataTableResponder::respond() instead. Removed in 2.0.
-     */
-    public function handleRequest(Request $request): static
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.7', 'The "%s()" method is deprecated, use "DataTableResponder::respond()" instead. Removed in 2.0.', __METHOD__);
-
-        $this->runtime()->handleRequest($request);
-
-        return $this;
-    }
-
-    /**
-     * @deprecated since 1.7, use DataTableResponder::respond() instead. Removed in 2.0.
-     */
-    public function isRequestHandled(): bool
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.7', 'The "%s()" method is deprecated, use "DataTableResponder::respond()" instead. Removed in 2.0.', __METHOD__);
-
-        return $this->runtime()->isRequestHandled();
-    }
-
-    /**
-     * @deprecated since 1.7, use DataTableResponder::respond() instead. Removed in 2.0.
-     */
-    public function getResponse(): JsonResponse
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.7', 'The "%s()" method is deprecated, use "DataTableResponder::respond()" instead. Removed in 2.0.', __METHOD__);
-
-        return $this->buildResponse();
-    }
-
-    /**
-     * @internal
-     */
-    public function handleDataTableRequest(Request $request): void
-    {
-        if ($this->overrides('handleRequest')) {
-            $this->handleRequest($request);
-
-            return;
-        }
-
-        $this->runtime()->handleRequest($request);
-    }
-
-    /**
-     * @internal
-     */
-    public function isDataTableRequestHandled(): bool
-    {
-        return $this->overrides('isRequestHandled') ? $this->isRequestHandled() : $this->runtime()->isRequestHandled();
-    }
-
-    /**
-     * @internal
-     */
-    public function createDataTableResponse(): JsonResponse
-    {
-        return $this->overrides('getResponse') ? $this->getResponse() : $this->buildResponse();
-    }
-
-    /**
-     * @internal
-     */
-    public function getDataTableRequest(): ?DataTableRequest
-    {
-        return $this->overrides('getRequest') ? $this->getRequest() : $this->runtime()->getRequest();
-    }
-
-    /**
-     * @internal
-     */
-    public function fetchDataTableResult(DataTableRequest $request): DataTableResult
-    {
-        return $this->overrides('fetchData') ? $this->fetchData($request) : $this->runtime()->fetchData($request);
-    }
-
-    /**
-     * @internal
-     */
-    public function getResolvedDataProvider(): ?DataProviderInterface
-    {
-        return $this->runtime()->getDataProvider();
-    }
-
-    private function buildResponse(): JsonResponse
-    {
-        $start    = hrtime(true);
-        $response = $this->runtime()->getResponse();
-
-        $this->collectAjaxQueryForProfiler($response, $start);
-
-        return $response;
-    }
-
-    private function overrides(string $method): bool
-    {
-        $declaringClass = (new \ReflectionMethod($this, $method))->getDeclaringClass()->getName();
-
-        if (self::class === $declaringClass) {
-            return false;
-        }
-
-        $key = static::class.'::'.$method;
-
-        if (!isset(self::$overrideReported[$key])) {
-            self::$overrideReported[$key] = true;
-
-            $pointer = \in_array($method, ['handleRequest', 'isRequestHandled', 'getResponse'], true)
-                ? 'use "DataTableResponder::respond()" instead'
-                : ('getRequest' === $method
-                    ? 'read the request with "getCurrentRequest()" inside the table, or from the $request argument of "customizeQueryBuilder()"'
-                    : 'move its logic to "customizeQueryBuilder()", which receives the DataTableRequest as its $request argument');
-
-            trigger_deprecation('pentiminax/ux-datatables', '1.7', 'Overriding "%s::%s()" is deprecated: 2.0 no longer calls it, %s. Removed in 2.0.', static::class, $method, $pointer);
-        }
-
-        return true;
-    }
-
-    /**
-     * Build the payload of one render. The table is left as configureDataTable() returned it.
-     *
-     * @internal
-     */
-    public function prepareRendering(): PreparedDataTable
-    {
-        $this->initialize();
-
-        $renderingPreparer = $this->infrastructure()->renderingPreparer;
-        $optIns            = $this->getResolvedOptIns();
-
-        $renderingPreparer->prepareBeforeDataHydration($this->table, $optIns);
-
-        $renderingPreparer->assertMutationsScoped($this->table, fn (): ?DataProviderInterface => $this->getResolvedDataProvider());
-
-        $rows = DataSourceMode::ClientHydrated === $optIns->dataSourceMode
-            ? $this->hydrateClientSideRows()
-            : $this->mapExplicitInlineRows();
-
-        $bulkRowIdField = $this->table->hasBulkActions()
-            ? $this->infrastructure()->runtimeFactory->resolveRowIdField(
-                null,
-                $this->table->getBulkActions()?->getIdField(),
-                $this->asDataTable?->entityClass,
-            )
-            : null;
-
-        return $renderingPreparer->prepareAfterDataHydration($this->table, $optIns, $rows, $bulkRowIdField);
-    }
-
-    public function getConfiguredDataTable(): DataTable
-    {
-        $this->initialize();
-
-        return $this->table;
-    }
-
-    /**
-     * @throws \LogicException if Mercure is enabled but the hub URL cannot be resolved
-     */
-    public function resolveMercureConfigWithoutHydration(): ?MercureConfig
-    {
-        $this->initialize();
-
-        return $this->infrastructure()->renderingPreparer->resolveMercureConfig($this->table, $this->getResolvedOptIns());
-    }
-
-    final public function getEntityClass(): ?string
-    {
-        $this->initialize();
-
-        return $this->asDataTable?->entityClass;
+        return $this->context?->httpRequest;
     }
 
     /**
@@ -369,47 +126,14 @@ abstract class AbstractDataTable
      */
     public function configureColumns(): iterable
     {
-        if (isset($this->table)) {
-            $columns = $this->table->getColumns();
-            if ([] !== $columns) {
-                return $columns;
-            }
-        }
+        $defaultColumns = $this->context?->defaultColumns;
 
-        $asDataTable = $this->asDataTable ?? $this->resolveAsDataTable();
-        $resolver    = $this->infrastructure()->columnResolver;
-
-        return $resolver->resolveColumns($asDataTable, dataTableClass: static::class, optIns: $this->optIns);
-    }
-
-    /**
-     * @internal
-     */
-    public function getResolvedOptIns(): ResolvedOptIns
-    {
-        $this->initialize();
-
-        return $this->optIns ??= $this->resolveOptIns();
-    }
-
-    private function resolveOptIns(): ResolvedOptIns
-    {
-        return $this->infrastructure()->renderingPreparer->resolveOptIns($this->table, $this->asDataTable);
+        return null === $defaultColumns ? [] : $defaultColumns();
     }
 
     public function configureDataTable(DataTable $table): DataTable
     {
         return $table;
-    }
-
-    /**
-     * @deprecated since 1.7, it has no replacement: 2.0 moves it to the bundle runtime. Removed in 2.0.
-     */
-    final public function getDataProvider(): ?DataProviderInterface
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.7', 'The "%s()" method is deprecated and has no replacement: 2.0 moves it to the bundle runtime. Removed in 2.0.', __METHOD__);
-
-        return $this->runtime()->getDataProvider();
     }
 
     public function configureActions(Actions $actions): Actions
@@ -439,128 +163,6 @@ abstract class AbstractDataTable
         return $filters;
     }
 
-    /**
-     * Filters declared through #[DataTableFilter], read down the same chain the columns use: the
-     * table class first, then the data class. Only reached when configureFilters() declared nothing.
-     *
-     * @return AbstractFilter[]
-     */
-    private function filtersFromAttributes(): array
-    {
-        $reader = $this->infrastructure()->attributeFilterReader;
-
-        $filters = $reader->readClassFilters(static::class);
-
-        if ([] !== $filters) {
-            return $filters;
-        }
-
-        $asDataTable = $this->asDataTable ?? $this->resolveAsDataTable();
-
-        return null === $asDataTable ? [] : $reader->readFilters($asDataTable->dataClass);
-    }
-
-    /**
-     * @deprecated since 1.7, it has no replacement: 2.0 moves it to the bundle runtime. Removed in 2.0.
-     */
-    public function fetchData(DataTableRequest $request): DataTableResult
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.7', 'The "%s()" method is deprecated and has no replacement: 2.0 moves it to the bundle runtime. Removed in 2.0.', __METHOD__);
-
-        return $this->runtime()->fetchData($request);
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function hydrateClientSideRows(): array
-    {
-        $rows = $this->fetchDataTableResult($this->createClientSideDataRequest())->data;
-        $rows = array_values(\is_array($rows) ? $rows : iterator_to_array($rows));
-
-        $this->warnWhenHydrationIsLarge(\count($rows));
-
-        return $rows;
-    }
-
-    private function warnWhenHydrationIsLarge(int $rows): void
-    {
-        $infrastructure = $this->infrastructure();
-        $threshold      = $infrastructure->hydrationRowThreshold;
-
-        if ($threshold <= 0 || $rows <= $threshold) {
-            return;
-        }
-
-        $infrastructure->logger?->warning(\sprintf('The table "%s" embeds %d rows in the page, above the hydration_row_threshold of %d. Call serverSide() so the browser fetches one page at a time.', static::class, $rows, $threshold), [
-            'table' => static::class,
-            'rows'  => $rows,
-        ]);
-    }
-
-    /**
-     * Rows set through data() still need the row pipeline; rows() already ran it.
-     *
-     * @return list<array<string, mixed>>|null
-     */
-    private function mapExplicitInlineRows(): ?array
-    {
-        $data = $this->table->getOption('data');
-        if (null === $data || $this->rowsMapped) {
-            return null;
-        }
-
-        return $this->mapInlineRows($data);
-    }
-
-    /**
-     * Rendering refuses an API Platform table without a collection, and Ajax and export answer 404.
-     */
-    private function createDataProviderUnlessUnavailable(): ?DataProviderInterface
-    {
-        if (DataSourceMode::ApiPlatformUnavailable === $this->getResolvedOptIns()->dataSourceMode) {
-            throw new NotFoundHttpException('DataTable not found.');
-        }
-
-        return $this->createDataProvider();
-    }
-
-    private function createClientSideDataRequest(): DataTableRequest
-    {
-        $columns = [];
-        foreach ($this->columns as $column) {
-            $columns[$column->getName()] = new RequestColumn(
-                data: $column->getData() ?? $column->getName(),
-                name: $column->getName(),
-                searchable: $column->isSearchable(),
-                orderable: $column->isOrderable(),
-            );
-        }
-
-        return new DataTableRequest(
-            draw: null,
-            columns: new RequestColumns($columns),
-            start: 0,
-            length: 0,
-            rowsOnly: true,
-        );
-    }
-
-    final protected function configureQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
-    {
-        $qb = $this->customizeQueryBuilder($qb, $request);
-
-        return $this->infrastructure()->queryFilterPipeline->apply(
-            qb: $qb,
-            request: $request,
-            columns: $this->runtime?->getVisibleColumns()?->columns
-                                    ?? $this->infrastructure()->columnResolver->filterStaticPermissions($this->columns, static::class),
-            filters: $this->filters ?? null,
-            registry: $this->createSearchStrategyRegistry(),
-            predicateBuilder: $this->createSearchPredicateBuilder(),
-        );
-    }
-
     protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
     {
         return $qb;
@@ -587,16 +189,12 @@ abstract class AbstractDataTable
         return new DefaultSearchPredicateBuilder();
     }
 
-    public function getColumnByName(string $name): ?AbstractColumn
-    {
-        $this->initialize();
-
-        return $this->table->getColumnByName($name);
-    }
-
     protected function mapRow(mixed $row): array
     {
-        return $this->getDefaultRowMapper()->map($row);
+        $mapper = $this->context?->defaultRowMapper
+            ?? throw new \LogicException('mapRow() maps a row while the bundle runtime serves the table; it cannot run on a table used on its own.');
+
+        return $mapper($row);
     }
 
     protected function createDataProvider(): ?DataProviderInterface
@@ -643,202 +241,31 @@ abstract class AbstractDataTable
      */
     final protected function getResolvedColumns(): array
     {
-        $this->initialize();
+        $columns = $this->context?->columns
+            ?? throw new \LogicException('getResolvedColumns() is available while the bundle runtime calls a hook of the table.');
 
-        return $this->runtime?->getVisibleColumns()?->columns
-            ?? $this->infrastructure()->columnResolver->filterStaticPermissions($this->columns, static::class);
+        return $columns();
     }
 
     final protected function createRowMapper(): RowMapperInterface
     {
-        $this->initialize();
+        $rowMapper = $this->context?->rowMapper
+            ?? throw new \LogicException('createRowMapper() is available while the bundle runtime calls a hook of the table.');
 
-        return $this->infrastructure()->runtimeFactory->createRowMapper(
-            baseMapper: $this->mapRow(...),
-            columns: $this->columns,
-            dataTableClass: static::class,
-            highlight: $this->table->getHighlightConfig(),
-            rowIdField: $this->table->hasBulkActions() ? $this->table->getBulkActions()?->getIdField() : null,
-            entityClass: $this->asDataTable?->entityClass,
-            rowClass: $this->table->getRowClassResolver(),
-            recordUrl: $this->table->getRecordUrlResolver(),
-        );
+        return $rowMapper();
     }
 
     /**
-     * Maps domain objects or arrays through the row pipeline and embeds them as the table's rows.
+     * Maps domain objects or arrays through the row pipeline at render time and embeds them as the
+     * table's rows.
+     *
+     * This is the one piece of state a table keeps: the rows wait on the instance until the table
+     * is rendered, and the `kernel.reset` tag clears them between requests under a worker runtime.
+     *
+     * @param array<array-key, mixed> $data
      */
     public function rows(array $data): void
     {
-        $this->initialize();
-
-        $this->table->data($this->mapInlineRows($data));
-        $this->rowsMapped = true;
-        // The rows may change where the table reads from, so the opt-ins are resolved again.
-        $this->optIns = $this->resolveOptIns();
-    }
-
-    /**
-     * @param iterable<mixed> $data
-     *
-     * @return list<array<string, mixed>>
-     */
-    private function mapInlineRows(iterable $data): array
-    {
-        $rowMapper = $this->createRowMapper();
-        $rows      = [];
-
-        foreach ($data as $item) {
-            $rows[] = $rowMapper->map($item);
-        }
-
-        return $rows;
-    }
-
-    private function getDefaultRowMapper(): DefaultRowMapper
-    {
-        $this->initialize();
-
-        if (null === $this->defaultRowMapper) {
-            $this->defaultRowMapper = new DefaultRowMapper($this->columns);
-        }
-
-        return $this->defaultRowMapper;
-    }
-
-    private function getClassName(): string
-    {
-        $class = static::class;
-        $pos   = strrpos($class, '\\');
-
-        return false === $pos ? $class : substr($class, $pos + 1);
-    }
-
-    private function resolveAsDataTable(): ?AsDataTable
-    {
-        return $this->infrastructure()->asDataTableResolver->resolve(static::class);
-    }
-
-    private function runtime(): DataTableRuntime
-    {
-        $this->initialize();
-
-        return $this->runtime ??= $this->infrastructure()->runtimeFactory->createRuntime(
-            table: $this->table,
-            columns: $this->columns,
-            asDataTable: $this->asDataTable,
-            baseMapper: $this->mapRow(...),
-            optIns: $this->getResolvedOptIns(),
-            manualDataProviderFactory: $this->createDataProviderUnlessUnavailable(...),
-            configureQueryBuilder: $this->configureQueryBuilder(...),
-            pageProjector: $this->projectPage(...),
-            configureBaseQueryBuilder: $this->customizeQueryBuilder(...),
-        );
-    }
-
-    private function infrastructure(): DataTableInfrastructure
-    {
-        return $this->infrastructure ??= DataTableInfrastructure::createDefault();
-    }
-
-    /**
-     * Records this Ajax response with the Web Profiler, regardless of which route or
-     * controller built it -- the bundle's own AjaxDataController, or a custom
-     * ajax() endpoint that goes through DataTableResponder. A no-op when no
-     * profiler is wired (e.g. a table built outside the bundle's DI container).
-     */
-    private function collectAjaxQueryForProfiler(JsonResponse $response, float $start): void
-    {
-        $profiler = $this->infrastructure()->profiler;
-
-        if (null === $profiler) {
-            return;
-        }
-
-        $payload = json_decode((string) $response->getContent(), true);
-        $payload = \is_array($payload) ? $payload : [];
-
-        // Mirrors DataTableRuntime::getResponse()'s own guard: it only resolves a data
-        // provider once a request has actually been handled, short-circuiting to the empty
-        // response otherwise. Resolving unconditionally here would call getDataProvider()
-        // even on that empty-response path -- for an attributed table with no manual
-        // provider and no EntityManager, resolution throws, so getResponse() would behave
-        // differently depending on whether a profiler happens to be wired.
-        $request  = $this->getDataTableRequest();
-        $provider = null !== $request ? $this->getResolvedDataProvider() : null;
-
-        $profiler->collectAjaxQuery(
-            class: static::class,
-            token: $this->getHttpRequest()?->query->getString('table') ?: null,
-            request: $request,
-            recordsTotal: (int) ($payload['recordsTotal'] ?? 0),
-            recordsFiltered: (int) ($payload['recordsFiltered'] ?? 0),
-            durationMs: (hrtime(true) - $start) / 1_000_000,
-            providerClass: null !== $provider ? $provider::class : null,
-            entityClass: $this->getEntityClass(),
-            rowCount: \is_array($payload['data'] ?? null) ? \count($payload['data']) : 0,
-            payloadBytes: \strlen((string) $response->getContent()),
-            httpStatus: $response->getStatusCode(),
-        );
-    }
-
-    /**
-     * Bulk actions need checkboxes and multi-row selection, so a table that declares them gets the
-     * Select extension configured for that. A table that declares Select itself keeps its own
-     * configuration, except that single-row selection is refused outright: it can never produce a
-     * batch.
-     *
-     * The bundle-wide `data_tables.extensions.select` default is not a choice the table made, so it
-     * is replaced rather than refused: its `single` default would otherwise break every table that
-     * declares bulk actions. The default only counts as untouched while configureDataTable() left
-     * it as it was seeded; a table that changed it in place made the choice its own.
-     *
-     * @param array<string, mixed>|null $defaultSelectState the default as seeded, before configureDataTable()
-     */
-    private function enableSelectionForBulkActions(?SelectExtension $defaultSelect, ?array $defaultSelectState): void
-    {
-        $select = $this->table->getExtensionsCollection()->getSelectExtension();
-
-        $untouchedDefault = null !== $select
-            && $select                  === $defaultSelect
-            && $select->jsonSerialize() === $defaultSelectState;
-
-        if (null === $select || $untouchedDefault) {
-            $this->table->useSelectionForBulkActions(
-                (new SelectExtension(style: SelectStyle::MULTI))->withCheckbox()->headerCheckbox()
-            );
-
-            return;
-        }
-
-        if (SelectStyle::MULTI !== $select->getStyle()) {
-            throw new \LogicException(\sprintf('Table "%s" declares bulk actions, which need SelectStyle::MULTI, but its Select extension uses SelectStyle::%s.', static::class, $select->getStyle()->name));
-        }
-    }
-
-    private function configureActionColumn(Actions $actions): void
-    {
-        if ($actions->isEmpty()) {
-            return;
-        }
-
-        $groups = $actions->partitionByPosition();
-        $single = 1 === \count($groups);
-
-        foreach ($groups as $position => $group) {
-            $isBefore = ActionsPosition::BeforeColumns->value === $position;
-
-            $name = $single || !$isBefore ? 'actions' : 'actions_before';
-
-            $actionColumn = ActionColumn::fromActions($name, $group->getColumnLabel(), $group);
-
-            if ($isBefore) {
-                array_unshift($this->columns, $actionColumn);
-
-                continue;
-            }
-
-            $this->columns[] = $actionColumn;
-        }
+        $this->inlineRows = $data;
     }
 }

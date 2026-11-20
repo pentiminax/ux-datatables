@@ -11,16 +11,19 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Summary\Count;
 use Pentiminax\UX\DataTables\Model\Summary\Sum;
-use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Runtime\ResolvedOptIns;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\SummaryNote;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\SummaryOrder;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\SummaryRegion;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -34,12 +37,13 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *
  * @internal
  */
-#[CoversClass(DataTableRuntimeFactory::class)]
+#[CoversClass(DataTableRuntime::class)]
 #[CoversClass(RenderingPreparer::class)]
 final class DataTableRuntimeSummaryPermissionTest extends TestCase
 {
     use PreparesPayload;
     use BuildsEntityManager;
+    use BuildsRuntime;
 
     #[Test]
     public function a_denied_summarized_column_is_absent_from_the_response(): void
@@ -65,7 +69,7 @@ final class DataTableRuntimeSummaryPermissionTest extends TestCase
         $table = (new DataTable('Test'))->add(NumberColumn::new('amount')->permission('ROLE_HR')->summarize(new Sum()));
 
         $preparer = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(permissionChecker: $this->checker(false)), translator: $translator);
-        $prepared = self::prepareWith($preparer, $table, $preparer->resolveOptIns($table, null));
+        $prepared = self::prepareWith($preparer, $table, ResolvedOptIns::resolve($table, null));
 
         $this->assertArrayNotHasKey('summaryLabels', $prepared->getView());
     }
@@ -78,18 +82,25 @@ final class DataTableRuntimeSummaryPermissionTest extends TestCase
         $em->flush();
 
         // A virtual column has no field to aggregate, so a server-side summary of it would throw.
-        $columns = [NumberColumn::new('margin')->summarize(new Sum())];
+        $table = new #[AsDataTable(entityClass: SummaryOrder::class)] class extends AbstractDataTable {
+            public function configureDataTable(DataTable $table): DataTable
+            {
+                return $table->serverSide(false);
+            }
 
-        $runtime = (new DataTableRuntimeFactory(new AuthorizationChecker(), autoDataProviderFactory: new AutoDataProviderFactory($em)))->createRuntime(
-            table: (new DataTable('orders'))->serverSide(false),
-            columns: $columns,
-            asDataTable: new AsDataTable(entityClass: SummaryOrder::class),
-            baseMapper: static fn (SummaryOrder $order): array => ['margin' => 1],
-            manualDataProviderFactory: static fn (): null => null,
-            configureQueryBuilder: static fn ($qb) => $qb,
-        );
+            public function configureColumns(): iterable
+            {
+                return [NumberColumn::new('margin')->summarize(new Sum())];
+            }
 
-        $result = $runtime->fetchData(new DataTableRequest(draw: null, columns: new Columns([])));
+            public function mapRow(mixed $row): array
+            {
+                return ['margin' => 1];
+            }
+        };
+
+        $runtime = self::buildRuntime(autoDataProviderFactory: new AutoDataProviderFactory($em));
+        $result  = $runtime->open($table)->fetchData(new DataTableRequest(draw: null, columns: new Columns([])));
 
         $this->assertSame(1, $result->recordsTotal);
         $this->assertNull($result->summaries);
@@ -105,26 +116,30 @@ final class DataTableRuntimeSummaryPermissionTest extends TestCase
         $em->persist(new SummaryOrder(2, 'paid', 2000));
         $em->flush();
 
-        $columns = [
-            TextColumn::new('status')->field('status')->summarize(new Count()),
-            NumberColumn::new('amount')->field('amount')->permission('ROLE_HR')->summarize(new Sum()),
-        ];
-        $permissionChecker = $this->checker($granted);
+        $table = new #[AsDataTable(entityClass: SummaryOrder::class)] class extends AbstractDataTable {
+            public function configureDataTable(DataTable $table): DataTable
+            {
+                return $table->serverSide();
+            }
 
-        $runtime = (new DataTableRuntimeFactory(
-            autoDataProviderFactory: new AutoDataProviderFactory($em),
-            permissionChecker: $permissionChecker,
-        ))->createRuntime(
-            table: (new DataTable('orders'))->serverSide(),
-            columns: $columns,
-            asDataTable: new AsDataTable(entityClass: SummaryOrder::class),
-            baseMapper: static fn (): array => [],
-            manualDataProviderFactory: static fn (): null => null,
-            configureQueryBuilder: static fn ($qb) => $qb,
-        );
-        $runtime->handleRequest(new Request(query: ['draw' => 1]));
+            public function configureColumns(): iterable
+            {
+                return [
+                    TextColumn::new('status')->field('status')->summarize(new Count()),
+                    NumberColumn::new('amount')->field('amount')->permission('ROLE_HR')->summarize(new Sum()),
+                ];
+            }
 
-        return json_decode((string) $runtime->getResponse()->getContent(), true);
+            public function mapRow(mixed $row): array
+            {
+                return [];
+            }
+        };
+
+        $runtime  = self::buildRuntime(checker: $this->checker($granted), autoDataProviderFactory: new AutoDataProviderFactory($em));
+        $response = $runtime->respond($table, new Request(query: ['draw' => 1]));
+
+        return json_decode((string) $response?->getContent(), true);
     }
 
     private function checker(bool $granted): AuthorizationChecker

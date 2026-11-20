@@ -7,13 +7,23 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\DataProvider;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadataFactory;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\VisibleColumns;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ApiPlatformCollectionProvider;
 use Pentiminax\UX\DataTables\DataProvider\ApiPlatformCollectionProviderFactory;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Model\Filters;
+use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
+use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
+use Pentiminax\UX\DataTables\Runtime\ResolvedOptIns;
+use Pentiminax\UX\DataTables\Runtime\TableContext;
+use Pentiminax\UX\DataTables\Runtime\TableDefinition;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsApiPlatformProviderFactory;
+use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -90,17 +100,23 @@ final class AutoDataProviderFactoryTest extends TestCase
     #[Test]
     public function it_forwards_the_page_projector_to_the_api_platform_provider(): void
     {
-        $projector = static fn (array $items): array => $items;
+        $hooks = new class extends AbstractDataTable {
+            public function projectPage(array $items): ?array
+            {
+                return array_reverse($items);
+            }
+        };
 
         $provider = $this->create(
             asDataTable: new AsDataTable(entityClass: \stdClass::class, apiPlatform: true),
             apiPlatformProviderFactory: $this->buildApiPlatformProviderFactory(),
             apiPlatform: true,
-            pageProjector: $projector,
+            hooks: $hooks,
         );
 
         $this->assertInstanceOf(ApiPlatformCollectionProvider::class, $provider);
-        $this->assertSame($projector, (new \ReflectionProperty($provider, 'pageProjector'))->getValue($provider));
+        $projector = (new \ReflectionProperty($provider, 'pageProjector'))->getValue($provider);
+        $this->assertSame([2, 1], $projector([1, 2]));
     }
 
     /**
@@ -141,14 +157,24 @@ final class AutoDataProviderFactoryTest extends TestCase
         ?EntityManagerInterface $em = null,
         ?ApiPlatformCollectionProviderFactory $apiPlatformProviderFactory = null,
         bool $apiPlatform = false,
-        ?\Closure $pageProjector = null,
+        ?AbstractDataTable $hooks = null,
     ): ?DataProviderInterface {
-        return (new AutoDataProviderFactory($em, $apiPlatformProviderFactory))->create(
+        $hooks ??= new ConfigurableDataTable([]);
+        $definition = new TableDefinition(
+            class: $hooks::class,
+            table: new DataTable('movies'),
+            columns: [],
+            filters: new Filters(),
             asDataTable: $asDataTable,
+            optIns: new ResolvedOptIns(apiPlatform: $apiPlatform ?: null),
+        );
+
+        return (new AutoDataProviderFactory($em, $apiPlatformProviderFactory))->create(
+            definition: $definition,
+            hooks: $hooks->bindContext(new TableContext()),
             rowMapper: new DefaultRowMapper([]),
-            configureQueryBuilder: static fn ($qb, $request) => $qb,
-            pageProjector: $pageProjector,
-            apiPlatform: $apiPlatform,
+            queryFilterPipeline: new QueryFilterPipeline(new DefaultDataTableQueryIntentFactory()),
+            visibleColumns: new VisibleColumns([], [], $hooks::class),
         );
     }
 }

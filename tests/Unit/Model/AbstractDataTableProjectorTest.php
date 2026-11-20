@@ -10,12 +10,10 @@ use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
-use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
-use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountCustomer;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CustomerListDto;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -28,6 +26,7 @@ use Symfony\Component\HttpFoundation\Request;
 final class AbstractDataTableProjectorTest extends TestCase
 {
     use BuildsEntityManager;
+    use BuildsRuntime;
 
     private EntityManagerInterface $em;
 
@@ -44,17 +43,10 @@ final class AbstractDataTableProjectorTest extends TestCase
     #[Test]
     public function projected_values_reach_the_response(): void
     {
-        $table = new ProjectingCustomerTable();
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            runtimeFactory: new DataTableRuntimeFactory(
-                new AuthorizationChecker(),
-                autoDataProviderFactory: new AutoDataProviderFactory($this->em),
-            ),
-        ));
+        $runtime  = self::buildRuntime(autoDataProviderFactory: new AutoDataProviderFactory($this->em));
+        $response = $runtime->respond(new ProjectingCustomerTable(), new Request(query: ['draw' => 1, 'start' => 0, 'length' => 10]));
 
-        $table->handleDataTableRequest(new Request(query: ['draw' => 1, 'start' => 0, 'length' => 10]));
-
-        $data = json_decode((string) $table->createDataTableResponse()->getContent(), true)['data'];
+        $data = json_decode((string) $response?->getContent(), true)['data'];
 
         $this->assertSame([
             ['id' => 1, 'name' => 'Alpha', 'badge' => 'BADGE:Alpha'],

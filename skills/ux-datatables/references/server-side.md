@@ -49,7 +49,7 @@ if ($response = $responder->respond($table, $request)) {
 }
 return $this->render(...);
 ```
-Do **not** gate on `$request->isXmlHttpRequest()`. The supported detection is `DataTableResponder::respond()` returning `null` or a response (`handleRequest()` / `isRequestHandled()` / `getResponse()` are deprecated since 1.7).
+Do **not** gate on `$request->isXmlHttpRequest()`. The supported detection is `DataTableResponder::respond()` returning `null` or a response (`handleRequest()` / `isRequestHandled()` / `getResponse()` are removed in 2.0).
 
 ## Custom Ajax URL
 

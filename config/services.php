@@ -43,13 +43,14 @@ use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
 use Pentiminax\UX\DataTables\Routing\RouteLoader;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableResponder;
-use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
+use Pentiminax\UX\DataTables\Runtime\TableDefinitionBuilder;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Security\SecurityVoter;
 use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
+use Pentiminax\UX\DataTables\Twig\DataTablesRuntime;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\Form\FormFactoryInterface;
 
@@ -91,6 +92,7 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.security.voter', SecurityVoter::class)
         ->arg(0, service(AccessDecisionManagerInterface::class))
+        ->arg(1, service('datatables.definition_builder'))
         ->tag('security.voter')
         ->private();
 
@@ -129,10 +131,15 @@ return static function (ContainerConfigurator $container): void {
         ->private();
 
     $services->set('datatables.twig_extension', DataTablesExtension::class)
+        ->tag('twig.extension')
+        ->private();
+
+    $services->set('datatables.twig_runtime', DataTablesRuntime::class)
         ->arg(0, service('stimulus.helper'))
         ->arg(1, service('datatables.security.authorization_checker'))
-        ->arg(2, service('datatables.profiler')->nullOnInvalid())
-        ->tag('twig.extension')
+        ->arg(2, service('datatables.runtime'))
+        ->arg(3, service('datatables.profiler')->nullOnInvalid())
+        ->tag('twig.runtime')
         ->private();
 
     $services->set('datatables.mutation.locator', EntityLocator::class)
@@ -148,9 +155,10 @@ return static function (ContainerConfigurator $container): void {
     // Registered here rather than in config/mercure.php: mutations must resolve
     // topics (to an empty list) even when Mercure is not installed.
     $services->set('datatables.mercure.topic_resolver', MercureTopicResolver::class)
-        ->arg(0, service(MercureConfigResolver::class)->nullOnInvalid())
-        ->arg(1, tagged_locator('datatables.data_table'))
-        ->arg(2, service('logger')->nullOnInvalid())
+        ->arg(0, service('datatables.runtime'))
+        ->arg(1, service(MercureConfigResolver::class)->nullOnInvalid())
+        ->arg(2, tagged_locator('datatables.data_table'))
+        ->arg(3, service('logger')->nullOnInvalid())
         ->private();
 
     $services->alias(MercureTopicResolver::class, 'datatables.mercure.topic_resolver')
@@ -161,7 +169,8 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.mutation.row_scope_guard', RowScopeGuard::class)
         ->arg(0, service('datatables.mutation.locator'))
-        ->arg(1, service('request_stack')->nullOnInvalid())
+        ->arg(1, service('datatables.runtime'))
+        ->arg(2, service('request_stack')->nullOnInvalid())
         ->private();
 
     $services->set('datatables.ajax.row_action_gate', RowActionGate::class)
@@ -186,6 +195,8 @@ return static function (ContainerConfigurator $container): void {
         ->arg(2, service('datatables.mutation.flusher'))
         ->arg(3, service(MercurePublisherInterface::class))
         ->arg(4, service('datatables.mercure.topic_resolver'))
+        ->arg(5, service('datatables.mutation.row_scope_guard'))
+        ->arg(6, service('datatables.runtime'))
         ->private();
 
     $services->alias(BulkActionRunner::class, 'datatables.mutation.bulk_action_runner')
@@ -224,6 +235,7 @@ return static function (ContainerConfigurator $container): void {
         ->public();
 
     $services->set('datatables.runtime.responder', DataTableResponder::class)
+        ->arg(0, service('datatables.runtime'))
         ->private();
 
     $services->alias(DataTableResponder::class, 'datatables.runtime.responder')
@@ -251,7 +263,8 @@ return static function (ContainerConfigurator $container): void {
     $services->set('datatables.export.service', ExportService::class)
         ->arg(0, service('datatables.export.registry'))
         ->arg(1, service('datatables.column.resolver'))
-        ->arg(2, service(TranslatorInterface::class)->nullOnInvalid())
+        ->arg(2, service('datatables.runtime'))
+        ->arg(3, service(TranslatorInterface::class)->nullOnInvalid())
         ->private();
 
     $services->alias(ExportService::class, 'datatables.export.service')
@@ -350,35 +363,37 @@ return static function (ContainerConfigurator $container): void {
         ->arg(1, service('datatables.api_platform.collection_provider_factory')->nullOnInvalid())
         ->private();
 
-    $services->set('datatables.runtime.factory', DataTableRuntimeFactory::class)
-        ->arg(0, service('datatables.security.authorization_checker'))
-        ->arg(1, service('datatables.data_provider.auto_factory'))
-        ->arg(2, service('datatables.column.template_column_renderer'))
-        ->arg(3, service('datatables.column.action_row_data_resolver'))
-        ->arg(4, service(UrlColumnDataResolver::class)->nullOnInvalid())
-        ->arg(5, param('datatables.max_page_length'))
-        ->arg(6, service('datatables.column_control.search_list_options_resolver'))
-        ->arg(7, service('doctrine')->nullOnInvalid())
-        ->private();
-
-    $services->alias(DataTableRuntimeFactory::class, 'datatables.runtime.factory')
-        ->private();
-
-    $services->set('datatables.infrastructure', DataTableInfrastructure::class)
+    $services->set('datatables.definition_builder', TableDefinitionBuilder::class)
         ->arg(0, service('datatables.column.resolver'))
-        ->arg(1, service('datatables.rendering.preparer'))
-        ->arg(2, service('datatables.runtime.factory'))
-        ->arg(3, service('datatables.query.filter_pipeline'))
-        ->arg(4, param('datatables.options'))
-        ->arg(5, param('datatables.table_attributes'))
-        ->arg(6, param('datatables.extensions'))
-        ->arg(7, service('datatables.profiler')->nullOnInvalid())
-        ->arg(8, service('datatables.attribute.resolver'))
+        ->arg(1, param('datatables.options'))
+        ->arg(2, param('datatables.table_attributes'))
+        ->arg(3, param('datatables.extensions'))
+        ->arg(4, service('datatables.attribute.resolver'))
         ->arg('$defaultsConfigurators', tagged_iterator('datatables.defaults_configurator'))
+        ->arg('$collectionUrlResolver', service(ApiResourceCollectionUrlResolver::class)->nullOnInvalid())
+        ->private();
+
+    $services->alias(TableDefinitionBuilder::class, 'datatables.definition_builder')
+        ->private();
+
+    $services->set('datatables.runtime', DataTableRuntime::class)
+        ->arg(0, service('datatables.definition_builder'))
+        ->arg(1, service('datatables.rendering.preparer'))
+        ->arg(2, service('datatables.column.resolver'))
+        ->arg(3, service('datatables.security.authorization_checker'))
+        ->arg(4, service('datatables.query.filter_pipeline'))
+        ->arg(5, service('datatables.data_provider.auto_factory'))
+        ->arg(6, service('datatables.column.template_column_renderer'))
+        ->arg(7, service('datatables.column.action_row_data_resolver'))
+        ->arg(8, service(UrlColumnDataResolver::class)->nullOnInvalid())
+        ->arg(9, param('datatables.max_page_length'))
+        ->arg(10, service('datatables.column_control.search_list_options_resolver'))
+        ->arg(11, service('doctrine')->nullOnInvalid())
+        ->arg('$profiler', service('datatables.profiler')->nullOnInvalid())
         ->arg('$logger', service('logger')->nullOnInvalid())
         ->arg('$hydrationRowThreshold', param('datatables.hydration_row_threshold'))
         ->private();
 
-    $services->alias(DataTableInfrastructure::class, 'datatables.infrastructure')
+    $services->alias(DataTableRuntime::class, 'datatables.runtime')
         ->private();
 };

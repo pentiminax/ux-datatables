@@ -28,7 +28,7 @@ use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Runtime\TableDefinitionBuilder;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsRowActionGate;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
@@ -147,7 +147,7 @@ final class AjaxEditFormControllerTest extends TestCase
                 $renderer,
                 $templateResolver,
                 new NullMercurePublisher(),
-                new MercureTopicResolver(dataTables: $dataTables),
+                new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make(), dataTables: $dataTables),
                 new MutationFlusher(),
                 new ColumnResolver(new AuthorizationChecker($authorizationChecker)),
             ),
@@ -174,6 +174,7 @@ final class AjaxEditFormControllerTest extends TestCase
             new AjaxDataTableTokenManager(self::TOKEN_SECRET),
             [AjaxEditFormControllerDataTable::class => 'edit_form_table'],
             new AuthorizationChecker(),
+            new TableDefinitionBuilder(new ColumnResolver(new AuthorizationChecker())),
         );
     }
 
@@ -262,11 +263,6 @@ final class AjaxEditFormControllerDataTable extends AbstractDataTable
     public function configureDataTable(DataTable $table): DataTable
     {
         return $table->unscopedMutations();
-    }
-
-    public function __construct()
-    {
-        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
     }
 
     public function configureColumns(): iterable

@@ -31,11 +31,12 @@ use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Runtime\TableDefinitionBuilder;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Security\Permission;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsRowActionGate;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -58,6 +59,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 final class AjaxEditFormSubmitControllerTest extends TestCase
 {
     use BuildsRowActionGate;
+    use BuildsRuntime;
     use BuildsUnscopedRowScopeGuard;
     private const TOKEN_SECRET = 'test-secret';
 
@@ -78,13 +80,14 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         [$formFactory, $renderer, $templateResolver] = $this->createFormCollaborators($form, $invalidHtml);
 
         $doctrine = $this->createRegistry($entityManager);
+        $runtime  = self::buildRuntime();
 
         $controller = $this->controller(new EditFormService(
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
             new NullMercurePublisher(),
-            new MercureTopicResolver(dataTables: $this->registeredDataTables()),
+            new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make(), dataTables: $this->registeredDataTables()),
             new MutationFlusher(),
             new ColumnResolver($this->permissionCheckerGranting(true)),
         ), doctrine: $doctrine);
@@ -129,13 +132,14 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         );
 
         $doctrine = $this->createRegistry($entityManager);
+        $runtime  = self::buildRuntime();
 
         $controller = $this->controller(new EditFormService(
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
             new NullMercurePublisher(),
-            new MercureTopicResolver(),
+            new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()),
             new MutationFlusher(),
             new ColumnResolver(new AuthorizationChecker($authorizationChecker)),
         ), doctrine: $doctrine, permissionChecker: new AuthorizationChecker($authorizationChecker));
@@ -194,13 +198,14 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             ));
 
         $doctrine = $this->createRegistry($entityManager);
+        $runtime  = self::buildRuntime();
 
         $controller = $this->controller(new EditFormService(
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
-            new MercureUpdatePublisher($hub),
-            new MercureTopicResolver($resolver, $this->registeredDataTables()),
+            new MercureUpdatePublisher($hub, $runtime),
+            new MercureTopicResolver($runtime, $resolver, $this->registeredDataTables()),
             new MutationFlusher(),
             new ColumnResolver($this->permissionCheckerGranting(true)),
         ), doctrine: $doctrine);
@@ -253,6 +258,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             new AjaxDataTableTokenManager(self::TOKEN_SECRET),
             [AjaxEditFormSubmitControllerDataTable::class => 'submit_table'],
             new AuthorizationChecker(),
+            new TableDefinitionBuilder(new ColumnResolver(new AuthorizationChecker())),
         );
     }
 
@@ -398,11 +404,6 @@ final class AjaxEditFormSubmitControllerDataTable extends AbstractDataTable
     public function configureDataTable(DataTable $table): DataTable
     {
         return $table->unscopedMutations();
-    }
-
-    public function __construct()
-    {
-        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
     }
 
     public function configureColumns(): iterable

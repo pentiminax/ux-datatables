@@ -10,7 +10,7 @@ use Pentiminax\UX\DataTables\Profiler\DataTableCollector;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Tests\Kernel\ProfilerAppKernel;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
-use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
+use Pentiminax\UX\DataTables\Twig\DataTablesRuntime;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -32,10 +32,9 @@ final class DataTableCollectorIntegrationTest extends TestCase
             [TextColumn::new('name')],
             configureTable: static fn (DataTable $table): DataTable => $table->data([['name' => 'Foo']]),
         );
-        $table->setDataTableInfrastructure($container->get('test.datatables.infrastructure'));
 
-        /** @var DataTablesExtension $extension */
-        $extension = $container->get('test.datatables.twig_extension');
+        /** @var DataTablesRuntime $extension */
+        $extension = $container->get('test.datatables.twig_runtime');
         $extension->renderDataTable($table);
 
         /** @var DataTableProfiler $profiler */

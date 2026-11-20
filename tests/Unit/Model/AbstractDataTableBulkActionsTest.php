@@ -14,9 +14,9 @@ use Pentiminax\UX\DataTables\Model\BulkAction;
 use Pentiminax\UX\DataTables\Model\BulkActions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -29,12 +29,13 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(AbstractDataTable::class)]
 final class AbstractDataTableBulkActionsTest extends TestCase
 {
+    use BuildsRuntime;
     use PreparesPayload;
 
     #[Test]
     public function it_enables_a_multi_selection_with_checkboxes_when_bulk_actions_exist(): void
     {
-        $select = $this->table()->getConfiguredDataTable()->getExtensionsCollection()->getSelectExtension();
+        $select = self::definitionOf($this->table())->table->getExtensionsCollection()->getSelectExtension();
 
         $this->assertNotNull($select);
         $this->assertSame(SelectStyle::MULTI, $select->getStyle());
@@ -50,16 +51,16 @@ final class AbstractDataTableBulkActionsTest extends TestCase
 
         $table = $this->table(static fn (DataTable $t): DataTable => $t->extensions([$configured]));
 
-        $this->assertSame($configured, $table->getConfiguredDataTable()->getExtensionsCollection()->getSelectExtension());
+        $this->assertSame($configured, self::definitionOf($table)->table->getExtensionsCollection()->getSelectExtension());
     }
 
     #[Test]
     public function it_replaces_a_bundle_wide_single_selection_instead_of_refusing_it(): void
     {
-        $table = $this->table();
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(extensions: ['select' => ['style' => 'single']]));
+        $table   = $this->table();
+        $runtime = self::buildRuntime(extensions: ['select' => ['style' => 'single']]);
 
-        $dataTable = $table->getConfiguredDataTable();
+        $dataTable = $runtime->definition($table)->table;
         $payload   = $dataTable->getExtensionsCollection()->getSelectExtension()?->jsonSerialize();
 
         $this->assertSame('multi', $payload['style'] ?? null);
@@ -71,10 +72,10 @@ final class AbstractDataTableBulkActionsTest extends TestCase
     #[Test]
     public function it_adds_checkboxes_to_a_bundle_wide_multi_selection(): void
     {
-        $table = $this->table();
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(extensions: ['select' => ['style' => 'multi']]));
+        $table   = $this->table();
+        $runtime = self::buildRuntime(extensions: ['select' => ['style' => 'multi']]);
 
-        $payload = $table->getConfiguredDataTable()->getExtensionsCollection()->getSelectExtension()?->jsonSerialize();
+        $payload = $runtime->definition($table)->table->getExtensionsCollection()->getSelectExtension()?->jsonSerialize();
 
         $this->assertTrue($payload['withCheckbox'] ?? null);
     }
@@ -87,11 +88,11 @@ final class AbstractDataTableBulkActionsTest extends TestCase
 
             return $t;
         });
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(extensions: ['select' => ['style' => 'multi']]));
+        $runtime = self::buildRuntime(extensions: ['select' => ['style' => 'multi']]);
 
         $this->expectException(\LogicException::class);
 
-        $table->prepareRendering();
+        $runtime->render($table);
     }
 
     #[Test]
@@ -102,9 +103,9 @@ final class AbstractDataTableBulkActionsTest extends TestCase
 
             return $t;
         });
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(extensions: ['select' => ['style' => 'multi']]));
+        $runtime = self::buildRuntime(extensions: ['select' => ['style' => 'multi']]);
 
-        $dataTable = $table->getConfiguredDataTable();
+        $dataTable = $runtime->definition($table)->table;
         $payload   = $dataTable->getExtensionsCollection()->getSelectExtension()?->jsonSerialize();
 
         $this->assertTrue($payload['withCheckbox'] ?? null);
@@ -117,7 +118,7 @@ final class AbstractDataTableBulkActionsTest extends TestCase
     {
         $table = $this->table(static fn (DataTable $t): DataTable => $t->extensions([new SelectExtension(style: SelectStyle::MULTI)]));
 
-        $this->assertFalse($table->getConfiguredDataTable()->isSelectionForBulkActions());
+        $this->assertFalse(self::definitionOf($table)->table->isSelectionForBulkActions());
     }
 
     #[Test]
@@ -125,23 +126,23 @@ final class AbstractDataTableBulkActionsTest extends TestCase
     {
         $this->expectException(\LogicException::class);
 
-        $this->table(static fn (DataTable $t): DataTable => $t->extensions([new SelectExtension(style: SelectStyle::SINGLE)]))
-            ->prepareRendering();
+        self::buildRuntime()->render($this->table(static fn (DataTable $t): DataTable => $t->extensions([new SelectExtension(style: SelectStyle::SINGLE)])));
     }
 
     #[Test]
     public function it_leaves_the_selection_alone_without_bulk_actions(): void
     {
-        $table = new ConfigurableDataTable([TextColumn::new('id')]);
+        $table   = new ConfigurableDataTable([TextColumn::new('id')]);
+        $runtime = self::buildRuntime();
 
-        $this->assertNull($table->getConfiguredDataTable()->getExtensionsCollection()->getSelectExtension());
-        $this->assertArrayNotHasKey('bulkActions', $table->prepareRendering()->getView());
+        $this->assertNull($runtime->definition($table)->table->getExtensionsCollection()->getSelectExtension());
+        $this->assertArrayNotHasKey('bulkActions', $runtime->render($table)->getView());
     }
 
     #[Test]
     public function it_places_the_bulk_bar_marker_and_forces_a_row_id_in_the_payload(): void
     {
-        $options = $this->table()->prepareRendering()->getView();
+        $options = self::buildRuntime()->render($this->table())->getView();
 
         $this->assertSame(HighlightConfig::ROW_ID_KEY, $options['rowId']);
         $this->assertSame(['approve'], array_column($options['bulkActions']['actions'], 'name'));
@@ -154,12 +155,13 @@ final class AbstractDataTableBulkActionsTest extends TestCase
     #[Test]
     public function it_exposes_set_id_field_on_the_bulk_actions_payload(): void
     {
-        $options = (new ConfigurableDataTable(
+        $table = new ConfigurableDataTable(
             [TextColumn::new('id'), TextColumn::new('title')],
             bulkActions: static fn (BulkActions $actions): BulkActions => $actions
                 ->add(BulkAction::new('approve'))
                 ->idField('sku'),
-        ))->prepareRendering()->getView();
+        );
+        $options = self::buildRuntime()->render($table)->getView();
 
         $this->assertSame('sku', $options['bulkActions']['idField']);
     }
@@ -167,9 +169,9 @@ final class AbstractDataTableBulkActionsTest extends TestCase
     #[Test]
     public function it_sends_the_resolved_row_id_field_on_the_bulk_actions_payload(): void
     {
-        $table    = $this->table();
-        $preparer = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()));
-        $payload  = $preparer->prepareAfterDataHydration($table->getConfiguredDataTable(), $table->getResolvedOptIns(), bulkRowIdField: 'sku');
+        $definition = self::definitionOf($this->table());
+        $preparer   = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()));
+        $payload    = $preparer->prepareAfterDataHydration($definition->table, $definition->optIns, bulkRowIdField: 'sku');
 
         $this->assertSame('sku', $payload->getView()['bulkActions']['idField']);
     }
@@ -180,7 +182,7 @@ final class AbstractDataTableBulkActionsTest extends TestCase
         $table = $this->table();
         $table->rows([['id' => 7, 'title' => 'Heat']]);
 
-        $rows = self::optionOf($table->prepareRendering(), 'data');
+        $rows = self::optionOf(self::buildRuntime()->render($table), 'data');
 
         $this->assertSame('7', $rows[0][HighlightConfig::ROW_ID_KEY]);
     }

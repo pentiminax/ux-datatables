@@ -14,7 +14,7 @@ use Pentiminax\UX\DataTables\Column\AbstractColumn;
  * is still handed to template columns and action resolvers afterwards. $columns holds only the
  * columns the current user may see.
  *
- * The shipped stage list is internal to DataTableRuntimeFactory and is not extensible through a
+ * The shipped stage list is internal to DataTableRuntime and is not extensible through a
  * tag; a table adds its own row work in mapRow(), or in a RowMapperInterface wrapping
  * createRowMapper().
  */

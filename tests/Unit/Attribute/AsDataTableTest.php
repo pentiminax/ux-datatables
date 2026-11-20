@@ -19,9 +19,9 @@ use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
-use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Runtime\TableDefinitionBuilder;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithAttribute;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithData;
@@ -37,6 +37,7 @@ use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithMercureTo
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithoutAttribute;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithSerializationGroups;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithServerSide;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -49,7 +50,34 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(AsDataTable::class)]
 final class AsDataTableTest extends TestCase
 {
+    use BuildsRuntime;
     use PreparesPayload;
+
+    private function runtime(
+        ?ApiResourceCollectionUrlResolver $urlResolver = null,
+        ?MercureConfigResolver $mercureResolver = null,
+        ?MercureHubUrlResolver $mercureHubUrlResolver = null,
+        ?ColumnAutoDetector $detector = null,
+        ?AutoDataProviderFactory $autoDataProviderFactory = null,
+    ): DataTableRuntime {
+        $checker = new AuthorizationChecker();
+
+        return self::buildRuntime(
+            checker: $checker,
+            preparer: new RenderingPreparer(
+                $checker,
+                new ColumnResolver($checker),
+                urlResolver: $urlResolver,
+                mercureResolver: $mercureResolver,
+                mercureHubUrlResolver: $mercureHubUrlResolver,
+            ),
+            autoDataProviderFactory: $autoDataProviderFactory,
+            definitions: new TableDefinitionBuilder(
+                new ColumnResolver($checker, columnAutoDetector: $detector),
+                collectionUrlResolver: $urlResolver,
+            ),
+        );
+    }
 
     #[Test]
     public function it_auto_configures_and_caches_the_data_provider(): void
@@ -57,28 +85,19 @@ final class AsDataTableTest extends TestCase
         $resolver = $this->createStub(ApiResourceCollectionUrlResolver::class);
         $resolver->method('resolveCollectionUrl')->willReturn('/api/books');
 
-        $table = new TestDataTableWithAttribute();
-        $em    = $this->createStub(EntityManagerInterface::class);
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), urlResolver: $resolver),
-            runtimeFactory: new DataTableRuntimeFactory(
-                new AuthorizationChecker(),
-                autoDataProviderFactory: new AutoDataProviderFactory($em)
-            )
-        ));
+        $em   = $this->createStub(EntityManagerInterface::class);
+        $call = $this->runtime(urlResolver: $resolver, autoDataProviderFactory: new AutoDataProviderFactory($em))->open(new TestDataTableWithAttribute());
 
-        $provider = $table->getResolvedDataProvider();
+        $provider = $call->dataProvider();
 
         $this->assertInstanceOf(DoctrineDataProvider::class, $provider);
-        $this->assertSame($provider, $table->getResolvedDataProvider());
+        $this->assertSame($provider, $call->dataProvider());
     }
 
     #[Test]
     public function it_manual_override_takes_precedence(): void
     {
-        $table = new TestDataTableWithManualOverride();
-
-        $provider = $table->getResolvedDataProvider();
+        $provider = $this->runtime()->open(new TestDataTableWithManualOverride())->dataProvider();
 
         $this->assertInstanceOf(ArrayDataProvider::class, $provider);
     }
@@ -86,9 +105,7 @@ final class AsDataTableTest extends TestCase
     #[Test]
     public function it_returns_null_without_attribute(): void
     {
-        $table = new TestDataTableWithoutAttribute();
-
-        $this->assertNull($table->getResolvedDataProvider());
+        $this->assertNull($this->runtime()->open(new TestDataTableWithoutAttribute())->dataProvider());
     }
 
     /**
@@ -105,9 +122,7 @@ final class AsDataTableTest extends TestCase
             ->with(\stdClass::class)
             ->willReturn('/api/books');
 
-        $table = new $tableClass(apiResourceCollectionUrlResolver: $resolver);
-
-        $tablePrepared = $table->prepareRendering();
+        $tablePrepared = $this->runtime(urlResolver: $resolver)->render(new $tableClass());
 
         $this->assertSame([
             'type' => 'GET',
@@ -130,9 +145,7 @@ final class AsDataTableTest extends TestCase
         $resolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
         $resolver->expects($this->never())->method('resolveCollectionUrl');
 
-        $table = new TestDataTableWithManualAjax(apiResourceCollectionUrlResolver: $resolver);
-
-        $tablePrepared = $table->prepareRendering();
+        $tablePrepared = $this->runtime(urlResolver: $resolver)->render(new TestDataTableWithManualAjax());
 
         $this->assertSame([
             'type' => 'GET',
@@ -148,9 +161,7 @@ final class AsDataTableTest extends TestCase
         $resolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
         $resolver->expects($this->never())->method('resolveCollectionUrl');
 
-        $table = new TestDataTableWithData(apiResourceCollectionUrlResolver: $resolver);
-
-        $tablePrepared = $table->prepareRendering();
+        $tablePrepared = $this->runtime(urlResolver: $resolver)->render(new TestDataTableWithData());
 
         $this->assertNull(self::optionOf($tablePrepared, 'ajax'));
     }
@@ -161,9 +172,7 @@ final class AsDataTableTest extends TestCase
         $resolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
         $resolver->expects($this->never())->method('resolveCollectionUrl');
 
-        $table = new TestDataTableWithoutAttribute(apiResourceCollectionUrlResolver: $resolver);
-
-        $tablePrepared = $table->prepareRendering();
+        $tablePrepared = $this->runtime(urlResolver: $resolver)->render(new TestDataTableWithoutAttribute());
 
         $this->assertNull(self::optionOf($tablePrepared, 'ajax'));
     }
@@ -174,7 +183,7 @@ final class AsDataTableTest extends TestCase
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('exposes no collection operation');
 
-        (new TestDataTableWithAttribute())->prepareRendering();
+        $this->runtime()->render(new TestDataTableWithAttribute());
     }
 
     /**
@@ -195,9 +204,7 @@ final class AsDataTableTest extends TestCase
                     ->withHubUrl('http://localhost/.well-known/mercure')
             );
 
-        $table = new $tableClass(mercureConfigResolver: $resolver);
-
-        $tablePrepared = $table->prepareRendering();
+        $tablePrepared = $this->runtime(mercureResolver: $resolver)->render(new $tableClass());
 
         $this->assertSame([
             'type' => 'GET',
@@ -234,12 +241,7 @@ final class AsDataTableTest extends TestCase
         $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
 
-        $table = new TestDataTableWithMercureTopicsAttribute(
-            mercureConfigResolver: $resolver,
-            mercureHubUrlResolver: $hubUrlResolver,
-        );
-
-        $tablePrepared = $table->prepareRendering();
+        $tablePrepared = $this->runtime(mercureResolver: $resolver, mercureHubUrlResolver: $hubUrlResolver)->render(new TestDataTableWithMercureTopicsAttribute());
 
         $this->assertSame([
             'hubUrl' => '/.well-known/mercure',
@@ -253,9 +255,7 @@ final class AsDataTableTest extends TestCase
         $resolver = $this->createMock(MercureConfigResolver::class);
         $resolver->expects($this->never())->method('resolveMercureConfig');
 
-        $table = new TestDataTableWithMercureAndData(mercureConfigResolver: $resolver);
-
-        $tablePrepared = $table->prepareRendering();
+        $tablePrepared = $this->runtime(mercureResolver: $resolver)->render(new TestDataTableWithMercureAndData());
 
         $this->assertArrayNotHasKey('mercure', $tablePrepared->getView());
     }
@@ -269,12 +269,7 @@ final class AsDataTableTest extends TestCase
         $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
 
-        $table = new TestDataTableWithManualMercure(
-            mercureConfigResolver: $resolver,
-            mercureHubUrlResolver: $hubUrlResolver,
-        );
-
-        $tablePrepared = $table->prepareRendering();
+        $tablePrepared = $this->runtime(mercureResolver: $resolver, mercureHubUrlResolver: $hubUrlResolver)->render(new TestDataTableWithManualMercure());
 
         $this->assertSame([
             'hubUrl' => '/.well-known/mercure',
@@ -354,23 +349,25 @@ final class AsDataTableTest extends TestCase
     #[Test]
     public function it_applies_the_edit_modal_overrides_of_the_attribute(): void
     {
-        $table = new TestDataTableWithEditModalAttribute();
+        $runtime = $this->runtime();
+        $table   = new TestDataTableWithEditModalAttribute();
 
-        $tablePrepared = $table->prepareRendering();
+        $tablePrepared = $runtime->render($table);
 
         $this->assertSame('bs5', $tablePrepared->editModalAdapter);
-        $this->assertSame('datatables/attribute_edit_modal.html.twig', $table->getResolvedOptIns()->editModalTemplate);
+        $this->assertSame('datatables/attribute_edit_modal.html.twig', $runtime->definition($table)->optIns->editModalTemplate);
     }
 
     #[Test]
     public function it_keeps_the_fluent_edit_modal_overrides_over_the_attribute(): void
     {
-        $table = new FluentEditModalOverrideDataTable();
+        $runtime = $this->runtime();
+        $table   = new FluentEditModalOverrideDataTable();
 
-        $tablePrepared = $table->prepareRendering();
+        $tablePrepared = $runtime->render($table);
 
         $this->assertSame('dt', $tablePrepared->editModalAdapter);
-        $this->assertSame('fluent.html.twig', $table->getResolvedOptIns()->editModalTemplate);
+        $this->assertSame('fluent.html.twig', $runtime->definition($table)->optIns->editModalTemplate);
     }
 
     #[Test]
@@ -385,12 +382,9 @@ final class AsDataTableTest extends TestCase
             ->with(\stdClass::class, [])
             ->willReturn($expected);
 
-        $table = new TestDataTableWithFluentApiPlatform();
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            columnResolver: new ColumnResolver(new AuthorizationChecker(), columnAutoDetector: $detector),
-        ));
+        $table = $this->runtime(detector: $detector)->definition(new TestDataTableWithFluentApiPlatform())->table;
 
-        $this->assertSame($expected, array_values($table->getConfiguredDataTable()->getColumns()));
+        $this->assertSame($expected, array_values($table->getColumns()));
     }
 
     #[Test]
@@ -405,12 +399,9 @@ final class AsDataTableTest extends TestCase
             ->with(\stdClass::class, ['product:list'])
             ->willReturn($expected);
 
-        $table = new TestDataTableWithSerializationGroups();
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            columnResolver: new ColumnResolver(new AuthorizationChecker(), columnAutoDetector: $detector),
-        ));
+        $table = $this->runtime(detector: $detector)->definition(new TestDataTableWithSerializationGroups())->table;
 
-        $this->assertSame($expected, array_values($table->getConfiguredDataTable()->getColumns()));
+        $this->assertSame($expected, array_values($table->getColumns()));
     }
 }
 

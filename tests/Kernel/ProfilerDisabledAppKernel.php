@@ -16,7 +16,7 @@ use Symfony\UX\StimulusBundle\StimulusBundle;
 /**
  * Boots the bundle with kernel.debug false -- the profiler/data-collector services must not
  * be registered at all in this configuration, proving the eager per-request recording in
- * AbstractDataTable::getResponse() and DataTablesExtension::renderDataTable() is a true no-op
+ * DataTableRuntime::respond() and DataTablesRuntime::renderDataTable() is a true no-op
  * in a production-like environment rather than merely unread.
  */
 class ProfilerDisabledAppKernel extends Kernel
@@ -51,7 +51,7 @@ class ProfilerDisabledAppKernel extends Kernel
                 ]],
             ]);
 
-            $container->setAlias('test.datatables.infrastructure', 'datatables.infrastructure')->setPublic(true);
+            $container->setAlias('test.datatables.runtime', 'datatables.runtime')->setPublic(true);
         });
     }
 

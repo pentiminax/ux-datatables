@@ -27,13 +27,14 @@ use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Runtime\TableDefinitionBuilder;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Security\Permission;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsRowActionGate;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -51,6 +52,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 final class AjaxDeleteControllerTest extends TestCase
 {
     use BuildsRowActionGate;
+    use BuildsRuntime;
     use BuildsUnscopedRowScopeGuard;
     private const TOKEN_SECRET = 'test-secret';
 
@@ -105,7 +107,13 @@ final class AjaxDeleteControllerTest extends TestCase
         $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
 
-        $dataTable = new DeletableEntityFixtureDataTable($hubUrlResolver);
+        $dataTable = new DeletableEntityFixtureDataTable();
+
+        $runtime = self::buildRuntime(preparer: new RenderingPreparer(
+            new AuthorizationChecker(),
+            new ColumnResolver(new AuthorizationChecker()),
+            mercureHubUrlResolver: $hubUrlResolver,
+        ));
 
         $dataTables = $this->createMock(ContainerInterface::class);
         $dataTables->method('has')->with(DeletableEntityFixtureDataTable::class)->willReturn(true);
@@ -114,7 +122,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $mutator = new EntityMutator(
             $this->createStub(PropertyAccessorInterface::class),
             $publisher,
-            new MercureTopicResolver($resolver, $dataTables),
+            new MercureTopicResolver($runtime, $resolver, $dataTables),
             new MutationFlusher(),
         );
 
@@ -171,7 +179,7 @@ final class AjaxDeleteControllerTest extends TestCase
             new EntityMutator(
                 $this->createStub(PropertyAccessorInterface::class),
                 new NullMercurePublisher(),
-                new MercureTopicResolver(),
+                new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()),
                 new MutationFlusher(),
             ),
             $this->rowActionGate(
@@ -231,7 +239,7 @@ final class AjaxDeleteControllerTest extends TestCase
             new EntityMutator(
                 $this->createStub(PropertyAccessorInterface::class),
                 new NullMercurePublisher(),
-                new MercureTopicResolver(),
+                new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()),
                 new MutationFlusher(),
             ),
             $this->rowActionGate($this->registry($dataTable), $registry, $csrfTokenManager, $this->unscopedRowScopeGuard(), $permissionChecker),
@@ -248,6 +256,7 @@ final class AjaxDeleteControllerTest extends TestCase
             new AjaxDataTableTokenManager(self::TOKEN_SECRET),
             [DeletableEntityFixtureDataTable::class => 'deletable_table'],
             new AuthorizationChecker(),
+            new TableDefinitionBuilder(new ColumnResolver(new AuthorizationChecker())),
         );
     }
 
@@ -276,17 +285,6 @@ final class DeletableEntityFixture
 #[AsDataTable(entityClass: DeletableEntityFixture::class, mercure: true)]
 class DeletableEntityFixtureDataTable extends AbstractDataTable
 {
-    public function __construct(
-        private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
-    ) {
-        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(
-                new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()),
-                mercureHubUrlResolver: $this->mercureHubUrlResolver,
-            )
-        ));
-    }
-
     public function configureDataTable(DataTable $table): DataTable
     {
         return $table

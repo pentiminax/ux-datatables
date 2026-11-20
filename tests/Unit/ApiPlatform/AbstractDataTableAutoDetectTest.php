@@ -5,13 +5,18 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\ApiPlatform;
 
 use Pentiminax\UX\DataTables\ApiPlatform\ColumnAutoDetector;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Runtime\TableDefinitionBuilder;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoDetectNoAttributeDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoDetectTestDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoDetectWithGroupsDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoDetectWithoutApiPlatformOptInDataTable;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -23,6 +28,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(AbstractDataTable::class)]
 final class AbstractDataTableAutoDetectTest extends TestCase
 {
+    use BuildsRuntime;
+
     /**
      * @param class-string<AbstractDataTable> $tableClass
      * @param bool|null                       $supports   null when no detector is registered at all
@@ -31,9 +38,9 @@ final class AbstractDataTableAutoDetectTest extends TestCase
     #[DataProvider('provideTablesWithoutDetectedColumns')]
     public function it_returns_empty_columns(string $tableClass, ?bool $supports): void
     {
-        $table = new $tableClass(columnAutoDetector: null === $supports ? null : $this->detector($supports));
+        $table = $this->configuredTable(new $tableClass(), null === $supports ? null : $this->detector($supports));
 
-        $this->assertSame([], $table->getConfiguredDataTable()->getColumns());
+        $this->assertSame([], $table->getColumns());
     }
 
     /**
@@ -57,7 +64,7 @@ final class AbstractDataTableAutoDetectTest extends TestCase
             TextColumn::new('name', 'Name'),
         ]);
 
-        $dataTable = (new AutoDetectTestDataTable(columnAutoDetector: $detector))->getConfiguredDataTable();
+        $dataTable = $this->configuredTable(new AutoDetectTestDataTable(), $detector);
 
         $this->assertSame(['id', 'name'], array_keys($dataTable->getColumns()));
         $this->assertSame(['id', 'name'], array_map(
@@ -78,7 +85,14 @@ final class AbstractDataTableAutoDetectTest extends TestCase
             ->with(\stdClass::class, ['product:list'])
             ->willReturn([]);
 
-        (new AutoDetectWithGroupsDataTable(columnAutoDetector: $detector))->getConfiguredDataTable();
+        $this->configuredTable(new AutoDetectWithGroupsDataTable(), $detector);
+    }
+
+    private function configuredTable(AbstractDataTable $table, ?ColumnAutoDetector $detector): DataTable
+    {
+        $definitions = new TableDefinitionBuilder(new ColumnResolver(new AuthorizationChecker(), columnAutoDetector: $detector));
+
+        return self::buildRuntime(definitions: $definitions)->definition($table)->table;
     }
 
     /**

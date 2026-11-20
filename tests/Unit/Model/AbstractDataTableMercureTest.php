@@ -11,9 +11,9 @@ use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -24,6 +24,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(AbstractDataTable::class)]
 final class AbstractDataTableMercureTest extends TestCase
 {
+    use BuildsRuntime;
+
     #[Test]
     public function it_returns_null_for_a_client_side_table_without_hydrating(): void
     {
@@ -36,7 +38,7 @@ final class AbstractDataTableMercureTest extends TestCase
 
         $dataTable = new AbstractDataTableMercureClientSideFixture($dataProviderSpy);
 
-        $this->assertNull($dataTable->resolveMercureConfigWithoutHydration());
+        $this->assertNull(self::buildRuntime()->mercureConfig($dataTable));
     }
 
     #[Test]
@@ -45,9 +47,13 @@ final class AbstractDataTableMercureTest extends TestCase
         $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
 
-        $dataTable = new AbstractDataTableMercureServerSideFixture($hubUrlResolver);
+        $checker = new AuthorizationChecker();
+        $runtime = self::buildRuntime(
+            checker: $checker,
+            preparer: new RenderingPreparer($checker, new ColumnResolver($checker), mercureHubUrlResolver: $hubUrlResolver),
+        );
 
-        $config = $dataTable->resolveMercureConfigWithoutHydration();
+        $config = $runtime->mercureConfig(new AbstractDataTableMercureServerSideFixture());
 
         $this->assertNotNull($config);
         $this->assertSame(['/server-side/topic'], $config->topics);
@@ -64,9 +70,6 @@ final class AbstractDataTableMercureClientSideFixture extends AbstractDataTable
     public function __construct(
         private readonly ?DataProviderInterface $dataProviderSpy = null,
     ) {
-        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker())),
-        ));
     }
 
     public function configureColumns(): iterable
@@ -87,17 +90,6 @@ final class AbstractDataTableMercureClientSideFixture extends AbstractDataTable
 #[AsDataTable(entityClass: \stdClass::class, mercure: true)]
 final class AbstractDataTableMercureServerSideFixture extends AbstractDataTable
 {
-    public function __construct(
-        private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
-    ) {
-        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(
-                new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()),
-                mercureHubUrlResolver: $this->mercureHubUrlResolver,
-            ),
-        ));
-    }
-
     public function configureDataTable(DataTable $table): DataTable
     {
         return $table

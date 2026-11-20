@@ -6,6 +6,8 @@ namespace Pentiminax\UX\DataTables\Tests\Support;
 
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
+use Pentiminax\UX\DataTables\Runtime\TableDefinitionBuilder;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Psr\Container\ContainerInterface;
 
@@ -28,7 +30,10 @@ trait BuildsAjaxRegistry
         array $serviceIdsByClass,
         array $servicesById = [],
         ?AuthorizationChecker $permissionChecker = null,
+        ?TableDefinitionBuilder $definitions = null,
     ): AjaxDataTableRegistry {
+        $permissionChecker ??= new AuthorizationChecker();
+
         return new AjaxDataTableRegistry(
             new class($servicesById) implements ContainerInterface {
                 /**
@@ -50,7 +55,8 @@ trait BuildsAjaxRegistry
             },
             new AjaxDataTableTokenManager('test-secret'),
             $serviceIdsByClass,
-            $permissionChecker ?? new AuthorizationChecker(),
+            $permissionChecker,
+            $definitions ?? new TableDefinitionBuilder(new ColumnResolver($permissionChecker)),
         );
     }
 }

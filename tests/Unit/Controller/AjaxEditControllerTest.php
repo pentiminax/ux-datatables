@@ -27,11 +27,12 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Runtime\TableDefinitionBuilder;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsRowActionGate;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -50,6 +51,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 final class AjaxEditControllerTest extends TestCase
 {
     use BuildsRowActionGate;
+    use BuildsRuntime;
     use BuildsUnscopedRowScopeGuard;
     private const TOKEN_SECRET = 'test-secret';
 
@@ -147,7 +149,13 @@ final class AjaxEditControllerTest extends TestCase
         $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
 
-        $dataTable = new ToggleBooleanEntityFixtureDataTable($hubUrlResolver);
+        $dataTable = new ToggleBooleanEntityFixtureDataTable();
+
+        $runtime = self::buildRuntime(preparer: new RenderingPreparer(
+            new AuthorizationChecker(),
+            new ColumnResolver(new AuthorizationChecker()),
+            mercureHubUrlResolver: $hubUrlResolver,
+        ));
 
         $dataTables = $this->createMock(ContainerInterface::class);
         $dataTables->method('has')->with(ToggleBooleanEntityFixtureDataTable::class)->willReturn(true);
@@ -158,7 +166,7 @@ final class AjaxEditControllerTest extends TestCase
         $mutator = new EntityMutator(
             $this->writableAccessor($entity, true),
             $publisher,
-            new MercureTopicResolver($resolver, $dataTables),
+            new MercureTopicResolver($runtime, $resolver, $dataTables),
             new MutationFlusher(),
         );
 
@@ -182,7 +190,7 @@ final class AjaxEditControllerTest extends TestCase
         $mutator = new EntityMutator(
             $accessor,
             new NullMercurePublisher(),
-            new MercureTopicResolver(),
+            new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()),
             new MutationFlusher(),
         );
 
@@ -257,6 +265,7 @@ final class AjaxEditControllerTest extends TestCase
             new AjaxDataTableTokenManager(self::TOKEN_SECRET),
             [ToggleBooleanEntityFixtureDataTable::class => 'toggle_table'],
             new AuthorizationChecker(),
+            new TableDefinitionBuilder(new ColumnResolver(new AuthorizationChecker())),
         );
     }
 
@@ -297,17 +306,6 @@ final class ToggleBooleanEntityFixture
 #[AsDataTable(entityClass: ToggleBooleanEntityFixture::class, mercure: true)]
 final class ToggleBooleanEntityFixtureDataTable extends AbstractDataTable
 {
-    public function __construct(
-        private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
-    ) {
-        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(
-                new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()),
-                mercureHubUrlResolver: $this->mercureHubUrlResolver,
-            )
-        ));
-    }
-
     public function configureDataTable(DataTable $table): DataTable
     {
         return $table

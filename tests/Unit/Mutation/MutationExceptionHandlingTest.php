@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditRequestDto;
@@ -26,6 +27,7 @@ use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
+use Pentiminax\UX\DataTables\Runtime\TableDefinitionBuilder;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsRowActionGate;
@@ -78,7 +80,7 @@ final class MutationExceptionHandlingTest extends TestCase
         $controller = $this->editController(new EntityMutator(
             $accessor,
             new NullMercurePublisher(),
-            new MercureTopicResolver(),
+            new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()),
             new MutationFlusher(),
         ), $entity);
 
@@ -160,7 +162,7 @@ final class MutationExceptionHandlingTest extends TestCase
         return new EntityMutator(
             $this->createStub(PropertyAccessorInterface::class),
             new NullMercurePublisher(),
-            new MercureTopicResolver(),
+            new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()),
             new MutationFlusher(),
         );
     }
@@ -219,6 +221,7 @@ final class MutationExceptionHandlingTest extends TestCase
             new AjaxDataTableTokenManager(self::TOKEN_SECRET),
             [MutationExceptionHandlingDataTableFixture::class => 'mutation_exception_table'],
             new AuthorizationChecker(),
+            new TableDefinitionBuilder(new ColumnResolver(new AuthorizationChecker())),
         );
     }
 }

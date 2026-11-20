@@ -12,9 +12,9 @@ use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
-use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -28,6 +28,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 #[CoversClass(AbstractDataTable::class)]
 final class AbstractDataTableMapRowTest extends TestCase
 {
+    use BuildsRuntime;
     use PreparesPayload;
 
     /**
@@ -38,9 +39,9 @@ final class AbstractDataTableMapRowTest extends TestCase
     #[DataProvider('provideMappedRows')]
     public function it_maps_a_row(array $columns, mixed $row, array $expected, ?\Closure $detailActionUrl = null): void
     {
-        $table = new MapRowTestTable($columns, $detailActionUrl, $this->urlGenerator());
+        $table = new MapRowTestTable($columns, $detailActionUrl);
 
-        $this->assertSame($expected, $table->mapRowPublic($row));
+        $this->assertSame($expected, $this->runtime()->open($table)->hooks->table->mapRowPublic($row));
     }
 
     /**
@@ -52,11 +53,11 @@ final class AbstractDataTableMapRowTest extends TestCase
     #[DataProvider('provideInlineData')]
     public function it_maps_inline_data(array $columns, array $data, array $expected, ?\Closure $detailActionUrl = null): void
     {
-        $table = new MapRowTestTable($columns, $detailActionUrl, $this->urlGenerator());
+        $table = new MapRowTestTable($columns, $detailActionUrl);
 
         $table->rows($data);
 
-        $this->assertSame($expected, self::optionOf($table->prepareRendering(), 'data'));
+        $this->assertSame($expected, self::optionOf($this->runtime()->render($table), 'data'));
     }
 
     /**
@@ -197,6 +198,14 @@ final class AbstractDataTableMapRowTest extends TestCase
         };
     }
 
+    private function runtime(): DataTableRuntime
+    {
+        return self::buildRuntime(
+            actionRowDataResolver: new ActionRowDataResolver(new AuthorizationChecker()),
+            urlColumnDataResolver: new UrlColumnDataResolver($this->urlGenerator()),
+        );
+    }
+
     /**
      * Echoes the route and its parameters back so assertions cover both.
      */
@@ -219,15 +228,7 @@ final class MapRowTestTable extends AbstractDataTable
     public function __construct(
         private readonly array $columnsConfig,
         private readonly ?\Closure $detailActionUrl = null,
-        ?UrlGeneratorInterface $urlGenerator = null,
     ) {
-        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            runtimeFactory: new DataTableRuntimeFactory(
-                permissionChecker: new AuthorizationChecker(),
-                actionRowDataResolver: new ActionRowDataResolver(new AuthorizationChecker()),
-                urlColumnDataResolver: new UrlColumnDataResolver($urlGenerator),
-            )
-        ));
     }
 
     public function configureColumns(): iterable

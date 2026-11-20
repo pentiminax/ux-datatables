@@ -75,12 +75,12 @@ fails with a message naming `bs5` and `dt`.
 ### Rendering no longer writes to the table
 
 `render_datatable()` builds the payload it sends to the browser without writing to your table.
-`getConfiguredDataTable()` returns the table exactly as `configureDataTable()` left it, before and
+`DataTableRuntime::definition($table)->table` returns the table exactly as `configureDataTable()` left it, before and
 after a render: it no longer carries the bundle's Ajax URL, the `serverSide` flag of an entity
 table, the hydrated rows, the resolved Mercure configuration or the translated labels.
 
 - `AbstractDataTable::getDataTable()` and `prepareForRendering()` are removed. Read the table with
-  `getConfiguredDataTable()` and render it with `render_datatable()`. A subclass override of either
+  `DataTableRuntime::definition()` and render it with `render_datatable()`. A subclass override of either
   method is no longer called.
 
   ```php
@@ -112,6 +112,92 @@ table, the hydrated rows, the resolved Mercure configuration or the translated l
   `prepareAfterDataHydration()` returns a `PreparedDataTable`. `FilterEntityOptionsResolver::prepare()`
   takes the `Filters`. `SearchListOptionsResolver::prepare()` is removed.
 
+### The table is a definition, served by `DataTableRuntime`
+
+`AbstractDataTable` now only declares: the bundle calls the `configure*()` methods once, keeps the
+result as an immutable definition, and serves render, Ajax data, export, row actions and bulk
+actions through the `DataTableRuntime` service. The table holds no request, runtime or
+infrastructure state, so the infrastructure setter, the initialization flags and the runtime
+accessors are gone. A definition never reads the request, the security token, the session or the
+locale: keep reading them in `customizeQueryBuilder()`, `permission()` and the other request-scoped
+hooks.
+
+- **Hooks stay `protected`.** `mapRow()`, `projectPage()`, `customizeQueryBuilder()`,
+  `createDataProvider()`, `createSearchStrategyRegistry()` and `createSearchPredicateBuilder()` keep
+  their 1.x signatures and visibility, and `AbstractDataTable` does not implement
+  `DataTableHooksInterface`: the runtime reaches them through an internal bound object.
+  `getHttpRequest()`, `getCurrentRequest()`, `getResolvedColumns()` and `createRowMapper()` keep
+  working inside these hooks. Outside a call the bundle makes, the first two return `null` and the
+  other two throw a `LogicException`.
+- **The definition is built once per table instance.** Under a worker runtime that is once for the
+  worker's lifetime, no longer on every request. A `configure*()` method, or a
+  `DataTableDefaultsConfiguratorInterface` service that configures your tables, must not read the
+  user, the request, the session or the locale: such a value would be frozen for every later
+  request. Move that logic to `permission()` or `customizeQueryBuilder()`. State a `configure*()`
+  method stores on `$this` still reaches the hooks.
+- **`configureQueryBuilder()` is removed without a 1.x deprecation.** It was `final protected`, so an
+  override already failed to load; a call to it no longer exists. The bundle applies search,
+  ordering and filters after `customizeQueryBuilder()`: put your query changes there.
+- **Custom Ajax endpoints use `DataTableResponder::respond()`**, as announced in 1.7. The
+  `handleRequest()`, `isRequestHandled()`, `getResponse()`, `getRequest()`, `fetchData()` and
+  `getDataProvider()` methods of `AbstractDataTable` are removed, and a subclass override of them is
+  no longer called.
+
+  ```php
+  // Before (1.7)
+  $table->handleRequest($request);
+
+  if ($table->isRequestHandled()) {
+      return $table->getResponse();
+  }
+
+  // After (2.0)
+  if ($response = $responder->respond($table, $request)) {
+      return $response;
+  }
+  ```
+- **Read the configuration from the runtime.** `getConfiguredDataTable()`, `getEntityClass()`,
+  `getColumnByName()`, `getResolvedOptIns()`, `prepareRendering()` and
+  `resolveMercureConfigWithoutHydration()` are removed from the table. Inject
+  `Pentiminax\UX\DataTables\Runtime\DataTableRuntime` and call `definition($table)` (its `table`
+  property is what `getConfiguredDataTable()` returned, `entityClass()` and `optIns` replace the
+  others), `render($table)` or `mercureConfig($table)`.
+
+  ```php
+  // Before (1.x)
+  $columns = $table->getConfiguredDataTable()->getColumns();
+
+  // After (2.0)
+  $columns = $runtime->definition($table)->table->getColumns();
+  ```
+- **`rows()` is mapped when the table renders.** A mapping error now surfaces inside
+  `render_datatable()`, wrapped by Twig, instead of in `rows()`. It still stores the rows on the instance, so the
+  `kernel.reset` tag stays on tables to drop them between requests under a worker runtime. The
+  rendered payload is unchanged.
+- **Services that were built by hand.** `DataTableInfrastructure`, `DataTableRuntimeFactory` and the
+  `datatables.infrastructure` and `datatables.runtime.factory` services are removed; `datatables.runtime`
+  and `datatables.definition_builder` replace them. `DataTablesExtension` only declares
+  `render_datatable()` and has no constructor: the rendering moved to `DataTablesRuntime` (Stimulus
+  helper, authorization checker, `DataTableRuntime`, profiler). `DataTableResponder`,
+  `AjaxDataTableRegistry`, `SecurityVoter`, `RowScopeGuard`, `BulkActionRunner`, `ExportService`,
+  `MercureUpdatePublisher`, `MercureTopicResolver`, `EditModalTemplateResolver`, `ExtensionDetector`
+  and `InstallCommand` take the runtime or the definition builder. `AutoDataProviderFactory::create()`
+  takes the definition and the hooks instead of closures, and `ResolvedDataTable` carries the
+  definition. Application code should not build them: the container does.
+
+  If you do build them, the argument positions (1-based) are: `RowScopeGuard($locator, $runtime,
+  $requestStack)`, so the runtime is argument 2, before the request stack; `ExportService($exporters,
+  $columnResolver, $runtime, $translator)`, argument 3, before the translator;
+  `MercureUpdatePublisher($hub, $runtime, $logger)`, argument 2, before the logger;
+  `MercureTopicResolver($runtime, $configResolver, $dataTables, $logger)`, a required argument 1 that
+  shifts the others by one; `EditModalTemplateResolver($dataTables, $defaultTemplate,
+  $defaultBodyTemplate, $runtime, $asDataTableResolver)`, argument 4, so `AsDataTableResolver` moves
+  to 5; `ExtensionDetector($tables, $runtime)`, argument 2. Appended at the end: `BulkActionRunner`
+  takes the scope guard as argument 6 and the runtime as 7, `AjaxDataTableRegistry` the definition
+  builder as argument 5, `InstallCommand` the optional runtime as argument 3. `SecurityVoter`
+  takes the definition builder as argument 2. `DataTableResponder` takes the runtime as its only
+  argument.
+
 ### A payload key set twice throws
 
 Options, extensions and bundle keys share one payload. A key set twice, for example an option and
@@ -120,8 +206,9 @@ overwriting the first value. Rename or remove the duplicate.
 
 ### `DataTablesExtension` takes fewer constructor arguments
 
-If you build `DataTablesExtension` by hand, its arguments are now the Stimulus helper, the
-authorization checker and the profiler: drop the column resolver, request stack, CSRF token manager,
+If you build the rendering by hand, `DataTablesRuntime` takes the Stimulus helper, the
+authorization checker, the `DataTableRuntime` and the profiler (`DataTablesExtension` has no
+constructor, see above): drop the column resolver, request stack, CSRF token manager,
 Ajax registry and controller name arguments. The bundle's service needs no change.
 `DataTableProfiler::collectRenderedTable()` now receives the prepared payload and the configured
 table.

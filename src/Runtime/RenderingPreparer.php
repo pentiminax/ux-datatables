@@ -6,7 +6,6 @@ namespace Pentiminax\UX\DataTables\Runtime;
 
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
-use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\ColumnTranslator;
@@ -265,16 +264,6 @@ final class RenderingPreparer
             locale: $this->requestStack?->getCurrentRequest()?->getLocale(),
             csrfToken: $this->mutationToken(),
         );
-    }
-
-    /**
-     * @internal
-     *
-     * @throws \LogicException when the table combines data() with an API Platform opt-in
-     */
-    public function resolveOptIns(DataTable $table, ?AsDataTable $asDataTable): ResolvedOptIns
-    {
-        return ResolvedOptIns::resolve($table, $asDataTable, $this->urlResolver);
     }
 
     /**

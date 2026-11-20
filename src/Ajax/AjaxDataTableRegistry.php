@@ -6,6 +6,8 @@ namespace Pentiminax\UX\DataTables\Ajax;
 
 use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Runtime\TableDefinition;
+use Pentiminax\UX\DataTables\Runtime\TableDefinitionBuilder;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
@@ -28,6 +30,7 @@ final class AjaxDataTableRegistry
         private readonly AjaxDataTableTokenManager $tokenManager,
         private readonly array $serviceIdsByClass,
         private readonly AuthorizationChecker $permissionChecker,
+        private readonly TableDefinitionBuilder $definitions,
     ) {
     }
 
@@ -57,13 +60,22 @@ final class AjaxDataTableRegistry
             throw InvalidDataTableTokenException::invalidToken();
         }
 
-        $entityClass = $table->getEntityClass();
+        $definition  = $this->definitions->build($table);
+        $entityClass = $definition->entityClass();
 
         return new ResolvedDataTable(
             $table,
             null === $entityClass ? null : ltrim($entityClass, '\\'),
             $table::class,
+            $definition,
         );
+    }
+
+    public function getDefinition(string $token): ?TableDefinition
+    {
+        $table = $this->get($token);
+
+        return null === $table ? null : $this->definitions->build($table);
     }
 
     private function generateToken(string $prefix, string $dataTableClass): ?string

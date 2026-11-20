@@ -52,7 +52,8 @@ class TwigAppKernel extends Kernel
             ]);
 
             $container->setAlias('test.datatables.twig_extension', 'datatables.twig_extension')->setPublic(true);
-            $container->setAlias('test.datatables.infrastructure', 'datatables.infrastructure')->setPublic(true);
+            $container->setAlias('test.datatables.twig_runtime', 'datatables.twig_runtime')->setPublic(true);
+            $container->setAlias('test.datatables.runtime', 'datatables.runtime')->setPublic(true);
             $container->setAlias('test.datatables.export.registry', 'datatables.export.registry')->setPublic(true);
             $container->setAlias('test.datatables.export.exporter.csv', 'datatables.export.exporter.csv')->setPublic(true);
             $container->setAlias('test.datatables.export.exporter.xlsx', 'datatables.export.exporter.xlsx')->setPublic(true);

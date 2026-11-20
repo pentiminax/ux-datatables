@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Mercure\MutationUpdatePublisher;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -24,6 +25,8 @@ use Symfony\Component\Mercure\Update;
 #[CoversClass(MercureTopicResolver::class)]
 final class MutationUpdatePublisherTest extends TestCase
 {
+    use BuildsRuntime;
+
     private const DATA = ['type' => 'delete', 'id' => '5'];
 
     #[Test]
@@ -58,10 +61,7 @@ final class MutationUpdatePublisherTest extends TestCase
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())->method('warning');
 
-        $resolver = new MercureTopicResolver(
-            $this->configResolverReturning(new MercureConfig(['/books/{id}'], withCredentials: true)),
-            logger: $logger,
-        );
+        $resolver = new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make(), $this->configResolverReturning(new MercureConfig(['/books/{id}'], withCredentials: true)), logger: $logger);
 
         MutationUpdatePublisher::publish($publisher, $resolver, \stdClass::class, null, self::DATA);
         MutationUpdatePublisher::publish($publisher, $resolver, \stdClass::class, null, self::DATA);
@@ -79,11 +79,9 @@ final class MutationUpdatePublisherTest extends TestCase
             return 'urn:uuid:1';
         });
 
-        $resolver = new MercureTopicResolver(
-            $this->configResolverReturning(new MercureConfig(['/books/{id}'], withCredentials: $withCredentials)),
-        );
+        $resolver = new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make(), $this->configResolverReturning(new MercureConfig(['/books/{id}'], withCredentials: $withCredentials)));
 
-        MutationUpdatePublisher::publish(new MercureUpdatePublisher($hub), $resolver, \stdClass::class, null, self::DATA);
+        MutationUpdatePublisher::publish(new MercureUpdatePublisher($hub, self::buildRuntime()), $resolver, \stdClass::class, null, self::DATA);
 
         $this->assertInstanceOf(Update::class, $published);
 

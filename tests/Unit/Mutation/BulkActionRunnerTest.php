@@ -9,6 +9,8 @@ use Doctrine\ORM\Events;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\IdentifierDataProviderInterface;
@@ -33,9 +35,11 @@ use Pentiminax\UX\DataTables\Mutation\BulkRecords;
 use Pentiminax\UX\DataTables\Mutation\BulkSelection;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
+use Pentiminax\UX\DataTables\Mutation\RowScopeGuard;
 use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
-use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
+use Pentiminax\UX\DataTables\Runtime\TableDefinitionBuilder;
 use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
@@ -44,6 +48,7 @@ use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountDocument;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountLine;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountTag;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -62,12 +67,16 @@ final class BulkActionRunnerTest extends TestCase
 {
     use BuildsEntityManager;
     use CollectsDeprecations;
+    use BuildsRuntime;
 
     private EntityManagerInterface $em;
 
+    private TableDefinitionBuilder $definitions;
+
     protected function setUp(): void
     {
-        $this->em = $this->createEntityManager(CountCustomer::class, CountTag::class);
+        $this->definitions = new TableDefinitionBuilder(new ColumnResolver(new AuthorizationChecker()));
+        $this->em          = $this->createEntityManager(CountCustomer::class, CountTag::class);
 
         foreach (['Alpha', 'Beta', 'Gamma', 'Delta'] as $index => $name) {
             $this->em->persist(new CountCustomer($index + 1, $name));
@@ -225,8 +234,7 @@ final class BulkActionRunnerTest extends TestCase
                 $seen[] = $customer->name;
             }
         });
-        $table = $this->resolved($action);
-        $table->table->getConfiguredDataTable()->getBulkActions()?->idField('name');
+        $table = $this->resolved($action, idField: 'name');
 
         $this->runner()->run($table, $action, new BulkSelection(ids: ['Beta']), new Request());
 
@@ -240,8 +248,7 @@ final class BulkActionRunnerTest extends TestCase
         $action  = BulkAction::new('touch')->handler(function () use (&$handled): void {
             $handled = true;
         });
-        $table = $this->resolved($action);
-        $table->table->getConfiguredDataTable()->getBulkActions()?->idField('reference');
+        $table = $this->resolved($action, idField: 'reference');
 
         try {
             $this->runner()->run($table, $action, new BulkSelection(ids: ['Beta']), new Request());
@@ -307,8 +314,7 @@ final class BulkActionRunnerTest extends TestCase
 
         $table = $this->resolved($action, scope: static fn (QueryBuilder $qb): QueryBuilder => $qb
             ->andWhere('e.name <> :hidden')
-            ->setParameter('hidden', 'Delta'));
-        $table->table->getConfiguredDataTable()->getBulkActions()?->idField('name');
+            ->setParameter('hidden', 'Delta'), idField: 'name');
 
         $result = $this->runner()->run($table, $action, new BulkSelection(ids: ['Beta', 'Delta']), new Request());
 
@@ -861,18 +867,8 @@ final class BulkActionRunnerTest extends TestCase
                 $seen[] = $document->name;
             }
         });
-        $table     = $this->resolvedDocument($em, $action, highlightIdField: $highlightIdField, bulkIdField: $bulkIdField);
-        $dataTable = $table->table->getConfiguredDataTable();
-
-        $registry = $this->createStub(ManagerRegistry::class);
-        $registry->method('getManagerForClass')->willReturn($em);
-        $row = (new DataTableRuntimeFactory(new AuthorizationChecker(), doctrine: $registry))->createRowMapper(
-            baseMapper: static fn (): array => [],
-            columns: [],
-            highlight: $dataTable->getHighlightConfig(),
-            rowIdField: $dataTable->getBulkActions()?->getIdField(),
-            entityClass: CountDocument::class,
-        )->map($em->find(CountDocument::class, 10));
+        $table = $this->resolvedDocument($em, $action, highlightIdField: $highlightIdField, bulkIdField: $bulkIdField);
+        $row   = $this->runtime($em)->open($table->table)->rowMapper()->map($em->find(CountDocument::class, 10));
 
         $this->runner(em: $em)->run(
             $table,
@@ -906,30 +902,19 @@ final class BulkActionRunnerTest extends TestCase
         $em->flush();
         $em->clear();
 
-        $registry = $this->createStub(ManagerRegistry::class);
-        $registry->method('getManagerForClass')->willReturn($em);
-        $row = (new DataTableRuntimeFactory(new AuthorizationChecker(), doctrine: $registry))->createRowMapper(
-            baseMapper: static fn (): array => [],
-            columns: [],
-            rowIdField: 'id',
-            entityClass: CountLine::class,
-        )->map($em->find(CountLine::class, ['orderId' => 1, 'lineNo' => 1]));
-
-        $this->assertArrayNotHasKey(HighlightConfig::ROW_ID_KEY, $row);
-
         $handled = false;
         $action  = BulkAction::new('touch')->handler(function () use (&$handled): void {
             $handled = true;
         });
-        $table = new ConfigurableDataTable(
-            columnsConfig: [TextColumn::new('name')],
-            configureTable: static fn (DataTable $table): DataTable => $table->unscopedMutations(),
-            bulkActions: static fn (BulkActions $actions): BulkActions => $actions->add($action),
-        );
+        $table = new CountLineDataTable($action);
+
+        $row = $this->runtime($em)->open($table)->rowMapper()->map($em->find(CountLine::class, ['orderId' => 1, 'lineNo' => 1]));
+
+        $this->assertArrayNotHasKey(HighlightConfig::ROW_ID_KEY, $row);
 
         try {
             $this->runner(em: $em)->run(
-                new ResolvedDataTable($table, CountLine::class, AbstractDataTable::class),
+                new ResolvedDataTable($table, CountLine::class, CountLineDataTable::class, $this->definitions->build($table)),
                 $action,
                 new BulkSelection(ids: ['1']),
                 $this->postRequest(),
@@ -1022,13 +1007,25 @@ final class BulkActionRunnerTest extends TestCase
         $registry = $this->createStub(ManagerRegistry::class);
         $registry->method('getManagerForClass')->willReturn($em ?? $this->em);
 
+        $runtime = $this->runtime($em ?? $this->em, $permissionChecker);
+
         return new BulkActionRunner(
             new EntityLocator($registry),
             $permissionChecker ?? new AuthorizationChecker(),
             $flusher           ?? new MutationFlusher(),
             $publisher         ?? $this->createStub(MercurePublisherInterface::class),
             $topicResolver     ?? $this->createStub(MercureTopicResolver::class),
+            new RowScopeGuard(new EntityLocator($registry), $runtime),
+            $runtime,
         );
+    }
+
+    private function runtime(EntityManagerInterface $em, ?AuthorizationChecker $permissionChecker = null): DataTableRuntime
+    {
+        $registry = $this->createStub(ManagerRegistry::class);
+        $registry->method('getManagerForClass')->willReturn($em);
+
+        return self::buildRuntime(checker: $permissionChecker, definitions: $this->definitions, doctrine: $registry);
     }
 
     /**
@@ -1074,7 +1071,7 @@ final class BulkActionRunnerTest extends TestCase
             },
         );
 
-        return new ResolvedDataTable($table, CountCustomer::class, AbstractDataTable::class);
+        return new ResolvedDataTable($table, CountCustomer::class, ConfigurableDataTable::class, $this->definitions->build($table));
     }
 
     private function resolvedDocument(
@@ -1084,13 +1081,10 @@ final class BulkActionRunnerTest extends TestCase
         ?string $highlightIdField = null,
         ?string $bulkIdField = null,
     ): ResolvedDataTable {
-        $table = new ConfigurableDataTable(
-            columnsConfig: [TextColumn::new('id'), TextColumn::new('name')],
-            configureTable: static function (DataTable $table) use ($highlightIdField): DataTable {
-                $table->serverSide();
-
-                return null === $highlightIdField ? $table : $table->highlightUpdates(idField: $highlightIdField);
-            },
+        $table = new CountDocumentDataTable(
+            highlightIdField: $highlightIdField,
+            action: $action,
+            bulkIdField: $bulkIdField,
             dataProvider: $provider ?? new DoctrineDataProvider(
                 em: $em,
                 entityClass: CountDocument::class,
@@ -1103,14 +1097,9 @@ final class BulkActionRunnerTest extends TestCase
                     }
                 },
             ),
-            bulkActions: static function (BulkActions $actions) use ($action, $bulkIdField): BulkActions {
-                $actions->add($action);
-
-                return null === $bulkIdField ? $actions : $actions->idField($bulkIdField);
-            },
         );
 
-        return new ResolvedDataTable($table, CountDocument::class, AbstractDataTable::class);
+        return new ResolvedDataTable($table, CountDocument::class, CountDocumentDataTable::class, $this->definitions->build($table));
     }
 
     private function postRequest(): Request
@@ -1230,5 +1219,70 @@ final class IdentifierlessProvider implements DataProviderInterface
     public function fetchData(DataTableRequest $request): DataTableResult
     {
         return new DataTableResult(0, 0, []);
+    }
+}
+
+/**
+ * @internal
+ */
+#[AsDataTable(entityClass: CountDocument::class)]
+final class CountDocumentDataTable extends AbstractDataTable
+{
+    public function __construct(
+        private readonly ?string $highlightIdField,
+        private readonly BulkAction $action,
+        private readonly ?string $bulkIdField,
+        private readonly DataProviderInterface $dataProvider,
+    ) {
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        $table->serverSide();
+
+        return null === $this->highlightIdField ? $table : $table->highlightUpdates(idField: $this->highlightIdField);
+    }
+
+    public function configureColumns(): iterable
+    {
+        return [TextColumn::new('id'), TextColumn::new('name')];
+    }
+
+    public function configureBulkActions(BulkActions $actions): BulkActions
+    {
+        $actions->add($this->action);
+
+        return null === $this->bulkIdField ? $actions : $actions->idField($this->bulkIdField);
+    }
+
+    public function createDataProvider(): ?DataProviderInterface
+    {
+        return $this->dataProvider;
+    }
+}
+
+/**
+ * @internal
+ */
+#[AsDataTable(entityClass: CountLine::class)]
+final class CountLineDataTable extends AbstractDataTable
+{
+    public function __construct(private readonly BulkAction $action)
+    {
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->unscopedMutations();
+    }
+
+    public function configureColumns(): iterable
+    {
+        return [TextColumn::new('name')];
+    }
+
+    public function configureBulkActions(BulkActions $actions): BulkActions
+    {
+        return $actions->add($this->action);
     }
 }

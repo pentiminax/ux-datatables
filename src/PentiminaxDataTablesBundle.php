@@ -19,7 +19,6 @@ use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
-use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 use Symfony\Component\Mercure\HubInterface;
@@ -166,8 +165,7 @@ class PentiminaxDataTablesBundle extends AbstractBundle
     {
         $builder->registerForAutoconfiguration(AbstractDataTable::class)
             ->addTag('datatables.data_table')
-            ->addTag('kernel.reset', ['method' => 'resetDataTableState'])
-            ->addMethodCall('setDataTableInfrastructure', [new Reference('datatables.infrastructure')]);
+            ->addTag('kernel.reset', ['method' => 'resetDataTableState']);
 
         $builder->registerForAutoconfiguration(DataTableDefaultsConfiguratorInterface::class)
             ->addTag('datatables.defaults_configurator');

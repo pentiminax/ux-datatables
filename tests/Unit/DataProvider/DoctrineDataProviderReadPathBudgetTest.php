@@ -15,11 +15,11 @@ use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Summary\Count;
 use Pentiminax\UX\DataTables\Model\Summary\Sum;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
-use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountCustomer;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountInvoice;
@@ -28,6 +28,7 @@ use Pentiminax\UX\DataTables\Tests\Fixtures\Count\SummaryNote;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\SummaryOrder;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\SummaryRegion;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -44,6 +45,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 final class DoctrineDataProviderReadPathBudgetTest extends TestCase
 {
     use BuildsEntityManager;
+    use BuildsRuntime;
 
     private EntityManagerInterface $em;
 
@@ -333,23 +335,30 @@ final class DoctrineDataProviderReadPathBudgetTest extends TestCase
         $symfony = $this->createStub(AuthorizationCheckerInterface::class);
         $symfony->method('isGranted')->willReturn(false);
 
-        $runtime = (new DataTableRuntimeFactory(
-            autoDataProviderFactory: new AutoDataProviderFactory($this->em),
-            permissionChecker: new AuthorizationChecker($symfony),
-        ))->createRuntime(
-            table: (new DataTable('invoices'))->serverSide(),
-            columns: [
-                TextColumn::new('number'),
-                TextColumn::new('customer')->field('customer.name')->permission('ROLE_HR'),
-            ],
-            asDataTable: new AsDataTable(entityClass: CountInvoice::class),
-            baseMapper: static fn (CountInvoice $invoice): array => ['number' => $invoice->number],
-            manualDataProviderFactory: static fn (): null => null,
-            configureQueryBuilder: static fn ($qb) => $qb,
-        );
-        $runtime->handleRequest(new Request(query: ['draw' => 1]));
+        $table = new #[AsDataTable(entityClass: CountInvoice::class)] class extends AbstractDataTable {
+            public function configureDataTable(DataTable $table): DataTable
+            {
+                return $table->serverSide();
+            }
 
-        $rows = json_decode((string) $runtime->getResponse()->getContent(), true)['data'];
+            public function configureColumns(): iterable
+            {
+                return [
+                    TextColumn::new('number'),
+                    TextColumn::new('customer')->field('customer.name')->permission('ROLE_HR'),
+                ];
+            }
+
+            public function mapRow(mixed $row): array
+            {
+                return ['number' => $row->number];
+            }
+        };
+
+        $runtime  = self::buildRuntime(checker: new AuthorizationChecker($symfony), autoDataProviderFactory: new AutoDataProviderFactory($this->em));
+        $response = $runtime->respond($table, new Request(query: ['draw' => 1]));
+
+        $rows = json_decode((string) $response?->getContent(), true)['data'];
 
         $this->assertSame(['number' => 'INV-1'], $rows[0]);
         $this->assertSame([], array_filter($this->statements, static fn (string $sql): bool => str_contains($sql, 'count_customer')));

@@ -17,6 +17,7 @@ use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -30,6 +31,7 @@ use Twig\Loader\ArrayLoader;
 #[CoversClass(DetailRowService::class)]
 final class DetailRowServiceTest extends TestCase
 {
+    use BuildsRuntime;
     use BuildsUnscopedRowScopeGuard;
 
     #[Test]
@@ -78,7 +80,7 @@ final class DetailRowServiceTest extends TestCase
 
     private function resolved(AbstractDataTable $dataTable): ResolvedDataTable
     {
-        return new ResolvedDataTable($dataTable, DetailRowEntity::class, $dataTable::class);
+        return new ResolvedDataTable($dataTable, DetailRowEntity::class, $dataTable::class, self::definitionOf($dataTable));
     }
 }
 

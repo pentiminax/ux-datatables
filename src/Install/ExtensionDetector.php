@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Install;
 
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Symfony\Contracts\Service\ServiceProviderInterface;
 
 /**
@@ -16,8 +17,10 @@ use Symfony\Contracts\Service\ServiceProviderInterface;
  */
 final class ExtensionDetector
 {
-    public function __construct(private readonly ServiceProviderInterface $tables)
-    {
+    public function __construct(
+        private readonly ServiceProviderInterface $tables,
+        private readonly DataTableRuntime $runtime,
+    ) {
     }
 
     public function detect(): ExtensionDetection
@@ -33,7 +36,7 @@ final class ExtensionDetector
                     continue;
                 }
 
-                $dataTable = $table->getConfiguredDataTable();
+                $dataTable = $this->runtime->definition($table)->table;
             } catch (\Exception $e) {
                 $failures[$id] = $e::class.': '.$e->getMessage();
 

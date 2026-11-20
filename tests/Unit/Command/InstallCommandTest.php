@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Install\InstallStyle;
 use Pentiminax\UX\DataTables\Install\PackageCatalog;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -30,6 +31,7 @@ use Symfony\Component\Filesystem\Filesystem;
 #[CoversClass(InstallCommand::class)]
 final class InstallCommandTest extends TestCase
 {
+    use BuildsRuntime;
     use CollectsDeprecations;
 
     private const CONTROLLERS = <<<'JSON'
@@ -761,7 +763,7 @@ final class InstallCommandTest extends TestCase
         $this->calls = [];
         $app         = new Application();
         $addCommand  = method_exists($app, 'addCommand') ? 'addCommand' : 'add';
-        $app->{$addCommand}(new InstallCommand($this->dir, $this->tables));
+        $app->{$addCommand}(new InstallCommand($this->dir, $this->tables, self::buildRuntime()));
 
         if (is_file($this->dir.'/importmap.php')) {
             $app->{$addCommand}($this->fakeImportmapCommand('importmap:require'));

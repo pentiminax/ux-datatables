@@ -18,13 +18,14 @@ use Pentiminax\UX\DataTables\Exception\MutationPersistenceException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
-use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Mutation\MutationContext;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
+use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -40,6 +41,7 @@ use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 #[CoversClass(EntityMutator::class)]
 final class EntityMutatorTest extends TestCase
 {
+    use BuildsRuntime;
     use CollectsDeprecations;
 
     /**
@@ -258,7 +260,7 @@ final class EntityMutatorTest extends TestCase
         return new EntityMutator(
             $accessor ?? $this->createStub(PropertyAccessorInterface::class),
             $publisher,
-            $topicResolver ?? new MercureTopicResolver(),
+            $topicResolver ?? new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()),
             new MutationFlusher(),
         );
     }
@@ -277,13 +279,20 @@ final class EntityMutatorTest extends TestCase
     private function row(EntityManagerInterface $manager, object $entity, int $id, ?string $field = null): AuthorizedRow
     {
         return new AuthorizedRow(
-            table: new ResolvedDataTable($this->createStub(AbstractDataTable::class), EntityMutatorFixture::class, self::DATA_TABLE_CLASS),
+            table: $this->resolvedTable(),
             action: null,
             context: new MutationContext($entity, $manager),
             id: $id,
             field: $field,
             entityClass: null === $field ? null : EntityMutatorFixture::class,
         );
+    }
+
+    private function resolvedTable(): ResolvedDataTable
+    {
+        $table = new ConfigurableDataTable([]);
+
+        return new ResolvedDataTable($table, EntityMutatorFixture::class, self::DATA_TABLE_CLASS, self::definitionOf($table));
     }
 
     private function managerReturning(): EntityManagerInterface

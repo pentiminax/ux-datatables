@@ -12,9 +12,10 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
-use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
+use Pentiminax\UX\DataTables\Runtime\TableDefinitionBuilder;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -30,6 +31,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 #[CoversClass(AbstractDataTable::class)]
 final class AbstractDataTableOptInsTest extends TestCase
 {
+    use BuildsRuntime;
     use PreparesPayload;
     use CollectsDeprecations;
 
@@ -94,32 +96,25 @@ final class AbstractDataTableOptInsTest extends TestCase
     #[Test]
     public function it_keeps_the_mode_resolved_before_rendering_for_the_ajax_request_on_the_same_table(): void
     {
-        $resolver = new class extends ApiResourceCollectionUrlResolver {
-            public function __construct()
-            {
-            }
+        $runtime  = $this->runtime('/api/books');
+        $table    = new FluentOptInFixture();
+        $prepared = $runtime->render($table);
 
-            public function resolveCollectionUrl(string $entityClass): ?string
-            {
-                return '/api/books';
-            }
-        };
-        $table    = new FluentOptInFixture($resolver);
-        $prepared = $table->prepareRendering();
+        $definition = $runtime->definition($table);
 
         $this->assertSame(DataSourceMode::ApiPlatform, $prepared->dataSourceMode);
         $this->assertNotNull(self::optionOf($prepared, 'ajax'));
-        $this->assertNull($table->getConfiguredDataTable()->getOption('ajax'));
-        $this->assertSame(DataSourceMode::ApiPlatform, $table->getResolvedOptIns()->dataSourceMode);
+        $this->assertNull($definition->table->getOption('ajax'));
+        $this->assertSame(DataSourceMode::ApiPlatform, $definition->optIns->dataSourceMode);
     }
 
     #[Test]
     public function it_keeps_the_opt_ins_resolved_when_the_table_was_configured(): void
     {
-        $table = new AttributeOptInFluentOptOutFixture(null);
-        $table->getConfiguredDataTable()->editModalTemplate('custom/modal.html.twig');
+        $definition = self::definitionOf(new AttributeOptInFluentOptOutFixture());
+        $definition->table->editModalTemplate('custom/modal.html.twig');
 
-        $this->assertNotSame('custom/modal.html.twig', $table->getResolvedOptIns()->editModalTemplate);
+        $this->assertNotSame('custom/modal.html.twig', $definition->optIns->editModalTemplate);
     }
 
     #[Test]
@@ -160,12 +155,9 @@ final class AbstractDataTableOptInsTest extends TestCase
     #[DataProvider('provideOptedInSurfaces')]
     public function it_answers_not_found_whichever_surface_opted_in(string $tableClass): void
     {
-        $table = new $tableClass(null);
-        $table->handleDataTableRequest(new Request(query: ['draw' => 1, 'start' => 0, 'length' => 10]));
-
         $this->expectException(NotFoundHttpException::class);
 
-        $table->createDataTableResponse();
+        $this->runtime(null)->respond(new $tableClass(), new Request(query: ['draw' => 1, 'start' => 0, 'length' => 10]));
     }
 
     /**
@@ -178,10 +170,7 @@ final class AbstractDataTableOptInsTest extends TestCase
         return array_values(array_filter($notices, static fn (string $notice): bool => str_contains($notice, 'API Platform') || str_contains($notice, 'apiPlatform')));
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function render(string $tableClass, ?string $collectionUrl, ?ColumnAutoDetector $detector = null): array
+    private function runtime(?string $collectionUrl, ?ColumnAutoDetector $detector = null): DataTableRuntime
     {
         $urlResolver = new class($collectionUrl) extends ApiResourceCollectionUrlResolver {
             public function __construct(private readonly ?string $url)
@@ -194,7 +183,21 @@ final class AbstractDataTableOptInsTest extends TestCase
             }
         };
 
-        $options = (new $tableClass($urlResolver, $detector))->prepareRendering()->getView();
+        return self::buildRuntime(
+            collectionUrlResolver: $urlResolver,
+            definitions: new TableDefinitionBuilder(
+                new ColumnResolver(new AuthorizationChecker(), columnAutoDetector: $detector),
+                collectionUrlResolver: $urlResolver,
+            ),
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function render(string $tableClass, ?string $collectionUrl, ?ColumnAutoDetector $detector = null): array
+    {
+        $options = $this->runtime($collectionUrl, $detector)->render(new $tableClass())->getView();
         unset($options['columns']);
 
         return $options;
@@ -203,14 +206,6 @@ final class AbstractDataTableOptInsTest extends TestCase
 
 abstract class OptInFixture extends AbstractDataTable
 {
-    public function __construct(?ApiResourceCollectionUrlResolver $urlResolver, ?ColumnAutoDetector $detector = null)
-    {
-        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            columnResolver: new ColumnResolver(new AuthorizationChecker(), columnAutoDetector: $detector),
-            renderingPreparer: new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), urlResolver: $urlResolver),
-        ));
-    }
-
     public function configureColumns(): iterable
     {
         yield TextColumn::new('id');

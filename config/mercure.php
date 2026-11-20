@@ -38,7 +38,8 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.mercure.publisher', MercureUpdatePublisher::class)
         ->arg(0, service('mercure.hub.default'))
-        ->arg(1, service('logger')->nullOnInvalid())
+        ->arg(1, service('datatables.runtime'))
+        ->arg(2, service('logger')->nullOnInvalid())
         ->private();
 
     $services->alias(MercurePublisherInterface::class, 'datatables.mercure.publisher')

@@ -14,9 +14,10 @@ use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -28,6 +29,8 @@ use Psr\Container\ContainerInterface;
 #[CoversClass(MercureTopicResolver::class)]
 final class MercureTopicResolverTest extends TestCase
 {
+    use BuildsRuntime;
+
     /**
      * The topics the bare entity-class resolver produces.
      */
@@ -44,7 +47,7 @@ final class MercureTopicResolverTest extends TestCase
     #[Test]
     public function it_falls_back_to_the_bare_entity_class_resolver_without_a_data_table(): void
     {
-        $resolver = new MercureTopicResolver($this->resolverReturning(self::BARE_RESOLVER_TOPICS));
+        $resolver = new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make(), $this->resolverReturning(self::BARE_RESOLVER_TOPICS));
 
         $this->assertSame(
             self::BARE_RESOLVER_TOPICS,
@@ -55,7 +58,7 @@ final class MercureTopicResolverTest extends TestCase
     #[Test]
     public function it_resolves_no_topics_when_no_mercure_config_resolver_is_available(): void
     {
-        $this->assertSame([], (new MercureTopicResolver())->resolve(TopicResolverFixture::class, self::UNREGISTERED_TABLE_CLASS));
+        $this->assertSame([], (new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()))->resolve(TopicResolverFixture::class, self::UNREGISTERED_TABLE_CLASS));
     }
 
     #[Test]
@@ -69,9 +72,9 @@ final class MercureTopicResolverTest extends TestCase
         $dataProviderSpy = $this->createMock(DataProviderInterface::class);
         $dataProviderSpy->expects($this->never())->method('fetchData');
 
-        $dataTable = new TopicResolverServerSideFixtureDataTable($this->hubUrlResolver(self::HUB_URL), $dataProviderSpy);
+        $dataTable = new TopicResolverServerSideFixtureDataTable($dataProviderSpy);
 
-        $resolver = new MercureTopicResolver($configResolver, $this->dataTablesContaining($dataTable));
+        $resolver = new MercureTopicResolver($this->runtime(self::HUB_URL), $configResolver, $this->dataTablesContaining($dataTable));
 
         $this->assertSame(
             ['/datatable-instance/topic'],
@@ -90,9 +93,9 @@ final class MercureTopicResolverTest extends TestCase
         $dataProviderSpy = $this->createMock(DataProviderInterface::class);
         $dataProviderSpy->expects($this->never())->method('fetchData');
 
-        $dataTable = new TopicResolverClientSideFixtureDataTable($this->hubUrlResolver(self::HUB_URL), $dataProviderSpy);
+        $dataTable = new TopicResolverClientSideFixtureDataTable($dataProviderSpy);
 
-        $resolver = new MercureTopicResolver($configResolver, $this->dataTablesContaining($dataTable));
+        $resolver = new MercureTopicResolver($this->runtime(self::HUB_URL), $configResolver, $this->dataTablesContaining($dataTable));
 
         $this->assertSame(
             ['/client-side/topic'],
@@ -105,12 +108,9 @@ final class MercureTopicResolverTest extends TestCase
     {
         // Registered, but configured for a different entity class than the
         // one being mutated: the guard must reject it and fall through.
-        $dataTable = new TopicResolverMismatchedFixtureDataTable($this->hubUrlResolver(self::HUB_URL));
+        $dataTable = new TopicResolverMismatchedFixtureDataTable();
 
-        $resolver = new MercureTopicResolver(
-            $this->resolverReturning(self::BARE_RESOLVER_TOPICS),
-            $this->dataTablesContaining($dataTable),
-        );
+        $resolver = new MercureTopicResolver($this->runtime(self::HUB_URL), $this->resolverReturning(self::BARE_RESOLVER_TOPICS), $this->dataTablesContaining($dataTable));
 
         $this->assertSame(
             self::BARE_RESOLVER_TOPICS,
@@ -125,7 +125,7 @@ final class MercureTopicResolverTest extends TestCase
         $dataTables->method('has')->with(TopicResolverServerSideFixtureDataTable::class)->willReturn(false);
         $dataTables->expects($this->never())->method('get');
 
-        $resolver = new MercureTopicResolver($this->resolverReturning(self::BARE_RESOLVER_TOPICS), $dataTables);
+        $resolver = new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make(), $this->resolverReturning(self::BARE_RESOLVER_TOPICS), $dataTables);
 
         $this->assertSame(
             self::BARE_RESOLVER_TOPICS,
@@ -139,12 +139,9 @@ final class MercureTopicResolverTest extends TestCase
         // The DataTable's own resolution throws (unresolvable hub URL). Because
         // this runs AFTER the mutation flushed, it must never bubble up and turn
         // an already-committed mutation into a 500.
-        $dataTable = new TopicResolverServerSideFixtureDataTable($this->hubUrlResolver(null));
+        $dataTable = new TopicResolverServerSideFixtureDataTable();
 
-        $resolver = new MercureTopicResolver(
-            $this->resolverReturning(self::BARE_RESOLVER_TOPICS),
-            $this->dataTablesContaining($dataTable),
-        );
+        $resolver = new MercureTopicResolver($this->runtime(null), $this->resolverReturning(self::BARE_RESOLVER_TOPICS), $this->dataTablesContaining($dataTable));
 
         $this->assertSame(
             self::BARE_RESOLVER_TOPICS,
@@ -163,6 +160,16 @@ final class MercureTopicResolverTest extends TestCase
             ->willReturn(new MercureConfig(topics: $topics, hubUrl: self::HUB_URL));
 
         return $resolver;
+    }
+
+    private function runtime(?string $hubUrl): DataTableRuntime
+    {
+        $checker = new AuthorizationChecker();
+
+        return self::buildRuntime(
+            checker: $checker,
+            preparer: new RenderingPreparer($checker, new ColumnResolver($checker), mercureHubUrlResolver: $this->hubUrlResolver($hubUrl)),
+        );
     }
 
     private function hubUrlResolver(?string $hubUrl): MercureHubUrlResolver
@@ -201,15 +208,8 @@ final class TopicResolverFixture
 final class TopicResolverServerSideFixtureDataTable extends AbstractDataTable
 {
     public function __construct(
-        private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
         private readonly ?DataProviderInterface $dataProviderSpy = null,
     ) {
-        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(
-                new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()),
-                mercureHubUrlResolver: $this->mercureHubUrlResolver,
-            )
-        ));
     }
 
     public function configureDataTable(DataTable $table): DataTable
@@ -237,17 +237,6 @@ final class TopicResolverServerSideFixtureDataTable extends AbstractDataTable
 #[AsDataTable(entityClass: \stdClass::class, mercure: true)]
 final class TopicResolverMismatchedFixtureDataTable extends AbstractDataTable
 {
-    public function __construct(
-        private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
-    ) {
-        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(
-                new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()),
-                mercureHubUrlResolver: $this->mercureHubUrlResolver,
-            )
-        ));
-    }
-
     public function configureDataTable(DataTable $table): DataTable
     {
         return $table
@@ -270,15 +259,8 @@ final class TopicResolverMismatchedFixtureDataTable extends AbstractDataTable
 final class TopicResolverClientSideFixtureDataTable extends AbstractDataTable
 {
     public function __construct(
-        private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
         private readonly ?DataProviderInterface $dataProviderSpy = null,
     ) {
-        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(
-                new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()),
-                mercureHubUrlResolver: $this->mercureHubUrlResolver,
-            )
-        ));
     }
 
     public function configureDataTable(DataTable $table): DataTable

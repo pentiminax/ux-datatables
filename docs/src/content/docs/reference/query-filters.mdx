@@ -104,8 +104,7 @@ is empty. See [Filters](/reference/filters/).
 
 ## Adding a condition of your own
 
-`AbstractDataTable::configureQueryBuilder()` is `final`: it calls `customizeQueryBuilder()` and
-then hands the query to the pipeline. The shipped chain is assembled inside
+The bundle calls `customizeQueryBuilder()` and then hands the query to the pipeline. The shipped chain is assembled inside
 `QueryFilterPipeline::apply()` and is not extensible through a service tag, so
 `customizeQueryBuilder()` is where a table adds its own conditions — and it is also the only one
 of the two that runs before the pipeline, so its conditions constrain `recordsTotal` as well as

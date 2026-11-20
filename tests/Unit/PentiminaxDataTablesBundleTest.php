@@ -12,7 +12,7 @@ use Pentiminax\UX\DataTables\Export\XlsxExporter;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\FilterLabels;
 use Pentiminax\UX\DataTables\PentiminaxDataTablesBundle;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\SecurityVoter;
 use Pentiminax\UX\DataTables\Tests\Kernel\ConfigDefaultsAppKernel;
@@ -37,12 +37,12 @@ final class PentiminaxDataTablesBundleTest extends TestCase
     use BootsTwigKernel;
 
     #[Test]
-    public function it_wires_the_datatable_infrastructure(): void
+    public function it_wires_the_datatable_runtime(): void
     {
-        $infrastructure = $this->kernel->getContainer()->get('test.datatables.infrastructure');
+        $runtime = $this->kernel->getContainer()->get('test.datatables.runtime');
 
         self::assertArrayHasKey('PentiminaxDataTablesBundle', $this->kernel->getBundles());
-        self::assertInstanceOf(DataTableInfrastructure::class, $infrastructure);
+        self::assertInstanceOf(DataTableRuntime::class, $runtime);
     }
 
     #[Test]
@@ -103,11 +103,12 @@ final class PentiminaxDataTablesBundleTest extends TestCase
         /** @var AbstractDataTable $table */
         $table = $this->kernel->getContainer()->get('test.datatables.server_side_template');
 
-        $configured = $table->getConfiguredDataTable();
+        $table->rows([['id' => 1]]);
+        self::assertNotNull($table->getInlineRows());
 
         $this->container->get('services_resetter')->reset();
 
-        self::assertNotSame($configured, $table->getConfiguredDataTable());
+        self::assertNull($table->getInlineRows());
     }
 
     #[Test]
