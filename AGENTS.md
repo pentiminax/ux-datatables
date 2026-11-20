@@ -205,6 +205,23 @@ Biome (`assets/biome.json`) is the frontend formatting and linting source of tru
 - Add or update Vitest coverage for behavior changes.
 - Rebuild and commit `assets/dist/` whenever published frontend source changes.
 
+## Tests
+
+Do not add a test the change does not need.
+
+- Add a test only when it fails before your change and passes after it.
+- Write the test first and watch it fail. Then change the code until it passes.
+- Do not add a test that already passes on the old code.
+- Do not add a test that mocks the function you changed and then asserts on that mock.
+- Do not add a snapshot or a large fixture for a one-line fix.
+- Reuse the helpers in `tests/Support/` before writing a new one.
+
+PHP tests use PHPUnit. Put them in `tests/Unit/` or `tests/Functional/`, mirroring the `src/`
+path, and name them `<Class>Test.php` with snake_case method names.
+
+TypeScript tests use Vitest. Put them in a `__tests__/` folder next to the source and name them
+`<name>.test.ts`.
+
 ## Twig and Translations
 
 - Keep Twig auto-escaping enabled. Use raw HTML only when the value is intentionally trusted and
