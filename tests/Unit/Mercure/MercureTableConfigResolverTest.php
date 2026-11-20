@@ -33,7 +33,7 @@ final class MercureTableConfigResolverTest extends TestCase
         $configResolver = $this->createMock(MercureConfigResolver::class);
         $configResolver->expects($this->once())->method('resolveMercureConfig')->with(\stdClass::class)->willReturn($autoConfig);
 
-        $resolver = new MercureTableConfigResolver($configResolver, $this->hub(self::HUB_URL));
+        $resolver = new MercureTableConfigResolver(configResolver: $configResolver, hubUrlResolver: $this->hub(self::HUB_URL));
 
         $this->assertSame($autoConfig, $resolver->resolve($this->optIns(new DataTable('t'), new AsDataTable(entityClass: \stdClass::class, mercure: true))));
     }
@@ -47,7 +47,7 @@ final class MercureTableConfigResolverTest extends TestCase
         $table = new DataTable('t');
         $table->mercure(topics: ['/manual']);
 
-        $config = (new MercureTableConfigResolver($configResolver, $this->hub(self::HUB_URL, MercureConfig::PROTOCOL_VERSION_1_0)))
+        $config = (new MercureTableConfigResolver(configResolver: $configResolver, hubUrlResolver: $this->hub(self::HUB_URL, MercureConfig::PROTOCOL_VERSION_1_0)))
             ->resolve($this->optIns($table, new AsDataTable(entityClass: \stdClass::class, mercure: ['topics' => ['/attribute']])));
 
         $this->assertSame(['/manual'], $config?->topics);
@@ -61,7 +61,7 @@ final class MercureTableConfigResolverTest extends TestCase
         $configResolver = $this->createMock(MercureConfigResolver::class);
         $configResolver->expects($this->never())->method('resolveMercureConfig');
 
-        $config = (new MercureTableConfigResolver($configResolver, $this->hub(self::HUB_URL, MercureConfig::PROTOCOL_VERSION_1_0)))
+        $config = (new MercureTableConfigResolver(configResolver: $configResolver, hubUrlResolver: $this->hub(self::HUB_URL, MercureConfig::PROTOCOL_VERSION_1_0)))
             ->resolve($this->optIns((new DataTable('t'))->ajax('/api/books'), new AsDataTable(entityClass: \stdClass::class, mercure: [
                 'topics'          => 'https://example.com/books',
                 'withCredentials' => true,
@@ -83,7 +83,7 @@ final class MercureTableConfigResolverTest extends TestCase
         $metadata->expects($this->never())->method('resolvePrivate');
 
         $hub    = $this->hub(self::HUB_URL);
-        $config = (new MercureTableConfigResolver(new MercureConfigResolver($hub, $metadata), $hub))
+        $config = (new MercureTableConfigResolver(configResolver: new MercureConfigResolver($hub, $metadata), hubUrlResolver: $hub))
             ->resolve($this->optIns((new DataTable('t'))->ajax('/api/books'), new AsDataTable(entityClass: \stdClass::class, mercure: [
                 'topics'          => ['/api/books/{id}'],
                 'withCredentials' => false,
@@ -103,7 +103,7 @@ final class MercureTableConfigResolverTest extends TestCase
             protocolVersion: MercureConfig::PROTOCOL_VERSION_1_0,
         ));
 
-        $config = (new MercureTableConfigResolver($configResolver, $this->hub(self::HUB_URL)))
+        $config = (new MercureTableConfigResolver(configResolver: $configResolver, hubUrlResolver: $this->hub(self::HUB_URL)))
             ->resolve($this->optIns((new DataTable('t'))->ajax('/api/books'), new AsDataTable(entityClass: \stdClass::class, mercure: [
                 'withCredentials' => false,
                 'debounceMs'      => 250,
@@ -126,7 +126,7 @@ final class MercureTableConfigResolverTest extends TestCase
         $configResolver = $this->createStub(MercureConfigResolver::class);
         $configResolver->method('resolveMercureConfig')->willReturn(null);
 
-        $resolver = new MercureTableConfigResolver($configResolver, $this->hub(self::HUB_URL));
+        $resolver = new MercureTableConfigResolver(configResolver: $configResolver, hubUrlResolver: $this->hub(self::HUB_URL));
 
         $this->assertNull($resolver->resolve($this->optIns((new DataTable('t'))->ajax('/api/books'), new AsDataTable(entityClass: \stdClass::class, mercure: $mercure))));
     }
@@ -151,7 +151,7 @@ final class MercureTableConfigResolverTest extends TestCase
         $configResolver = $this->createMock(MercureConfigResolver::class);
         $configResolver->expects($this->never())->method('resolveMercureConfig');
 
-        $resolver = new MercureTableConfigResolver($configResolver, $this->hub(self::HUB_URL));
+        $resolver = new MercureTableConfigResolver(configResolver: $configResolver, hubUrlResolver: $this->hub(self::HUB_URL));
 
         $this->assertNull($resolver->resolve($this->optIns($configure(new DataTable('t')), $attribute)));
     }
@@ -178,7 +178,7 @@ final class MercureTableConfigResolverTest extends TestCase
         $configResolver = $this->createStub(MercureConfigResolver::class);
         $configResolver->method('resolveMercureConfig')->willReturn(null);
 
-        $resolver = new MercureTableConfigResolver($configResolver, $this->hub(self::HUB_URL));
+        $resolver = new MercureTableConfigResolver(configResolver: $configResolver, hubUrlResolver: $this->hub(self::HUB_URL));
 
         $this->assertNull($resolver->resolve($this->optIns((new DataTable('t'))->ajax('/api/books'), new AsDataTable(entityClass: \stdClass::class, mercure: true))));
     }

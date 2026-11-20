@@ -71,7 +71,7 @@ final class AsDataTableTest extends TestCase
                 urlResolver: $urlResolver,
             ),
             autoDataProviderFactory: $autoDataProviderFactory,
-            mercure: new MercureTableConfigResolver($mercureResolver, $mercureHubUrlResolver),
+            mercure: new MercureTableConfigResolver(configResolver: $mercureResolver, hubUrlResolver: $mercureHubUrlResolver),
             definitions: new TableDefinitionBuilder(
                 new ColumnResolver($checker, columnAutoDetector: $detector),
                 collectionUrlResolver: $urlResolver,

@@ -27,7 +27,7 @@ trait PreparesPayload
     {
         $preparer->prepareBeforeDataHydration($table, $optIns);
 
-        return $preparer->prepareAfterDataHydration($table, $optIns, null, null, static fn (): null => null);
+        return $preparer->prepareAfterDataHydration($table, $optIns, rows: null, bulkRowIdField: null, mercure: static fn (): null => null);
     }
 
     private static function optionOf(PreparedDataTable $prepared, string $name): mixed

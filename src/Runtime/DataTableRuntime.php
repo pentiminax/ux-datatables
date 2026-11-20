@@ -109,7 +109,13 @@ final class DataTableRuntime
             : null;
 
         // Resolved last, so a table failing both reports the preparer's own error first.
-        return $this->renderingPreparer->prepareAfterDataHydration($definition->table, $optIns, $rows, $bulkRowIdField, fn (): ?MercureConfig => $this->mercure->resolve($optIns));
+        return $this->renderingPreparer->prepareAfterDataHydration(
+            $definition->table,
+            $optIns,
+            rows: $rows,
+            bulkRowIdField: $bulkRowIdField,
+            mercure: fn (): ?MercureConfig => $this->mercure->resolve($optIns),
+        );
     }
 
     /**
