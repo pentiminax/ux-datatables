@@ -101,6 +101,8 @@ final class PentiminaxDataTablesBundleTest extends TestCase
         $builder->setParameter('kernel.project_dir', \dirname(__DIR__, 2));
         $builder->setParameter('kernel.environment', 'test');
         $builder->setParameter('kernel.bundles', []);
+        $builder->setParameter('kernel.build_dir', sys_get_temp_dir());
+        $builder->setParameter('kernel.cache_dir', sys_get_temp_dir());
         (new PentiminaxDataTablesBundle())->getContainerExtension()->load([[]], $builder);
 
         $tags = $builder->getAutoconfiguredInstanceof()[AbstractDataTable::class]->getTags();
