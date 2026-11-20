@@ -17,6 +17,7 @@ use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureTableConfigResolver;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
@@ -68,10 +69,9 @@ final class AsDataTableTest extends TestCase
                 $checker,
                 new ColumnResolver($checker),
                 urlResolver: $urlResolver,
-                mercureResolver: $mercureResolver,
-                mercureHubUrlResolver: $mercureHubUrlResolver,
             ),
             autoDataProviderFactory: $autoDataProviderFactory,
+            mercure: new MercureTableConfigResolver($mercureResolver, $mercureHubUrlResolver),
             definitions: new TableDefinitionBuilder(
                 new ColumnResolver($checker, columnAutoDetector: $detector),
                 collectionUrlResolver: $urlResolver,

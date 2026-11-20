@@ -29,6 +29,7 @@ use Pentiminax\UX\DataTables\Export\ExportService;
 use Pentiminax\UX\DataTables\Export\XlsxExporter;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureTableConfigResolver;
 use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
@@ -154,6 +155,11 @@ return static function (ContainerConfigurator $container): void {
 
     // Registered here rather than in config/mercure.php: mutations must resolve
     // topics (to an empty list) even when Mercure is not installed.
+    $services->set('datatables.mercure.table_config_resolver', MercureTableConfigResolver::class)
+        ->arg(0, service(MercureConfigResolver::class)->nullOnInvalid())
+        ->arg(1, service(MercureHubUrlResolver::class)->nullOnInvalid())
+        ->private();
+
     $services->set('datatables.mercure.topic_resolver', MercureTopicResolver::class)
         ->arg(0, service('datatables.runtime'))
         ->arg(1, service(MercureConfigResolver::class)->nullOnInvalid())
@@ -339,14 +345,12 @@ return static function (ContainerConfigurator $container): void {
         ->arg(0, service('datatables.security.authorization_checker'))
         ->arg(1, service('datatables.column.resolver'))
         ->arg(2, service(ApiResourceCollectionUrlResolver::class)->nullOnInvalid())
-        ->arg(3, service(MercureConfigResolver::class)->nullOnInvalid())
-        ->arg(4, service(TranslatorInterface::class)->nullOnInvalid())
-        ->arg(5, service(MercureHubUrlResolver::class)->nullOnInvalid())
-        ->arg(6, service('router')->nullOnInvalid())
-        ->arg(7, service('datatables.ajax.registry'))
-        ->arg(8, service('request_stack')->nullOnInvalid())
-        ->arg(9, service('datatables.column_control.search_list_options_resolver'))
-        ->arg(10, service('datatables.filter.entity_options_resolver')->nullOnInvalid())
+        ->arg(3, service(TranslatorInterface::class)->nullOnInvalid())
+        ->arg(4, service('router')->nullOnInvalid())
+        ->arg(5, service('datatables.ajax.registry'))
+        ->arg(6, service('request_stack')->nullOnInvalid())
+        ->arg(7, service('datatables.column_control.search_list_options_resolver'))
+        ->arg(8, service('datatables.filter.entity_options_resolver')->nullOnInvalid())
         ->arg('$csrfTokenManager', service('datatables.security.csrf_token_manager'))
         ->private();
 
@@ -392,6 +396,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$profiler', service('datatables.profiler')->nullOnInvalid())
         ->arg('$logger', service('logger')->nullOnInvalid())
         ->arg('$hydrationRowThreshold', param('datatables.hydration_row_threshold'))
+        ->arg('$mercure', service('datatables.mercure.table_config_resolver'))
         ->private();
 
     $services->alias(DataTableRuntime::class, 'datatables.runtime')

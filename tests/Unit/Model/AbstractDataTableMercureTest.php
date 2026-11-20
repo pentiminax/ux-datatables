@@ -5,14 +5,13 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
-use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureTableConfigResolver;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
-use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -47,11 +46,7 @@ final class AbstractDataTableMercureTest extends TestCase
         $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
 
-        $checker = new AuthorizationChecker();
-        $runtime = self::buildRuntime(
-            checker: $checker,
-            preparer: new RenderingPreparer($checker, new ColumnResolver($checker), mercureHubUrlResolver: $hubUrlResolver),
-        );
+        $runtime = self::buildRuntime(mercure: new MercureTableConfigResolver(hubUrlResolver: $hubUrlResolver));
 
         $config = $runtime->mercureConfig(new AbstractDataTableMercureServerSideFixture());
 

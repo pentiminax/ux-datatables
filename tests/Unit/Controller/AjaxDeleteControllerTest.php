@@ -19,6 +19,7 @@ use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureTableConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
@@ -27,7 +28,6 @@ use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
-use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Runtime\TableDefinitionBuilder;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
@@ -109,11 +109,7 @@ final class AjaxDeleteControllerTest extends TestCase
 
         $dataTable = new DeletableEntityFixtureDataTable();
 
-        $runtime = self::buildRuntime(preparer: new RenderingPreparer(
-            new AuthorizationChecker(),
-            new ColumnResolver(new AuthorizationChecker()),
-            mercureHubUrlResolver: $hubUrlResolver,
-        ));
+        $runtime = self::buildRuntime(mercure: new MercureTableConfigResolver(hubUrlResolver: $hubUrlResolver));
 
         $dataTables = $this->createMock(ContainerInterface::class);
         $dataTables->method('has')->with(DeletableEntityFixtureDataTable::class)->willReturn(true);

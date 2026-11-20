@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Mercure;
 
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
-use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureTableConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
@@ -168,7 +168,7 @@ final class MercureTopicResolverTest extends TestCase
 
         return self::buildRuntime(
             checker: $checker,
-            preparer: new RenderingPreparer($checker, new ColumnResolver($checker), mercureHubUrlResolver: $this->hubUrlResolver($hubUrl)),
+            mercure: new MercureTableConfigResolver(hubUrlResolver: $this->hubUrlResolver($hubUrl)),
         );
     }
 
