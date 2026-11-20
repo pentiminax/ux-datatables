@@ -304,9 +304,10 @@ call to a removed method.
    `LogicException` at render for it. Keep one of the two.
 8. Stop calling `RenderingPreparer`, `FilterEntityOptionsResolver` and `SearchListOptionsResolver`
    directly: they are `@internal` and their signatures changed. `RenderingPreparer::prepare()` is
-   removed. `prepareBeforeDataHydration()`, `prepareAfterDataHydration()` and
-   `resolveMercureConfig()` lose the `?AsDataTable` parameter, and `prepareAfterDataHydration()`
-   returns a `PreparedDataTable`. `FilterEntityOptionsResolver::prepare()` takes the `Filters`.
+   removed. `prepareBeforeDataHydration()` and `prepareAfterDataHydration()` lose the
+   `?AsDataTable` parameter, and `prepareAfterDataHydration()` returns a `PreparedDataTable`.
+   `resolveMercureConfig()` and the Mercure constructor arguments are removed: use
+   `$runtime->mercureConfig($table)`. `FilterEntityOptionsResolver::prepare()` takes the `Filters`.
    `SearchListOptionsResolver::prepare()` is removed.
 9. Purge HTTP and page caches that hold pages rendered before 1.5.1, and make sure the bundle's
    routes are imported: the browser refuses a row action (delete, toggle, detail, edit) whose URL
