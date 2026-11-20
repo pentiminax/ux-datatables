@@ -210,7 +210,7 @@ final class UsersDataTable extends AbstractDataTable
             ->showExternalIcon();
     }
 
-    protected function mapRow(mixed $row): array
+    public function mapRow(mixed $row): array
     {
         return [
             'id'      => $row->getId(),

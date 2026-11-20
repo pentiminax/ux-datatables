@@ -116,7 +116,7 @@ final class UsersDataTable extends AbstractDataTable
         // Entity class is injected automatically from #[AsDataTable(User::class)]
     }
 
-    protected function mapRow(mixed $row): array
+    public function mapRow(mixed $row): array
     {
         return [
             'id'     => $row->getId(),

@@ -417,4 +417,36 @@ call to a removed method.
     `installBulkActionBar()` (`bulk/BulkActionBar.js`), and `confirmBulkAction()` with
     `confirmAction()`.
 
+24. Declare every override of `mapRow()`, `projectPage()`, `customizeQueryBuilder()`,
+    `createDataProvider()`, `createSearchStrategyRegistry()` and `createSearchPredicateBuilder()` in an
+    `AbstractDataTable` subclass `public` instead of `protected`. Keep the signature. Replace an
+    override or call of `configureQueryBuilder()` with `customizeQueryBuilder()`.
+
+    ```php
+    protected function mapRow(mixed $row): array   // before
+    public function mapRow(mixed $row): array      // after
+    ```
+
+25. Replace the removed table methods in controllers and services. Inject
+    `Pentiminax\UX\DataTables\Runtime\DataTableRuntime` (or `DataTableResponder` for endpoints).
+    - `$table->handleRequest($r)` + `isRequestHandled()` + `getResponse()` become
+      `$responder->respond($table, $r)`, which returns `null` when the request is not a DataTables
+      request. Delete subclass overrides of those methods, of `getRequest()`, and of `fetchData()`.
+    - `$table->getConfiguredDataTable()` becomes `$runtime->definition($table)->table`;
+      `getEntityClass()` becomes `$runtime->definition($table)->entityClass()`;
+      `getResolvedOptIns()` becomes `$runtime->definition($table)->optIns`;
+      `getColumnByName($n)` becomes `$runtime->definition($table)->table->getColumnByName($n)`;
+      `prepareRendering()` becomes `$runtime->render($table)`;
+      `resolveMercureConfigWithoutHydration()` becomes `$runtime->mercureConfig($table)`.
+    - `getDataProvider()` and `fetchData()` have no replacement: call the provider you built.
+26. Remove every use of `DataTableInfrastructure`, `DataTableRuntimeFactory`,
+    `setDataTableInfrastructure()` and the container services `datatables.infrastructure` and
+    `datatables.runtime.factory`. A table built by hand needs nothing: let the container serve it, or
+    wire `DataTableRuntime` through `datatables.runtime`. If the application builds `DataTablesExtension`,
+    `AjaxDataTableRegistry`, `SecurityVoter`, `RowScopeGuard`, `BulkActionRunner`, `ExportService`,
+    `MercureUpdatePublisher`, `MercureTopicResolver`, `EditModalTemplateResolver`, `DataTableResponder`
+    or `ExtensionDetector` itself, stop doing so and inject the service instead. In the rare case it
+    must, `DataTablesRuntime` (not `DataTablesExtension`) renders tables, and the services above now
+    require a `DataTableRuntime` or `TableDefinitionBuilder` argument.
+
 </upgrade-prompt>

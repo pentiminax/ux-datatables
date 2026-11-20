@@ -172,7 +172,7 @@ final class UserDataTable extends AbstractDataTable
      *
      * @return list<UserRow>
      */
-    protected function projectPage(array $items): ?array
+    public function projectPage(array $items): ?array
     {
         return array_map(UserRow::fromEntity(...), $items);
     }

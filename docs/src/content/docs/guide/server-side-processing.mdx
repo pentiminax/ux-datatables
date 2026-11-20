@@ -91,9 +91,10 @@ supported flow is:
 2. Return the response it gives you
 3. Render the page when it returns `null`, meaning the request carries no DataTables payload
 
-<Aside type="caution" title="handleRequest(), isRequestHandled() and getResponse() are deprecated">
-  Since 1.7, `AbstractDataTable::handleRequest()`, `isRequestHandled()` and `getResponse()` are
-  deprecated in favor of `DataTableResponder::respond()`. They are removed in 2.0.
+<Aside type="note" title="handleRequest(), isRequestHandled() and getResponse() are removed">
+  2.0 removes `AbstractDataTable::handleRequest()`, `isRequestHandled()` and `getResponse()`:
+  `DataTableResponder::respond()` is the entry point for a custom endpoint. You protect the route
+  with your Symfony Security configuration; `respond()` does not authorize the user.
 </Aside>
 
 What matters here is the DataTables payload, not whether the browser transport happens to be
@@ -180,7 +181,7 @@ public function configureDataTable(DataTable $table): DataTable
         ->forwardQueryParameters(['q', 'pending']);
 }
 
-protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+public function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
 {
     $httpRequest = $this->getHttpRequest();
 
@@ -255,7 +256,7 @@ public function configureColumns(): iterable
         ->disableGlobalSearch();
 }
 
-protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+public function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
 {
     return $qb->addSelect(
         '(SELECT COUNT(inv.id) FROM App\Entity\Invoice inv WHERE inv.customer = e.id) AS HIDDEN invoiceCount'

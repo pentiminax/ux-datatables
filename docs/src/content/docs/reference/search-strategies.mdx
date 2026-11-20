@@ -182,7 +182,7 @@ final class WordPrefixStartsSearchStrategy implements SearchStrategyInterface
 use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 
-protected function createSearchStrategyRegistry(): SearchStrategyRegistry
+public function createSearchStrategyRegistry(): SearchStrategyRegistry
 {
     $registry = new DefaultSearchStrategyRegistry();
     $registry->register(new WordPrefixStartsSearchStrategy());
@@ -265,7 +265,7 @@ Override `createSearchPredicateBuilder()` to add type handling the default build
 use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
 use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
 
-protected function createSearchPredicateBuilder(): SearchPredicateBuilderInterface
+public function createSearchPredicateBuilder(): SearchPredicateBuilderInterface
 {
     return new EnumAwareSearchPredicateBuilder(new DefaultSearchPredicateBuilder());
 }

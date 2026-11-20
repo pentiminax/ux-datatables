@@ -105,7 +105,7 @@ final class ProductsDataTable extends AbstractDataTable
             ->template('datatable/columns/stock_badge.html.twig');
     }
 
-    protected function mapRow(mixed $row): array
+    public function mapRow(mixed $row): array
     {
         return [
             'id'         => $row->getId(),

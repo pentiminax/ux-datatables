@@ -38,7 +38,7 @@ final class UsersDataTable extends AbstractDataTable
         yield TextColumn::new('email', 'Email');
     }
 
-    protected function mapRow(mixed $row): array
+    public function mapRow(mixed $row): array
     {
         /** @var User $row */
         return [
@@ -166,7 +166,7 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 #[AsDataTable(User::class)]
 final class ActiveUsersDataTable extends AbstractDataTable
 {
-    protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+    public function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
     {
         return $qb
             ->andWhere('e.active = :active')
@@ -191,7 +191,7 @@ are layered on top for `recordsFiltered`; `recordsTotal` reflects your base data
 Use request parameters for dynamic filters:
 
 ```php
-protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+public function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
 {
     // Access the current Symfony HTTP request for custom parameters
     if ($roleId = $this->getHttpRequest()?->query->get('role')) {
@@ -295,9 +295,10 @@ result is reused. Under PHP-FPM the process dies after each request, so the
 configuration is rebuilt anyway. Under a worker runtime (FrankenPHP worker mode,
 Swoole, RoadRunner) the same instance serves many requests, for many users.
 
-The bundle tags every autoconfigured table with `kernel.reset`, so Symfony's
-`ServicesResetter` clears the per-request state between requests and the
-configuration is rebuilt each time. Still, treat `configure*()` as pure: define
+The bundle calls `configure*()` once per table and keeps the result as an immutable
+definition, so a configure method is never re-run for another request or user. The table
+holds no request state; the only exception is the rows passed to `rows()`, which the
+`kernel.reset` tag clears between requests. Treat `configure*()` as pure: define
 columns, actions, filters, extensions, and table options, and nothing else.
 
 Do not read the current HTTP request, the security token, the session, the
@@ -315,11 +316,8 @@ the table declaratively and let the request-scoped boundaries do the rest:
 <Table
   headers={['Method', 'Description']}
   rows={[
-    ['`createDataProvider()`', 'Protected hook for manual DataProvider instances'],
-    ['`getDataProvider()`', 'Deprecated since 1.7, no replacement: 2.0 moves it to the bundle runtime'],
-    ['`fetchData(DataTableRequest $request)`', 'Deprecated since 1.7, no replacement: 2.0 moves it to the bundle runtime'],
+    ['`createDataProvider()`', 'Public hook for manual DataProvider instances'],
     ['`getCurrentRequest()`', 'Protected, final: the DataTableRequest being handled, for hooks such as `mapRow()`'],
-    ['`getRequest()`', 'Deprecated since 1.7, use `getCurrentRequest()` inside the table'],
     ['`getHttpRequest()`', 'Get the current Symfony HTTP request while a DataTables request is handled'],
     ['`mapRow(mixed $row)`', 'Map a single row to array'],
     [
@@ -355,12 +353,9 @@ the table declaratively and let the request-scoped boundaries do the rest:
       '`DataTableResponder::respond(AbstractDataTable $table, Request $request)`',
       'Get the JsonResponse for a DataTables request, or `null` when the request carries no DataTables payload',
     ],
-    ['`handleRequest(Request $request)`', 'Deprecated since 1.7: use `DataTableResponder::respond()`'],
-    ['`isRequestHandled()`', 'Deprecated since 1.7: use `DataTableResponder::respond()`'],
-    ['`getResponse()`', 'Deprecated since 1.7: use `DataTableResponder::respond()`'],
     [
-      '`getConfiguredDataTable()`',
-      'Read the DataTable as `configureDataTable()` returned it: rendering never writes to it',
+      '`DataTableRuntime::definition($table)`',
+      'Read the configured DataTable (`->table`), columns, filters and opt-ins: rendering never writes to them',
     ],
     [
       '`getResolvedColumns()`',
@@ -380,7 +375,7 @@ use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 #[AsDataTable(User::class)] // Auto Doctrine wiring is skipped when createDataProvider() returns a provider
 final class CustomUsersDataTable extends AbstractDataTable
 {
-    protected function createDataProvider(): ?DataProviderInterface
+    public function createDataProvider(): ?DataProviderInterface
     {
         // Static data
         $rows = [
@@ -391,7 +386,7 @@ final class CustomUsersDataTable extends AbstractDataTable
         return new ArrayDataProvider($rows, $this->createRowMapper(), $this->getResolvedColumns());
     }
 
-    protected function mapRow(mixed $row): array
+    public function mapRow(mixed $row): array
     {
         // For arrays, just return as-is
         return is_array($row) ? $row : (array) $row;
@@ -517,7 +512,7 @@ This includes:
 
 <Aside type="note">
   `render_datatable()` builds the payload without writing to the table: read the table with
-  `getConfiguredDataTable()` and render it with `render_datatable()`.
+  `DataTableRuntime::definition($table)->table` and render it with `render_datatable()`.
 </Aside>
 
 <Aside type="tip">

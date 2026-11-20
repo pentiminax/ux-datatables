@@ -89,11 +89,9 @@ carried, the submitted filter values, and the raw `DataTableRequest` behind a co
 
 ## Limitations
 
-The panel is a no-op for a table built outside the container. `DataTableInfrastructure::createDefault()`
-supplies no profiler, and every consumer treats it as optional, so a hand-built
-`AbstractDataTable` renders and answers normally but records nothing. In practice this only affects
-tests and scripts — Symfony's autoconfiguration injects the container's infrastructure into every
-subclass it manages.
+The panel records nothing when no profiler is wired into the `DataTableRuntime`. Every consumer
+treats it as optional, so a runtime built by hand (in a test or a script) renders and answers
+normally but records nothing. The container wires the profiler when `kernel.debug` is on.
 
 A client-side table performs no Ajax query, so it appears under **Rendered DataTables** only.
 

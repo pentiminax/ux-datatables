@@ -249,7 +249,7 @@ This is what makes a tenant-scoped table safe against forged identifiers, with o
 resolver:
 
 ```php
-protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+public function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
 {
     return $qb
         ->andWhere('e.owner = :owner')

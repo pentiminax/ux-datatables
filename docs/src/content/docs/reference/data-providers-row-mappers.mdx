@@ -98,7 +98,7 @@ columns so it can honor the request:
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 
-protected function createDataProvider(): ?DataProviderInterface
+public function createDataProvider(): ?DataProviderInterface
 {
     return new ArrayDataProvider(
         $this->rows,
@@ -213,7 +213,7 @@ change how a row is mapped, override `mapRow()` — it is the base mapping every
 of:
 
 ```php
-protected function mapRow(mixed $row): array
+public function mapRow(mixed $row): array
 {
     $mappedRow = parent::mapRow($row);
 
@@ -235,7 +235,7 @@ use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 
-protected function createDataProvider(): ?DataProviderInterface
+public function createDataProvider(): ?DataProviderInterface
 {
     $inner = $this->createRowMapper();
 
@@ -285,7 +285,7 @@ feature. See [Column Summaries](/features/column-summaries/).
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 
-protected function createDataProvider(): ?DataProviderInterface
+public function createDataProvider(): ?DataProviderInterface
 {
     return new ArrayDataProvider($this->rows, $this->createRowMapper(), $this->getResolvedColumns());
 }
