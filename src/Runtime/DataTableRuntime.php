@@ -88,9 +88,8 @@ final class DataTableRuntime
         $definition = $this->definitions->build($table);
         $call       = new DataTableCall($this, $definition, $table);
 
-        $inlineRows = $rows ?? $table->getInlineRows();
-        if (null !== $inlineRows) {
-            $definition = $this->definitions->withInlineRows($definition, $this->mapRows($call, $inlineRows));
+        if (null !== $rows) {
+            $definition = $this->definitions->withInlineRows($definition, $this->mapRows($call, $rows));
             $call       = new DataTableCall($this, $definition, $table);
         }
 
@@ -102,7 +101,7 @@ final class DataTableRuntime
 
         $rows = match (true) {
             DataSourceMode::ClientHydrated === $optIns->dataSourceMode => $this->hydrateClientSideRows($call),
-            null !== $inlineRows                                       => null,
+            null !== $rows                                             => null,
             default                                                    => $this->mapExplicitInlineRows($call),
         };
 

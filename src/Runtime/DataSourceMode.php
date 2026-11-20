@@ -15,7 +15,7 @@ use Pentiminax\UX\DataTables\Model\DataTable;
  */
 enum DataSourceMode
 {
-    /** Rows set through `data()` or `rows()`, embedded in the payload. */
+    /** Rows set through `data()` or the render argument, embedded in the payload. */
     case Inline;
 
     /** An endpoint set through `ajax()`; an API Platform opt-in reads it with the Hydra adapter. */

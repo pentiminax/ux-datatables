@@ -283,9 +283,7 @@ final class DataTablesExtensionTest extends TestCase
     #[DataProvider('inlineObjectRowCases')]
     public function it_prepares_inline_object_rows_during_rendering(string $mode, array $expectedRow): void
     {
-        $table = $this->createInlineObjectTable($mode);
-
-        $actual = $this->renderPayload($table);
+        $actual = $this->renderInlineObjectPayload($mode);
 
         $this->assertSame($expectedRow, $this->trimRow($actual['data'][0]));
     }
@@ -295,7 +293,7 @@ final class DataTablesExtensionTest extends TestCase
      */
     public static function inlineObjectRowCases(): iterable
     {
-        yield 'rows passed to rows()' => ['setData', [
+        yield 'rows passed as the render argument' => ['argument', [
             'id'                      => 5,
             'title'                   => 'Dune',
             'status_display'          => '<span class="badge">5-active</span>',
@@ -308,29 +306,6 @@ final class DataTablesExtensionTest extends TestCase
             'status_display'          => '<span class="badge">dto-5-active</span>',
             '__ux_datatables_actions' => ['DETAIL' => ['url' => '/books/5']],
         ]];
-    }
-
-    #[Test]
-    public function it_renders_the_rows_argument_like_rows(): void
-    {
-        $expected = $this->renderPayload($this->createInlineObjectTable('setData'));
-
-        $rendered = $this->container->get('test.datatables.twig_runtime')->renderDataTable(
-            $this->createInlineObjectTable('argument'),
-            rows: [new InlineBook(id: 5, title: 'Dune', status: 'active')],
-        );
-
-        $this->assertSame($expected, $this->payloadOf($rendered));
-    }
-
-    #[Test]
-    public function it_leaves_no_rows_on_the_table_after_rendering_the_rows_argument(): void
-    {
-        $table = $this->createInlineObjectTable('argument');
-
-        $this->container->get('test.datatables.twig_runtime')->renderDataTable($table, rows: [new InlineBook(id: 5, title: 'Dune', status: 'active')]);
-
-        $this->assertNull($table->getInlineRows());
     }
 
     #[Test]
@@ -363,10 +338,8 @@ final class DataTablesExtensionTest extends TestCase
     #[DataProvider('inlineObjectRowCases')]
     public function it_renders_the_same_payload_twice(string $mode, array $expectedRow): void
     {
-        $table = $this->createInlineObjectTable($mode);
-
-        $this->assertSame($this->renderPayload($table), $this->renderPayload($table));
-        $this->assertSame($expectedRow, $this->trimRow($this->renderPayload($table)['data'][0]));
+        $this->assertSame($this->renderInlineObjectPayload($mode), $this->renderInlineObjectPayload($mode));
+        $this->assertSame($expectedRow, $this->trimRow($this->renderInlineObjectPayload($mode)['data'][0]));
     }
 
     #[Test]
@@ -677,11 +650,17 @@ final class DataTablesExtensionTest extends TestCase
                 : null,
         );
 
-        if ('setData' === $mode) {
-            $table->rows($rows);
-        }
-
         return $table;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function renderInlineObjectPayload(string $mode): array
+    {
+        $rows = 'argument' === $mode ? [new InlineBook(id: 5, title: 'Dune', status: 'active')] : null;
+
+        return $this->payloadOf($this->container->get('test.datatables.twig_runtime')->renderDataTable($this->createInlineObjectTable($mode), rows: $rows));
     }
 
     /**

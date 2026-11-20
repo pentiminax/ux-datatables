@@ -2,12 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
+namespace Pentiminax\UX\DataTables\Tests\Unit\Runtime;
 
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
@@ -22,60 +21,15 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
- * A container-shared table serves many requests under a worker runtime
- * (FrankenPHP worker mode, Swoole, RoadRunner). `resetDataTableState()` is what gives those
- * runtimes the same per-request isolation PHP-FPM gets for free.
+ * Row and action permissions are evaluated on every render.
  *
  * @internal
  */
-#[CoversClass(AbstractDataTable::class)]
-final class AbstractDataTableResetTest extends TestCase
+#[CoversClass(DataTableRuntime::class)]
+final class DataTableRuntimeActionPermissionTest extends TestCase
 {
     use BuildsRuntime;
     use PreparesPayload;
-
-    #[Test]
-    public function it_drops_the_rows_set_on_the_table_after_a_reset(): void
-    {
-        $runtime = self::buildRuntime();
-        $table   = new ConfigurableDataTable([TextColumn::new('id')]);
-
-        $table->rows([['id' => 1]]);
-
-        $this->assertSame([['id' => 1]], self::optionOf($runtime->render($table), 'data'));
-
-        $table->resetDataTableState();
-
-        $this->assertSame([], self::optionOf($runtime->render($table), 'data'));
-    }
-
-    #[Test]
-    public function it_renders_the_same_payload_twice_for_the_same_table(): void
-    {
-        $runtime = self::buildRuntime();
-        $table   = new ConfigurableDataTable(
-            [TextColumn::new('id')],
-            configureTable: static fn (DataTable $table): DataTable => $table->data([['id' => 1]]),
-        );
-
-        $this->assertSame($runtime->render($table)->getView(), $runtime->render($table)->getView());
-    }
-
-    #[Test]
-    public function it_maps_the_rows_at_render_time(): void
-    {
-        $runtime = self::buildRuntime();
-        $table   = new ConfigurableDataTable([TextColumn::new('id')]);
-
-        $table->rows([['id' => 1]]);
-        $first = $runtime->render($table)->getView();
-
-        $this->assertSame($first, $runtime->render($table)->getView());
-
-        $table->rows([['id' => 2]]);
-
-        $this->assertSame([['id' => 2]], self::optionOf($runtime->render($table), 'data'));
-    }
 
     /**
      * The leak PR #323 reported: an action resolved for a privileged user keeps
@@ -100,7 +54,6 @@ final class AbstractDataTableResetTest extends TestCase
         );
 
         $granted = false;
-        $table->resetDataTableState();
 
         $this->assertNull($this->rowActions($runtime, $table));
     }
@@ -128,37 +81,8 @@ final class AbstractDataTableResetTest extends TestCase
         );
 
         $granted = false;
-        $table->resetDataTableState();
 
         $this->assertNull($this->rowActions($runtime, $table));
-    }
-
-    /**
-     * `reset()` is a common enough method name on user tables (`ResetInterface`,
-     * filter resets) that claiming it as a final method would break existing
-     * subclasses on upgrade. Declaring one here fails at class-load time if the
-     * hook is ever renamed back.
-     */
-    #[Test]
-    public function it_leaves_the_reset_method_name_to_subclasses(): void
-    {
-        $table = new class extends AbstractDataTable {
-            public bool $resetCalled = false;
-
-            public function reset(): void
-            {
-                $this->resetCalled = true;
-            }
-
-            public function configureColumns(): iterable
-            {
-                return [TextColumn::new('id')];
-            }
-        };
-
-        $table->resetDataTableState();
-
-        $this->assertFalse($table->resetCalled);
     }
 
     /**

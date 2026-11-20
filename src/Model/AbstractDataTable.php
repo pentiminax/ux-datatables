@@ -23,8 +23,7 @@ use Symfony\Component\HttpFoundation\Request;
  * A table only declares. The bundle calls the configure*() methods once, keeps the result as an
  * immutable definition, and calls the protected hooks (mapRow(),
  * projectPage(), customizeQueryBuilder(), createDataProvider()) while it serves a request. The
- * instance is container-shared and holds no request, user, or runtime state of its own. The one
- * exception is rows() -- see its documentation.
+ * instance is container-shared and holds no request, user, or runtime state of its own.
  *
  * Treat the configure*() methods as pure functions of the class: they must not read the request,
  * the security token, the session, or the locale, and the definition they build is never rebuilt
@@ -39,9 +38,6 @@ use Symfony\Component\HttpFoundation\Request;
 abstract class AbstractDataTable
 {
     private ?TableContext $context = null;
-
-    /** @var array<array-key, mixed>|null */
-    private ?array $inlineRows = null;
 
     /**
      * The hooks of a copy of this table, bound to the context of one call the runtime makes.
@@ -86,26 +82,6 @@ abstract class AbstractDataTable
         } finally {
             $this->context = $previous;
         }
-    }
-
-    /**
-     * @internal
-     */
-    final public function resetDataTableState(): void
-    {
-        $this->inlineRows = null;
-    }
-
-    /**
-     * The rows rows() received, not yet mapped.
-     *
-     * @return array<array-key, mixed>|null
-     *
-     * @internal
-     */
-    final public function getInlineRows(): ?array
-    {
-        return $this->inlineRows;
     }
 
     /**
@@ -253,19 +229,5 @@ abstract class AbstractDataTable
             ?? throw new \LogicException('createRowMapper() is available while the bundle runtime calls a hook of the table.');
 
         return $rowMapper();
-    }
-
-    /**
-     * Maps domain objects or arrays through the row pipeline at render time and embeds them as the
-     * table's rows.
-     *
-     * This is the one piece of state a table keeps: the rows wait on the instance until the table
-     * is rendered, and the `kernel.reset` tag clears them between requests under a worker runtime.
-     *
-     * @param array<array-key, mixed> $data
-     */
-    public function rows(array $data): void
-    {
-        $this->inlineRows = $data;
     }
 }

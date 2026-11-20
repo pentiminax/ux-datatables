@@ -92,23 +92,21 @@ final class PentiminaxDataTablesBundleTest extends TestCase
         self::assertInstanceOf(SecurityVoter::class, $this->container->get('test.datatables.security.voter'));
     }
 
-    /**
-     * Autoconfigured tables are tagged `kernel.reset`, so worker runtimes
-     * (FrankenPHP worker mode, Swoole, RoadRunner) get the per-request isolation
-     * PHP-FPM gets from a fresh process.
-     */
     #[Test]
-    public function it_resets_shared_data_tables_between_requests(): void
+    public function it_autoconfigures_tables_without_the_kernel_reset_tag(): void
     {
-        /** @var AbstractDataTable $table */
-        $table = $this->kernel->getContainer()->get('test.datatables.server_side_template');
+        $builder = new ContainerBuilder();
+        $builder->setParameter('kernel.debug', false);
+        $builder->setParameter('kernel.bundles_metadata', []);
+        $builder->setParameter('kernel.project_dir', \dirname(__DIR__, 2));
+        $builder->setParameter('kernel.environment', 'test');
+        $builder->setParameter('kernel.bundles', []);
+        (new PentiminaxDataTablesBundle())->getContainerExtension()->load([[]], $builder);
 
-        $table->rows([['id' => 1]]);
-        self::assertNotNull($table->getInlineRows());
+        $tags = $builder->getAutoconfiguredInstanceof()[AbstractDataTable::class]->getTags();
 
-        $this->container->get('services_resetter')->reset();
-
-        self::assertNull($table->getInlineRows());
+        self::assertArrayHasKey('datatables.data_table', $tags);
+        self::assertArrayNotHasKey('kernel.reset', $tags);
     }
 
     #[Test]
