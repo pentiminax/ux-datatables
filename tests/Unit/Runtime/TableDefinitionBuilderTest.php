@@ -41,6 +41,16 @@ final class TableDefinitionBuilderTest extends TestCase
     }
 
     #[Test]
+    public function it_hands_state_set_while_configuring_to_the_hooks(): void
+    {
+        $table = new ConfiguredStateTable();
+
+        $call = self::buildRuntime()->open($table);
+
+        $this->assertSame('set-in-configure', $call->hooks->table->exposeLabel());
+    }
+
+    #[Test]
     public function it_renders_the_same_payload_twice(): void
     {
         $table   = new CountingDefinitionTable(new \ArrayObject());
@@ -101,5 +111,27 @@ final class CountingDefinitionTable extends AbstractDataTable
     public function configureBulkActions(BulkActions $actions): BulkActions
     {
         return $this->bulk ? $actions->add(BulkAction::new('archive', 'Archive')) : $actions;
+    }
+}
+
+final class ConfiguredStateTable extends AbstractDataTable
+{
+    private string $label = '';
+
+    public function configureColumns(): iterable
+    {
+        $this->label = 'set-in-configure';
+
+        yield TextColumn::new('name');
+    }
+
+    public function exposeLabel(): string
+    {
+        return $this->label;
+    }
+
+    protected function mapRow(mixed $row): array
+    {
+        return [];
     }
 }

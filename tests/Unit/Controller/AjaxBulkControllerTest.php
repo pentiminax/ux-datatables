@@ -244,7 +244,7 @@ final class AjaxBulkControllerTest extends TestCase
             $permissionChecker,
             new MutationFlusher(),
             new NullMercurePublisher(),
-            new MercureTopicResolver(),
+            new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()),
             new RowScopeGuard($locator, $runtime),
             $runtime,
         );

@@ -80,7 +80,7 @@ final class MutationExceptionHandlingTest extends TestCase
         $controller = $this->editController(new EntityMutator(
             $accessor,
             new NullMercurePublisher(),
-            new MercureTopicResolver(),
+            new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()),
             new MutationFlusher(),
         ), $entity);
 
@@ -162,7 +162,7 @@ final class MutationExceptionHandlingTest extends TestCase
         return new EntityMutator(
             $this->createStub(PropertyAccessorInterface::class),
             new NullMercurePublisher(),
-            new MercureTopicResolver(),
+            new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()),
             new MutationFlusher(),
         );
     }

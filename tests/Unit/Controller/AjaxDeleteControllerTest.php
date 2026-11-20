@@ -122,7 +122,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $mutator = new EntityMutator(
             $this->createStub(PropertyAccessorInterface::class),
             $publisher,
-            new MercureTopicResolver($resolver, $dataTables, runtime: $runtime),
+            new MercureTopicResolver($runtime, $resolver, $dataTables),
             new MutationFlusher(),
         );
 
@@ -179,7 +179,7 @@ final class AjaxDeleteControllerTest extends TestCase
             new EntityMutator(
                 $this->createStub(PropertyAccessorInterface::class),
                 new NullMercurePublisher(),
-                new MercureTopicResolver(),
+                new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()),
                 new MutationFlusher(),
             ),
             $this->rowActionGate(
@@ -239,7 +239,7 @@ final class AjaxDeleteControllerTest extends TestCase
             new EntityMutator(
                 $this->createStub(PropertyAccessorInterface::class),
                 new NullMercurePublisher(),
-                new MercureTopicResolver(),
+                new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()),
                 new MutationFlusher(),
             ),
             $this->rowActionGate($this->registry($dataTable), $registry, $csrfTokenManager, $this->unscopedRowScopeGuard(), $permissionChecker),

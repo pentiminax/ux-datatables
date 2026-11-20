@@ -173,7 +173,7 @@ final class AjaxEditRelatedEntityTest extends TestCase
         $permissions = new AuthorizationChecker(new TestAuthorizationChecker());
 
         return new AjaxEditController(
-            new EntityMutator(PropertyAccess::createPropertyAccessor(), new NullMercurePublisher(), new MercureTopicResolver(), new MutationFlusher()),
+            new EntityMutator(PropertyAccess::createPropertyAccessor(), new NullMercurePublisher(), new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()), new MutationFlusher()),
             new RowActionGate($this->tokenValidator(), $registry, new BooleanMutationContextResolver($registry, new AuthorizationChecker()), new RowScopeGuard($locator, self::buildRuntime(), self::requestStack()), $locator, $permissions),
         );
     }

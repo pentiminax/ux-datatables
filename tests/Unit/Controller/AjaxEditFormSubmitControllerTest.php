@@ -87,7 +87,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             $renderer,
             $templateResolver,
             new NullMercurePublisher(),
-            new MercureTopicResolver(dataTables: $this->registeredDataTables()),
+            new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make(), dataTables: $this->registeredDataTables()),
             new MutationFlusher(),
             new ColumnResolver($this->permissionCheckerGranting(true)),
         ), doctrine: $doctrine);
@@ -139,7 +139,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             $renderer,
             $templateResolver,
             new NullMercurePublisher(),
-            new MercureTopicResolver(),
+            new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()),
             new MutationFlusher(),
             new ColumnResolver(new AuthorizationChecker($authorizationChecker)),
         ), doctrine: $doctrine, permissionChecker: new AuthorizationChecker($authorizationChecker));
@@ -205,7 +205,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             $renderer,
             $templateResolver,
             new MercureUpdatePublisher($hub, $runtime),
-            new MercureTopicResolver($resolver, $this->registeredDataTables(), runtime: $runtime),
+            new MercureTopicResolver($runtime, $resolver, $this->registeredDataTables()),
             new MutationFlusher(),
             new ColumnResolver($this->permissionCheckerGranting(true)),
         ), doctrine: $doctrine);

@@ -365,7 +365,7 @@ final class RowScopeGuardTest extends TestCase
             $renderer,
             $this->createStub(EditModalTemplateResolver::class),
             new NullMercurePublisher(),
-            new MercureTopicResolver(),
+            new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()),
             new MutationFlusher(),
             new ColumnResolver(new AuthorizationChecker(new TestAuthorizationChecker())),
         );
@@ -444,7 +444,7 @@ final class RowScopeGuardTest extends TestCase
         return new EntityMutator(
             PropertyAccess::createPropertyAccessor(),
             new NullMercurePublisher(),
-            new MercureTopicResolver(),
+            new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()),
             new MutationFlusher(),
         );
     }

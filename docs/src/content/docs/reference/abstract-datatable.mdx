@@ -290,10 +290,10 @@ into each action. See the [Action Columns](/columns/action-column/) reference fo
 
 #### Configuration Methods Must Be Pure
 
-DataTable services are shared in the container: `configure*()` runs once and its
-result is reused. Under PHP-FPM the process dies after each request, so the
-configuration is rebuilt anyway. Under a worker runtime (FrankenPHP worker mode,
-Swoole, RoadRunner) the same instance serves many requests, for many users.
+DataTable services are shared in the container, and the definition built from
+`configure*()` is kept for the lifetime of the process. Under PHP-FPM that is one
+request; under a worker runtime (FrankenPHP worker mode, Swoole, RoadRunner) the same
+instance serves many requests, for many users.
 
 The bundle calls `configure*()` once per table and keeps the result as an immutable
 definition, so a configure method is never re-run for another request or user. The table

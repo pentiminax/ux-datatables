@@ -47,7 +47,7 @@ final class MercureTopicResolverTest extends TestCase
     #[Test]
     public function it_falls_back_to_the_bare_entity_class_resolver_without_a_data_table(): void
     {
-        $resolver = new MercureTopicResolver($this->resolverReturning(self::BARE_RESOLVER_TOPICS));
+        $resolver = new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make(), $this->resolverReturning(self::BARE_RESOLVER_TOPICS));
 
         $this->assertSame(
             self::BARE_RESOLVER_TOPICS,
@@ -58,7 +58,7 @@ final class MercureTopicResolverTest extends TestCase
     #[Test]
     public function it_resolves_no_topics_when_no_mercure_config_resolver_is_available(): void
     {
-        $this->assertSame([], (new MercureTopicResolver())->resolve(TopicResolverFixture::class, self::UNREGISTERED_TABLE_CLASS));
+        $this->assertSame([], (new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()))->resolve(TopicResolverFixture::class, self::UNREGISTERED_TABLE_CLASS));
     }
 
     #[Test]
@@ -74,7 +74,7 @@ final class MercureTopicResolverTest extends TestCase
 
         $dataTable = new TopicResolverServerSideFixtureDataTable($dataProviderSpy);
 
-        $resolver = new MercureTopicResolver($configResolver, $this->dataTablesContaining($dataTable), runtime: $this->runtime(self::HUB_URL));
+        $resolver = new MercureTopicResolver($this->runtime(self::HUB_URL), $configResolver, $this->dataTablesContaining($dataTable));
 
         $this->assertSame(
             ['/datatable-instance/topic'],
@@ -95,7 +95,7 @@ final class MercureTopicResolverTest extends TestCase
 
         $dataTable = new TopicResolverClientSideFixtureDataTable($dataProviderSpy);
 
-        $resolver = new MercureTopicResolver($configResolver, $this->dataTablesContaining($dataTable), runtime: $this->runtime(self::HUB_URL));
+        $resolver = new MercureTopicResolver($this->runtime(self::HUB_URL), $configResolver, $this->dataTablesContaining($dataTable));
 
         $this->assertSame(
             ['/client-side/topic'],
@@ -110,11 +110,7 @@ final class MercureTopicResolverTest extends TestCase
         // one being mutated: the guard must reject it and fall through.
         $dataTable = new TopicResolverMismatchedFixtureDataTable();
 
-        $resolver = new MercureTopicResolver(
-            $this->resolverReturning(self::BARE_RESOLVER_TOPICS),
-            $this->dataTablesContaining($dataTable),
-            runtime: $this->runtime(self::HUB_URL),
-        );
+        $resolver = new MercureTopicResolver($this->runtime(self::HUB_URL), $this->resolverReturning(self::BARE_RESOLVER_TOPICS), $this->dataTablesContaining($dataTable));
 
         $this->assertSame(
             self::BARE_RESOLVER_TOPICS,
@@ -129,7 +125,7 @@ final class MercureTopicResolverTest extends TestCase
         $dataTables->method('has')->with(TopicResolverServerSideFixtureDataTable::class)->willReturn(false);
         $dataTables->expects($this->never())->method('get');
 
-        $resolver = new MercureTopicResolver($this->resolverReturning(self::BARE_RESOLVER_TOPICS), $dataTables);
+        $resolver = new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make(), $this->resolverReturning(self::BARE_RESOLVER_TOPICS), $dataTables);
 
         $this->assertSame(
             self::BARE_RESOLVER_TOPICS,
@@ -145,11 +141,7 @@ final class MercureTopicResolverTest extends TestCase
         // an already-committed mutation into a 500.
         $dataTable = new TopicResolverServerSideFixtureDataTable();
 
-        $resolver = new MercureTopicResolver(
-            $this->resolverReturning(self::BARE_RESOLVER_TOPICS),
-            $this->dataTablesContaining($dataTable),
-            runtime: $this->runtime(null),
-        );
+        $resolver = new MercureTopicResolver($this->runtime(null), $this->resolverReturning(self::BARE_RESOLVER_TOPICS), $this->dataTablesContaining($dataTable));
 
         $this->assertSame(
             self::BARE_RESOLVER_TOPICS,

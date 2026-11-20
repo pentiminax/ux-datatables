@@ -122,24 +122,22 @@ accessors are gone. A definition never reads the request, the security token, th
 locale: keep reading them in `customizeQueryBuilder()`, `permission()` and the other request-scoped
 hooks.
 
-- **Hooks are `public`.** `mapRow()`, `projectPage()`, `customizeQueryBuilder()`,
-  `createDataProvider()`, `createSearchStrategyRegistry()` and `createSearchPredicateBuilder()` form
-  `DataTableHooksInterface`, which `AbstractDataTable` implements. The signatures are unchanged, but
-  an override must be declared `public`.
-
-  ```php
-  // Before (1.x)
-  protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
-
-  // After (2.0)
-  public function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
-  ```
-
+- **Hooks stay `protected`.** `mapRow()`, `projectPage()`, `customizeQueryBuilder()`,
+  `createDataProvider()`, `createSearchStrategyRegistry()` and `createSearchPredicateBuilder()` keep
+  their 1.x signatures and visibility, and `AbstractDataTable` does not implement
+  `DataTableHooksInterface`: the runtime reaches them through an internal bound object.
   `getHttpRequest()`, `getCurrentRequest()`, `getResolvedColumns()` and `createRowMapper()` keep
   working inside these hooks. Outside a call the bundle makes, the first two return `null` and the
   other two throw a `LogicException`.
-- **`configureQueryBuilder()` is removed.** The bundle applies search, ordering and filters after
-  `customizeQueryBuilder()`; override `customizeQueryBuilder()` instead.
+- **The definition is built once per table instance.** Under a worker runtime that is once for the
+  worker's lifetime, no longer on every request. A `configure*()` method, or a
+  `DataTableDefaultsConfiguratorInterface` service that configures your tables, must not read the
+  user, the request, the session or the locale: such a value would be frozen for every later
+  request. Move that logic to `permission()` or `customizeQueryBuilder()`. State a `configure*()`
+  method stores on `$this` still reaches the hooks.
+- **`configureQueryBuilder()` is removed without a 1.x deprecation.** It was `final protected`, so an
+  override already failed to load; a call to it no longer exists. The bundle applies search,
+  ordering and filters after `customizeQueryBuilder()`: put your query changes there.
 - **Custom Ajax endpoints use `DataTableResponder::respond()`**, as announced in 1.7. The
   `handleRequest()`, `isRequestHandled()`, `getResponse()`, `getRequest()`, `fetchData()` and
   `getDataProvider()` methods of `AbstractDataTable` are removed, and a subclass override of them is
@@ -172,7 +170,8 @@ hooks.
   // After (2.0)
   $columns = $runtime->definition($table)->table->getColumns();
   ```
-- **`rows()` is mapped when the table renders.** It still stores the rows on the instance, so the
+- **`rows()` is mapped when the table renders.** A mapping error now surfaces inside
+  `render_datatable()`, wrapped by Twig, instead of in `rows()`. It still stores the rows on the instance, so the
   `kernel.reset` tag stays on tables to drop them between requests under a worker runtime. The
   rendered payload is unchanged.
 - **Services that were built by hand.** `DataTableInfrastructure`, `DataTableRuntimeFactory` and the
@@ -185,6 +184,14 @@ hooks.
   and `InstallCommand` take the runtime or the definition builder. `AutoDataProviderFactory::create()`
   takes the definition and the hooks instead of closures, and `ResolvedDataTable` carries the
   definition. Application code should not build them: the container does.
+
+  If you do build them, the argument positions moved: `RowScopeGuard` takes the runtime as argument 1,
+  before the request stack; `ExportService` takes it as argument 2, before the translator;
+  `MercureUpdatePublisher` as argument 1, before the logger; `MercureTopicResolver` as a required
+  argument 1, before the config resolver; `EditModalTemplateResolver` as argument 3, so
+  `AsDataTableResolver` moves to 4; `BulkActionRunner` takes the scope guard and the runtime as
+  arguments 5 and 6; `AjaxDataTableRegistry` takes the definition builder as argument 4; `SecurityVoter`
+  takes it as argument 1 and `ExtensionDetector` the runtime as argument 2.
 
 ### A payload key set twice throws
 

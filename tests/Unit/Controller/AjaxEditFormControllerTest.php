@@ -147,7 +147,7 @@ final class AjaxEditFormControllerTest extends TestCase
                 $renderer,
                 $templateResolver,
                 new NullMercurePublisher(),
-                new MercureTopicResolver(dataTables: $dataTables),
+                new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make(), dataTables: $dataTables),
                 new MutationFlusher(),
                 new ColumnResolver(new AuthorizationChecker($authorizationChecker)),
             ),

@@ -51,9 +51,7 @@ final class RowScopeGuard
 
         $checker = DataSourceCapability::rowScopeChecker($call->dataProvider()) ?? throw new MutationNotAllowedException();
 
-        $dataTableRequest = $call->request ?? throw new MutationNotAllowedException();
-
-        return $checker->filterIdentifiersInScope($dataTableRequest->withoutPagination(), $ids, $field);
+        return $checker->filterIdentifiersInScope($call->request->withoutPagination(), $ids, $field);
     }
 
     /**

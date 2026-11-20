@@ -22,7 +22,7 @@ use Symfony\Component\HttpFoundation\Request;
  * extensions, and options, from which the bundle runtime builds rendering payloads and Ajax responses.
  *
  * A table only declares. The bundle calls the configure*() methods once, keeps the result as an
- * immutable definition, and calls the hooks ({@see DataTableHooksInterface}) (mapRow(),
+ * immutable definition, and calls the protected hooks (mapRow(),
  * projectPage(), customizeQueryBuilder(), createDataProvider()) while it serves a request. The
  * instance is container-shared and holds no request, user, or runtime state of its own. The one
  * exception is rows() -- see its documentation.

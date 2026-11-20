@@ -16,8 +16,6 @@ use Pentiminax\UX\DataTables\Model\Filters;
  * It is a pure function of the table class: it never holds the request, the security token, the
  * session, the locale, or any per-user decision. Permissions are evaluated per request by the runtime.
  * Treat the DataTable it carries as read-only.
- *
- * @internal
  */
 final readonly class TableDefinition
 {

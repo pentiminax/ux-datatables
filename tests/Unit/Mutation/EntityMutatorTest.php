@@ -260,7 +260,7 @@ final class EntityMutatorTest extends TestCase
         return new EntityMutator(
             $accessor ?? $this->createStub(PropertyAccessorInterface::class),
             $publisher,
-            $topicResolver ?? new MercureTopicResolver(),
+            $topicResolver ?? new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()),
             new MutationFlusher(),
         );
     }

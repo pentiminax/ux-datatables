@@ -35,10 +35,10 @@ class MercureTopicResolver
      * @param ?ContainerInterface $dataTables service locator of the registered `datatables.data_table` services
      */
     public function __construct(
+        private readonly DataTableRuntime $runtime,
         private readonly ?MercureConfigResolver $configResolver = null,
         private readonly ?ContainerInterface $dataTables = null,
         private readonly ?LoggerInterface $logger = null,
-        private readonly ?DataTableRuntime $runtime = null,
     ) {
     }
 
@@ -68,7 +68,7 @@ class MercureTopicResolver
         if (null !== $dataTableClass && null !== $this->dataTables && $this->dataTables->has($dataTableClass)) {
             $dataTable = $this->dataTables->get($dataTableClass);
 
-            if ($dataTable instanceof AbstractDataTable && null !== $this->runtime && $this->runtime->definition($dataTable)->entityClass() === $entityClass) {
+            if ($dataTable instanceof AbstractDataTable && $this->runtime->definition($dataTable)->entityClass() === $entityClass) {
                 try {
                     // Resolve the topics the render path serialized to the browser
                     // WITHOUT hydrating client-side data: no data-provider / DB

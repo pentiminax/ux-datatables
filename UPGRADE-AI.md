@@ -417,16 +417,14 @@ call to a removed method.
     `installBulkActionBar()` (`bulk/BulkActionBar.js`), and `confirmBulkAction()` with
     `confirmAction()`.
 
-24. Declare every override of `mapRow()`, `projectPage()`, `customizeQueryBuilder()`,
-    `createDataProvider()`, `createSearchStrategyRegistry()` and `createSearchPredicateBuilder()` in an
-    `AbstractDataTable` subclass `public` instead of `protected`. Keep the signature. Replace an
-    override or call of `configureQueryBuilder()` with `customizeQueryBuilder()`.
-
-    ```php
-    protected function mapRow(mixed $row): array   // before
-    public function mapRow(mixed $row): array      // after
-    ```
-
+24. Hooks stay `protected`: do not change the visibility of `mapRow()`, `projectPage()`,
+    `customizeQueryBuilder()`, `createDataProvider()`, `createSearchStrategyRegistry()` or
+    `createSearchPredicateBuilder()`. Replace an override or call of `configureQueryBuilder()` (removed
+    without a 1.x deprecation) with `customizeQueryBuilder()`.
+    The definition is built once per table instance, once per worker lifetime under a worker runtime.
+    Remove any read of the user, request, session or locale from `configure*()` methods and from
+    `DataTableDefaultsConfiguratorInterface` services; move it to `permission()` or
+    `customizeQueryBuilder()`.
 25. Replace the removed table methods in controllers and services. Inject
     `Pentiminax\UX\DataTables\Runtime\DataTableRuntime` (or `DataTableResponder` for endpoints).
     - `$table->handleRequest($r)` + `isRequestHandled()` + `getResponse()` become
@@ -434,7 +432,7 @@ call to a removed method.
       request. Delete subclass overrides of those methods, of `getRequest()`, and of `fetchData()`.
     - `$table->getConfiguredDataTable()` becomes `$runtime->definition($table)->table`;
       `getEntityClass()` becomes `$runtime->definition($table)->entityClass()`;
-      `getResolvedOptIns()` becomes `$runtime->definition($table)->optIns`;
+      `getResolvedOptIns()` becomes `$runtime->definition($table)->optIns` (public, read-only);
       `getColumnByName($n)` becomes `$runtime->definition($table)->table->getColumnByName($n)`;
       `prepareRendering()` becomes `$runtime->render($table)`;
       `resolveMercureConfigWithoutHydration()` becomes `$runtime->mercureConfig($table)`.
@@ -447,6 +445,7 @@ call to a removed method.
     `MercureUpdatePublisher`, `MercureTopicResolver`, `EditModalTemplateResolver`, `DataTableResponder`
     or `ExtensionDetector` itself, stop doing so and inject the service instead. In the rare case it
     must, `DataTablesRuntime` (not `DataTablesExtension`) renders tables, and the services above now
-    require a `DataTableRuntime` or `TableDefinitionBuilder` argument.
+    require a `DataTableRuntime` or `TableDefinitionBuilder` argument (`MercureTopicResolver` takes it as its first, required argument; `RowScopeGuard` as 1, `ExportService` as 2).
+    A mapping error from `rows()` now surfaces inside `render_datatable()`, wrapped by Twig.
 
 </upgrade-prompt>

@@ -155,10 +155,10 @@ return static function (ContainerConfigurator $container): void {
     // Registered here rather than in config/mercure.php: mutations must resolve
     // topics (to an empty list) even when Mercure is not installed.
     $services->set('datatables.mercure.topic_resolver', MercureTopicResolver::class)
-        ->arg(0, service(MercureConfigResolver::class)->nullOnInvalid())
-        ->arg(1, tagged_locator('datatables.data_table'))
-        ->arg(2, service('logger')->nullOnInvalid())
-        ->arg(3, service('datatables.runtime'))
+        ->arg(0, service('datatables.runtime'))
+        ->arg(1, service(MercureConfigResolver::class)->nullOnInvalid())
+        ->arg(2, tagged_locator('datatables.data_table'))
+        ->arg(3, service('logger')->nullOnInvalid())
         ->private();
 
     $services->alias(MercureTopicResolver::class, 'datatables.mercure.topic_resolver')

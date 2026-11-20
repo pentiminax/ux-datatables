@@ -17,8 +17,6 @@ use Pentiminax\UX\DataTables\Model\DataTable;
  * `apiPlatform` has three states. `mercure` is the fluent config when the table set one, else the
  * attribute's value. `serverSide` says whether the server pages the rows: the bundle's endpoint, or
  * a custom `ajax()` endpoint the table declared `serverSide()` for.
- *
- * @internal
  */
 final readonly class ResolvedOptIns
 {

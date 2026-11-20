@@ -82,7 +82,7 @@ final class EditFormServiceTest extends TestCase
             $renderer,
             $this->createRenderingTemplateResolver(EditFormServiceFixtureDataTable::class),
             new NullMercurePublisher(),
-            new MercureTopicResolver(),
+            new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()),
             new MutationFlusher(),
             new ColumnResolver(new AuthorizationChecker(new TestAuthorizationChecker())),
         );
@@ -118,7 +118,7 @@ final class EditFormServiceTest extends TestCase
             $renderer,
             $this->createRenderingTemplateResolver(EditFormServiceFixtureDataTable::class),
             new NullMercurePublisher(),
-            new MercureTopicResolver(),
+            new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()),
             new MutationFlusher(),
             new ColumnResolver(new AuthorizationChecker(new TestAuthorizationChecker())),
         );

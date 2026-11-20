@@ -166,7 +166,7 @@ final class AjaxEditControllerTest extends TestCase
         $mutator = new EntityMutator(
             $this->writableAccessor($entity, true),
             $publisher,
-            new MercureTopicResolver($resolver, $dataTables, runtime: $runtime),
+            new MercureTopicResolver($runtime, $resolver, $dataTables),
             new MutationFlusher(),
         );
 
@@ -190,7 +190,7 @@ final class AjaxEditControllerTest extends TestCase
         $mutator = new EntityMutator(
             $accessor,
             new NullMercurePublisher(),
-            new MercureTopicResolver(),
+            new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()),
             new MutationFlusher(),
         );
 
