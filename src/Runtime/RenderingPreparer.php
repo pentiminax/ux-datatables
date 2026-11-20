@@ -143,7 +143,7 @@ final class RenderingPreparer
      *
      * @throws \LogicException when the table polls without an Ajax source, or the payload sets a key twice
      */
-    public function prepareAfterDataHydration(DataTable $table, ResolvedOptIns $optIns, ?array $rows = null, ?string $bulkRowIdField, \Closure $mercure): PreparedDataTable
+    public function prepareAfterDataHydration(DataTable $table, ResolvedOptIns $optIns, ?array $rows, ?string $bulkRowIdField, \Closure $mercure): PreparedDataTable
     {
         $dataTableClass    = $table->getDataTableClass();
         $configuredColumns = $this->translatedColumns($table->getColumns());
