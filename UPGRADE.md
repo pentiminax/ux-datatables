@@ -185,13 +185,18 @@ hooks.
   takes the definition and the hooks instead of closures, and `ResolvedDataTable` carries the
   definition. Application code should not build them: the container does.
 
-  If you do build them, the argument positions moved: `RowScopeGuard` takes the runtime as argument 1,
-  before the request stack; `ExportService` takes it as argument 2, before the translator;
-  `MercureUpdatePublisher` as argument 1, before the logger; `MercureTopicResolver` as a required
-  argument 1, before the config resolver; `EditModalTemplateResolver` as argument 3, so
-  `AsDataTableResolver` moves to 4; `BulkActionRunner` takes the scope guard and the runtime as
-  arguments 5 and 6; `AjaxDataTableRegistry` takes the definition builder as argument 4; `SecurityVoter`
-  takes it as argument 1 and `ExtensionDetector` the runtime as argument 2.
+  If you do build them, the argument positions (1-based) are: `RowScopeGuard($locator, $runtime,
+  $requestStack)`, so the runtime is argument 2, before the request stack; `ExportService($exporters,
+  $columnResolver, $runtime, $translator)`, argument 3, before the translator;
+  `MercureUpdatePublisher($hub, $runtime, $logger)`, argument 2, before the logger;
+  `MercureTopicResolver($runtime, $configResolver, $dataTables, $logger)`, a required argument 1 that
+  shifts the others by one; `EditModalTemplateResolver($dataTables, $defaultTemplate,
+  $defaultBodyTemplate, $runtime, $asDataTableResolver)`, argument 4, so `AsDataTableResolver` moves
+  to 5; `ExtensionDetector($tables, $runtime)`, argument 2. Appended at the end: `BulkActionRunner`
+  takes the scope guard as argument 6 and the runtime as 7, `AjaxDataTableRegistry` the definition
+  builder as argument 5, `InstallCommand` the optional runtime as argument 3. `SecurityVoter`
+  takes the definition builder as argument 2. `DataTableResponder` takes the runtime as its only
+  argument.
 
 ### A payload key set twice throws
 

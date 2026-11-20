@@ -445,7 +445,7 @@ call to a removed method.
     `MercureUpdatePublisher`, `MercureTopicResolver`, `EditModalTemplateResolver`, `DataTableResponder`
     or `ExtensionDetector` itself, stop doing so and inject the service instead. In the rare case it
     must, `DataTablesRuntime` (not `DataTablesExtension`) renders tables, and the services above now
-    require a `DataTableRuntime` or `TableDefinitionBuilder` argument (`MercureTopicResolver` takes it as its first, required argument; `RowScopeGuard` as 1, `ExportService` as 2).
+    require a `DataTableRuntime` or `TableDefinitionBuilder` argument (1-based positions: `MercureTopicResolver` runtime first and required, the other arguments shift by one; `RowScopeGuard` 2; `ExportService` 3; `MercureUpdatePublisher` 2; `EditModalTemplateResolver` 4; `ExtensionDetector` 2; `SecurityVoter` builder 2; appended: `BulkActionRunner` scope guard 6 and runtime 7, `AjaxDataTableRegistry` builder 5, `InstallCommand` runtime 3; `DataTableResponder` takes only the runtime).
     A mapping error from `rows()` now surfaces inside `render_datatable()`, wrapped by Twig.
 
 </upgrade-prompt>
