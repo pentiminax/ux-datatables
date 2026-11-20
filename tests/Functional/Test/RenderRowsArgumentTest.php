@@ -66,6 +66,19 @@ final class RenderRowsArgumentTest extends DataTableTestCase
         $this->dataTableView($crawler)->assertRowCount(2);
     }
 
+    public function test_a_table_without_the_reset_tag_keeps_no_rows_between_requests(): void
+    {
+        $client = static::createClient();
+        $client->disableReboot();
+
+        $client->request('GET', '/unreset-rows', ['rows' => $this->json([['id' => 1, 'title' => 'First user']])]);
+        $crawler = $client->request('GET', '/unreset-rows', ['rows' => $this->json([['id' => 2, 'title' => 'Second user']])]);
+        $this->dataTableView($crawler)->assertColumnValues('title', ['Second user']);
+
+        $crawler = $client->request('GET', '/unreset-rows');
+        $this->dataTableView($crawler)->assertColumnValues('title', ['Configured']);
+    }
+
     protected static function createKernel(array $options = []): KernelInterface
     {
         return new TestHarnessAppKernel('test', true);

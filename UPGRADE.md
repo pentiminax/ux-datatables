@@ -22,11 +22,13 @@ and deprecates what it replaces.
 ### Deprecations
 
 - `AbstractDataTable::rows()` is deprecated, pass the rows as the `rows` argument of
-  `render_datatable()` instead. A table instance no longer carries the rows of one request, and
+  `render_datatable()` instead. The table holds the rows only for that render, and
   `rows: []` renders an empty table without falling back to the entity source. `null` (the
   default) keeps rendering the configured source. The deprecated `setData()` points to the same
   replacement. Code that renders a table without Twig keeps `rows()` until 2.0, where
   `DataTableRuntime::render($table, rows:)` replaces it.
+  A table rendered with rows is reconfigured on its next render, so state you set through
+  `getConfiguredDataTable()` before a render is not kept across two renders.
 
   ```php
   // before
@@ -57,8 +59,7 @@ and deprecates what it replaces.
 
 ## Upgrading to 1.7.0
 
-1.7 deprecates what 2.0 removes. Everything in it is backward compatible: it deprecates what 2.0 removes,
-so that 2.0 is a cleanup. An application that runs 1.7.0 with no deprecation notice upgrades to 2.0
+1.7 deprecates what 2.0 removes. Everything in it is backward compatible, so that 2.0 is a cleanup. An application that runs 1.8.0 (the latest 1.x) with no deprecation notice upgrades to 2.0
 with `composer update` and one install command. To rename everything with an AI coding agent, give it
 [UPGRADE-AI.md](UPGRADE-AI.md).
 

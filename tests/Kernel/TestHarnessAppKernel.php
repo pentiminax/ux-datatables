@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessActionsDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessClientSideDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessHydratedDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessServerSideDataTable;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessUnresetDataTable;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Bundle\MercureBundle\MercureBundle;
@@ -73,6 +74,12 @@ class TestHarnessAppKernel extends Kernel
                 ->setPublic(true);
         }
 
+        // Not autoconfigured: no kernel.reset tag, so only the render itself can keep a table clean.
+        $builder->register(HarnessUnresetDataTable::class, HarnessUnresetDataTable::class)
+            ->addTag('datatables.data_table')
+            ->addMethodCall('setDataTableInfrastructure', [new Reference('datatables.infrastructure')])
+            ->setPublic(true);
+
         $builder->register(HarnessController::class, HarnessController::class)
             ->setArguments([
                 new Reference('twig'),
@@ -80,6 +87,7 @@ class TestHarnessAppKernel extends Kernel
                 new Reference(HarnessServerSideDataTable::class),
                 new Reference(HarnessActionsDataTable::class),
                 new Reference(HarnessHydratedDataTable::class),
+                new Reference(HarnessUnresetDataTable::class),
             ])
             ->setPublic(true);
     }
@@ -94,5 +102,6 @@ class TestHarnessAppKernel extends Kernel
         $routes->add('harness_rows', '/rows')->controller([HarnessController::class, 'rows']);
         $routes->add('harness_rows_positional', '/rows-positional')->controller([HarnessController::class, 'rowsPositional']);
         $routes->add('harness_hydrated_rows', '/hydrated-rows')->controller([HarnessController::class, 'hydratedRows']);
+        $routes->add('harness_unreset_rows', '/unreset-rows')->controller([HarnessController::class, 'unresetRows']);
     }
 }

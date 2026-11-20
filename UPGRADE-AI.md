@@ -239,7 +239,7 @@ must log no `pentiminax/ux-datatables` deprecation.
 Context: ux-datatables 1.8 is backward compatible. It adds an optional third argument `rows` to
 `render_datatable()` and deprecates `AbstractDataTable::rows()`, which 2.0 removes. After this
 change, running the test suite and the application must log no `pentiminax/ux-datatables`
-deprecation.
+deprecation, except the `rows()` calls of tables rendered without Twig.
 
 ## Required changes
 

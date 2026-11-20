@@ -780,7 +780,7 @@ final class DataTablesExtensionTest extends TestCase
         $table->setDataTableInfrastructure($this->container->get('test.datatables.infrastructure'));
 
         if ('setData' === $mode) {
-            $table->rows($rows);
+            $table->applyRenderRows($rows);
         }
 
         return $table;

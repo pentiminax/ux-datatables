@@ -21,6 +21,9 @@ use Symfony\UX\StimulusBundle\Helper\StimulusHelper;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
+/**
+ * @final since 1.8, do not extend it: renderDataTable() gained a rows argument in 1.8 and the class is final in 2.0.
+ */
 class DataTablesExtension extends AbstractExtension
 {
     private readonly AuthorizationChecker $permissionChecker;
@@ -90,6 +93,7 @@ class DataTablesExtension extends AbstractExtension
         try {
             return $this->renderPreparedTable($table, $attributes, $rows);
         } finally {
+            // 1.x tables are container-shared: drop the rows, and the state built around them, with the render.
             $table->resetDataTableState();
         }
     }

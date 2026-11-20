@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessActionsDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessClientSideDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessHydratedDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessServerSideDataTable;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessUnresetDataTable;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Twig\Environment;
@@ -20,6 +21,7 @@ final readonly class HarnessController
         private HarnessServerSideDataTable $serverSideTable,
         private HarnessActionsDataTable $actionsTable,
         private HarnessHydratedDataTable $hydratedTable,
+        private HarnessUnresetDataTable $unresetTable,
     ) {
     }
 
@@ -58,6 +60,11 @@ final readonly class HarnessController
     public function hydratedRows(Request $request): Response
     {
         return $this->renderRows($request, $this->hydratedTable, 'harness/rows.html.twig');
+    }
+
+    public function unresetRows(Request $request): Response
+    {
+        return $this->renderRows($request, $this->unresetTable, 'harness/rows.html.twig');
     }
 
     private function renderRows(Request $request, object $table, string $template): Response
