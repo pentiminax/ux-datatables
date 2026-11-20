@@ -23,18 +23,18 @@ final class AbstractDataTableRowPresentationTest extends TestCase
     use PreparesPayload;
 
     #[Test]
-    public function set_data_emits_the_row_class_and_record_url_for_client_side_rows(): void
+    public function the_rows_argument_emits_the_row_class_and_record_url_for_client_side_rows(): void
     {
         $table   = new RowPresentationTestTable();
         $runtime = self::buildRuntime();
 
-        $table->rows([['id' => 1, 'late' => true], ['id' => 2, 'late' => false]]);
+        $rows = [['id' => 1, 'late' => true], ['id' => 2, 'late' => false]];
 
         $this->assertSame([
             ['id' => 1, 'late' => true, 'DT_RowClass' => 'table-danger', 'DT_RowAttr' => ['data-record-url' => '/items/1']],
             ['id' => 2, 'late' => false, 'DT_RowAttr' => ['data-record-url' => '/items/2']],
-        ], self::optionOf($runtime->render($table), 'data'));
-        $this->assertTrue($runtime->render($table)->getView()['recordUrl']);
+        ], self::optionOf($runtime->render($table, rows: $rows), 'data'));
+        $this->assertTrue($runtime->render($table, rows: $rows)->getView()['recordUrl']);
     }
 }
 

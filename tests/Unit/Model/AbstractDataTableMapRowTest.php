@@ -55,9 +55,7 @@ final class AbstractDataTableMapRowTest extends TestCase
     {
         $table = new MapRowTestTable($columns, $detailActionUrl);
 
-        $table->rows($data);
-
-        $this->assertSame($expected, self::optionOf($this->runtime()->render($table), 'data'));
+        $this->assertSame($expected, self::optionOf($this->runtime()->render($table, rows: $data), 'data'));
     }
 
     /**

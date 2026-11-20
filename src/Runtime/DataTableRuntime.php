@@ -88,9 +88,8 @@ final class DataTableRuntime
         $definition = $this->definitions->build($table);
         $call       = new DataTableCall($this, $definition, $table);
 
-        $inlineRows = $rows ?? $table->getInlineRows();
-        if (null !== $inlineRows) {
-            $definition = $this->definitions->withInlineRows($definition, $this->mapRows($call, $inlineRows));
+        if (null !== $rows) {
+            $definition = $this->definitions->withInlineRows($definition, $this->mapRows($call, $rows));
             $call       = new DataTableCall($this, $definition, $table);
         }
 
@@ -100,9 +99,9 @@ final class DataTableRuntime
 
         $this->renderingPreparer->assertMutationsScoped($definition->table, static fn (): ?DataProviderInterface => $call->dataProvider());
 
-        $rows = match (true) {
+        $hydratedRows = match (true) {
             DataSourceMode::ClientHydrated === $optIns->dataSourceMode => $this->hydrateClientSideRows($call),
-            null !== $inlineRows                                       => null,
+            null !== $rows                                             => null,
             default                                                    => $this->mapExplicitInlineRows($call),
         };
 
@@ -114,7 +113,7 @@ final class DataTableRuntime
         return $this->renderingPreparer->prepareAfterDataHydration(
             $definition->table,
             $optIns,
-            rows: $rows,
+            rows: $hydratedRows,
             bulkRowIdField: $bulkRowIdField,
             mercure: fn (): ?MercureConfig => $this->mercure->resolve($optIns),
         );

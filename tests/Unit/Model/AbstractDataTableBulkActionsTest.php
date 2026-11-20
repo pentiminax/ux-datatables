@@ -180,9 +180,7 @@ final class AbstractDataTableBulkActionsTest extends TestCase
     public function it_gives_every_client_side_row_an_identifier(): void
     {
         $table = $this->table();
-        $table->rows([['id' => 7, 'title' => 'Heat']]);
-
-        $rows = self::optionOf(self::buildRuntime()->render($table), 'data');
+        $rows  = self::optionOf(self::buildRuntime()->render($table, rows: [['id' => 7, 'title' => 'Heat']]), 'data');
 
         $this->assertSame('7', $rows[0][HighlightConfig::ROW_ID_KEY]);
     }

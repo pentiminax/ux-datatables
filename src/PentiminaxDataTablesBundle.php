@@ -164,8 +164,7 @@ class PentiminaxDataTablesBundle extends AbstractBundle
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
         $builder->registerForAutoconfiguration(AbstractDataTable::class)
-            ->addTag('datatables.data_table')
-            ->addTag('kernel.reset', ['method' => 'resetDataTableState']);
+            ->addTag('datatables.data_table');
 
         $builder->registerForAutoconfiguration(DataTableDefaultsConfiguratorInterface::class)
             ->addTag('datatables.defaults_configurator');
