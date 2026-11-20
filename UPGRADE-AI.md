@@ -41,7 +41,7 @@ test suite and the application must log no `pentiminax/ux-datatables` deprecatio
 - `BulkActions`: `setIdField()` → `idField()`
 - `DataTableOptions`: `setLanguage()` → `language()`, `setSearch()` → `search()`
 - `DataTable`: `setAttributes()` → `attributes()`, `setPermission()` → `permission()`, `setHighlightConfig()` → `highlightConfig()`
-- `AbstractDataTable`: `setData()` → `rows()`
+- `AbstractDataTable`: `setData()` → `rows()` (deprecated since 1.8, see the 1.8 prompt: pass the rows to `render_datatable()` instead)
 
    Before:
 
@@ -231,5 +231,34 @@ must log no `pentiminax/ux-datatables` deprecation.
 
 1. Check the platform before upgrading to 2.0: PHP 8.3, Symfony 7.4 or 8.x, API Platform 4 or later
    when used, `symfony/mercure` 0.8 or later when used.
+
+</upgrade-prompt>
+
+<upgrade-prompt version="1.8">
+
+Context: ux-datatables 1.8 is backward compatible. It adds an optional third argument `rows` to
+`render_datatable()` and deprecates `AbstractDataTable::rows()`, which 2.0 removes. After this
+change, running the test suite and the application must log no `pentiminax/ux-datatables`
+deprecation, except the `rows()` calls of tables rendered without Twig.
+
+## Required changes
+
+1. For each `$table->rows($x)` (and each deprecated `$table->setData($x)`) on an `AbstractDataTable`,
+   delete the call, pass `$x` to the template as a variable, and add `rows: <variable>` to the
+   `render_datatable()` call that renders that table. When the table is not rendered through Twig,
+   keep `rows()` on 1.8: 2.0 replaces it with `DataTableRuntime::render($table, rows: $x)`.
+   `rows: []` renders an empty table, `null` renders the configured source.
+
+   ```php
+   $table->rows($users);                                  // before
+   return $this->render('index.html.twig', ['table' => $table]);
+
+   return $this->render('index.html.twig', ['table' => $table, 'users' => $users]); // after
+   ```
+
+   ```twig
+   {{ render_datatable(table) }}              {# before #}
+   {{ render_datatable(table, rows: users) }} {# after #}
+   ```
 
 </upgrade-prompt>

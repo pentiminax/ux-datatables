@@ -14,10 +14,52 @@ The guide starts at **1.1.0**, the first upgrade after the stable 1.0 release. T
 
 Deprecated APIs keep working for the whole 1.x line and are removed in 2.0.
 
+## Upgrading to 1.8.0
+
+Everything in this release is backward compatible. It adds a third argument to `render_datatable()`
+and deprecates what it replaces.
+
+### Deprecations
+
+- `AbstractDataTable::rows()` is deprecated, pass the rows as the `rows` argument of
+  `render_datatable()` instead. The table holds the rows only for that render, and
+  `rows: []` renders an empty table without falling back to the entity source. `null` (the
+  default) keeps rendering the configured source. The deprecated `setData()` points to the same
+  replacement. Code that renders a table without Twig keeps `rows()` until 2.0, where
+  `DataTableRuntime::render($table, rows:)` replaces it.
+  A table rendered with rows is reconfigured on its next render, so state you set through
+  `getConfiguredDataTable()` before a render is not kept across two renders.
+
+  ```php
+  // before
+  $table->rows($users->findBy([], ['lastName' => 'ASC']));
+
+  return $this->render('admin/users/index.html.twig', ['table' => $table]);
+  ```
+
+  ```php
+  // after
+  return $this->render('admin/users/index.html.twig', [
+      'table' => $table,
+      'users' => $users->findBy([], ['lastName' => 'ASC']),
+  ]);
+  ```
+
+  ```twig
+  {# before #}
+  {{ render_datatable(table) }}
+
+  {# after #}
+  {{ render_datatable(table, rows: users) }}
+  {{ render_datatable(table, {class: 'table'}, users) }}
+  ```
+
+  A template variable that is missing evaluates to `null` when Twig `strict_variables` is off, so
+  the table renders its configured source (still scoped by `customizeQueryBuilder()`).
+
 ## Upgrading to 1.7.0
 
-1.7 is the last 1.x minor. Everything in it is backward compatible: it deprecates what 2.0 removes,
-so that 2.0 is a cleanup. An application that runs 1.7.0 with no deprecation notice upgrades to 2.0
+1.7 deprecates what 2.0 removes. Everything in it is backward compatible, so that 2.0 is a cleanup. An application that runs 1.8.0 (the latest 1.x) with no deprecation notice upgrades to 2.0
 with `composer update` and one install command. To rename everything with an AI coding agent, give it
 [UPGRADE-AI.md](UPGRADE-AI.md).
 

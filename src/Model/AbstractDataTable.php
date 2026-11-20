@@ -51,9 +51,9 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * docs/src/content/docs/reference/abstract-datatable.mdx ("Configuration Methods Must Be Pure").
  *
  * Request-dependent behavior belongs at the request-scoped boundaries instead: setPermission() on
- * columns and actions, customizeQueryBuilder() for the query (getCurrentRequest() in other hooks), and rows() --
- * the sanctioned way to inject rows a controller has already resolved -- for inline data, which
- * runs them through the same row-processing pipeline a provider would use.
+ * columns and actions, customizeQueryBuilder() for the query (getCurrentRequest() in other hooks), and the rows argument of
+ * render_datatable() -- the sanctioned way to inject rows a controller has already resolved -- for
+ * inline data, which runs them through the same row-processing pipeline a provider would use.
  */
 abstract class AbstractDataTable
 {
@@ -767,22 +767,34 @@ abstract class AbstractDataTable
 
     /**
      * Maps domain objects or arrays through the row pipeline and embeds them as the table's rows.
+     *
+     * @deprecated since 1.8, use the rows argument of render_datatable() instead. Removed in 2.0.
      */
     public function rows(array $data): void
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.8', 'The "%s()" method is deprecated, use the "rows" argument of "render_datatable()" instead. Without Twig, keep calling it until 2.0, where "DataTableRuntime::render($table, rows:)" replaces it. Removed in 2.0.', __METHOD__);
+
+        $this->applyRenderRows($data);
+    }
+
+    /**
+     * @deprecated since 1.6, use the rows argument of render_datatable() instead. Removed in 2.0.
+     */
+    public function setData(array $data): void
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use the "rows" argument of "render_datatable()" instead. Removed in 2.0.', __METHOD__);
+
+        $this->applyRenderRows($data);
+    }
+
+    /**
+     * @internal
+     */
+    final public function applyRenderRows(array $data): void
     {
         $this->initialize();
 
         $this->mapInlineRows($data);
-    }
-
-    /**
-     * @deprecated since 1.6, use rows() instead. Removed in 2.0.
-     */
-    public function setData(array $data): void
-    {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "rows()" instead.', __METHOD__);
-
-        $this->rows($data);
     }
 
     /**

@@ -21,6 +21,9 @@ use Symfony\UX\StimulusBundle\Helper\StimulusHelper;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
+/**
+ * @final since 1.8, do not extend it: renderDataTable() gained a rows argument in 1.8 and the class is final in 2.0.
+ */
 class DataTablesExtension extends AbstractExtension
 {
     private readonly AuthorizationChecker $permissionChecker;
@@ -78,13 +81,37 @@ class DataTablesExtension extends AbstractExtension
         return AbstractDataTable::class !== (new \ReflectionMethod($table, $method))->getDeclaringClass()->getName();
     }
 
-    public function renderDataTable(AbstractDataTable $table, array $attributes = []): string
+    /**
+     * @param array<mixed>|null $rows null renders the configured source, an empty array renders an empty inline table
+     */
+    public function renderDataTable(AbstractDataTable $table, array $attributes = [], ?array $rows = null): string
+    {
+        if (null === $rows) {
+            return $this->renderPreparedTable($table, $attributes);
+        }
+
+        try {
+            return $this->renderPreparedTable($table, $attributes, $rows);
+        } finally {
+            // 1.x tables are container-shared: drop the rows, and the state built around them, with the render.
+            $table->resetDataTableState();
+        }
+    }
+
+    /**
+     * @param array<mixed>|null $rows
+     */
+    private function renderPreparedTable(AbstractDataTable $table, array $attributes, ?array $rows = null): string
     {
         $dataTableClass = $table::class;
         $table->getConfiguredDataTable();
 
         if (false === $this->permissionChecker->canAccessTable($table)) {
             throw new AccessDeniedException('Access to this DataTable is denied.');
+        }
+
+        if (null !== $rows) {
+            $table->applyRenderRows($rows);
         }
 
         $dataTable = $this->prepare($table);
