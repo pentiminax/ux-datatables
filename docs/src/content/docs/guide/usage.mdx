@@ -60,7 +60,11 @@ class HomeController extends AbstractController
 ```
 
 When the rows only become available in the controller, keep `configureDataTable()` for the options
-and call [`rows()`](/reference/abstract-datatable/) on the injected table instead.
+and pass them as the `rows` argument of [`render_datatable()`](/reference/abstract-datatable/) instead:
+
+```twig
+{{ render_datatable(table, rows: users) }}
+```
 
 All options and data are passed as-is to DataTables. Refer to the [DataTables documentation](https://datatables.net/manual/) for available client-side options.
 

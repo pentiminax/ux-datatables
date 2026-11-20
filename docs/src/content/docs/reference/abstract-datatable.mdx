@@ -309,7 +309,7 @@ the table declaratively and let the request-scoped boundaries do the rest:
   request, per row, at the output boundary.
 - `customizeQueryBuilder()` and `getCurrentRequest()` for anything that depends on the
   incoming request.
-- `rows()` for data resolved by the controller.
+- the `rows` argument of `render_datatable()` for data resolved by the controller.
 
 ### Data Methods
 
@@ -322,7 +322,7 @@ the table declaratively and let the request-scoped boundaries do the rest:
     ['`mapRow(mixed $row)`', 'Map a single row to array'],
     [
       '`rows(array $data)`',
-      'Set inline data through the same row-processing pipeline used by providers',
+      'Deprecated since 1.8, use the `rows` argument of `render_datatable()`. Sets inline data through the row-processing pipeline',
     ],
     ['`createRowMapper()`', 'Final protected helper returning the internal row-processing mapper'],
     [
@@ -394,12 +394,12 @@ final class CustomUsersDataTable extends AbstractDataTable
 }
 ```
 
-`createRowMapper()` and `rows()` both run the built-in row-processing pipeline. That means
+`createRowMapper()` and the `rows` argument both run the built-in row-processing pipeline. That means
 template columns and action URLs are resolved before the rows are stored for inline rendering.
 
-## Inline Data with `rows()`
+## Inline Data with the `rows` Argument
 
-When you already have rows in memory, `rows()` is the simplest way to populate an
+When you already have rows in memory, the `rows` argument of `render_datatable()` is the simplest way to populate an
 `AbstractDataTable` without building a custom provider:
 
 ```php
@@ -423,14 +423,17 @@ final class UsersDataTable extends AbstractDataTable
 }
 ```
 
-```php
-$table->rows($users);
+```twig
+{{ render_datatable(table, rows: users) }}
+{{ render_datatable(table, {class: 'table'}, users) }}
 ```
 
-Use `rows()` when your rows are domain objects or preloaded arrays and you still want
+`rows: null` (the default) renders the configured source. `rows: []` renders an empty inline table and never falls back to the entity source.
+
+Use it when your rows are domain objects or preloaded arrays and you still want
 `mapRow()`, template columns, and typed action callables to work consistently.
 
-`rows()` fills the DataTables.net [`data`](https://datatables.net/reference/option/data) option
+The rows fill the DataTables.net [`data`](https://datatables.net/reference/option/data) option
 after mapping each row through the pipeline. `DataTable::data()` sets that option directly, with
 rows that are already arrays.
 

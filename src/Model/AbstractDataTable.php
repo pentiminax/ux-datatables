@@ -32,9 +32,9 @@ use Symfony\Component\HttpFoundation\Request;
  * docs/src/content/docs/reference/abstract-datatable.mdx ("Configuration Methods Must Be Pure").
  *
  * Request-dependent behavior belongs at the request-scoped boundaries instead: permission() on
- * columns and actions, customizeQueryBuilder() for the query (getCurrentRequest() in other hooks), and rows() --
- * the sanctioned way to inject rows a controller has already resolved -- for inline data, which
- * runs them through the same row-processing pipeline a provider would use.
+ * columns and actions, customizeQueryBuilder() for the query (getCurrentRequest() in other hooks), and the rows
+ * argument of render_datatable() -- the sanctioned way to inject rows a controller has already resolved -- for
+ * inline data, which runs them through the same row-processing pipeline a provider would use.
  */
 abstract class AbstractDataTable
 {
