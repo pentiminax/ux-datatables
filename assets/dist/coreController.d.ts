@@ -11,7 +11,6 @@ export default class extends Controller {
     private stopPolling;
     private highlighter;
     private framework;
-    private confirmingActions;
     private popstateHandler;
     private readonly onTurboBeforeCache;
     connect(): Promise<void>;
@@ -28,15 +27,10 @@ export default class extends Controller {
     private initMercure;
     private initPolling;
     private initHighlighter;
-    private bindActionHandler;
-    private runRowAction;
-    private executeAjaxAction;
-    private bindBooleanToggleHandler;
     private hasButtonsInLayout;
     private dispatchEvent;
     private isApiPlatformEnabled;
     private isMercureEnabled;
-    private getCsrfToken;
     private areMutationsEnabled;
     private getMercureTopics;
 }
