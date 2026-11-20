@@ -227,7 +227,7 @@ Action::delete('')
 
 When `linkToUrl()` receives a callable, the argument depends on how the row was produced:
 
-- `AbstractDataTable` + provider or `rows($objects)`: the callable receives the original source object
+- `AbstractDataTable` + provider or the `rows` argument with objects: the callable receives the original source object
 - manual `DataTable::data([...])` inline rows: the callable receives the row array
 
 ### Custom Link Actions

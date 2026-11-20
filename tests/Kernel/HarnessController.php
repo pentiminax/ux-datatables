@@ -6,7 +6,9 @@ namespace Pentiminax\UX\DataTables\Tests\Kernel;
 
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessActionsDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessClientSideDataTable;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessHydratedDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessServerSideDataTable;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Twig\Environment;
 
@@ -17,6 +19,7 @@ final readonly class HarnessController
         private HarnessClientSideDataTable $clientSideTable,
         private HarnessServerSideDataTable $serverSideTable,
         private HarnessActionsDataTable $actionsTable,
+        private HarnessHydratedDataTable $hydratedTable,
     ) {
     }
 
@@ -40,5 +43,29 @@ final readonly class HarnessController
             'clientSide' => $this->clientSideTable,
             'serverSide' => $this->serverSideTable,
         ]));
+    }
+
+    public function rows(Request $request): Response
+    {
+        return $this->renderRows($request, $this->clientSideTable, 'harness/rows.html.twig');
+    }
+
+    public function rowsPositional(Request $request): Response
+    {
+        return $this->renderRows($request, $this->clientSideTable, 'harness/rows_positional.html.twig');
+    }
+
+    public function hydratedRows(Request $request): Response
+    {
+        return $this->renderRows($request, $this->hydratedTable, 'harness/rows.html.twig');
+    }
+
+    private function renderRows(Request $request, object $table, string $template): Response
+    {
+        $rows = $request->query->has('rows')
+            ? json_decode($request->query->getString('rows'), true, 512, \JSON_THROW_ON_ERROR)
+            : null;
+
+        return new Response($this->twig->render($template, ['datatable' => $table, 'rows' => $rows]));
     }
 }
