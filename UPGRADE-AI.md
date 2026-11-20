@@ -41,7 +41,7 @@ test suite and the application must log no `pentiminax/ux-datatables` deprecatio
 - `BulkActions`: `setIdField()` → `idField()`
 - `DataTableOptions`: `setLanguage()` → `language()`, `setSearch()` → `search()`
 - `DataTable`: `setAttributes()` → `attributes()`, `setPermission()` → `permission()`, `setHighlightConfig()` → `highlightConfig()`
-- `AbstractDataTable`: `setData()` → `rows()` (deprecated since 1.8, see the 1.8 prompt: pass the rows to `render_datatable()` instead)
+- `AbstractDataTable`: `setData()` → the `rows` argument of `render_datatable()` (`rows()` is removed in 2.0, see the 2.0 prompt)
 
    Before:
 
@@ -325,8 +325,7 @@ call to a removed method.
    `getEmptyState()`), or, in tests, render the table and read the payload with `DataTableView`.
 5. Move every change to `ajax()`, `data()`, `serverSide()`, `apiPlatform()`, `mercure()`,
    `editModalTemplate()` or `editModalAdapter()` made through `getConfiguredDataTable()` after the
-   table was configured into `configureDataTable()`: 2.0 resolves those opt-ins once. Calls to
-   `rows()` from a controller need no change.
+   table was configured into `configureDataTable()`: 2.0 resolves those opt-ins once.
 6. If the application constructs `DataTablesExtension` itself, pass only the Stimulus helper, the
    authorization checker and, optionally, the profiler, in that order.
 7. Search the payload for a key set both as an option and as an extension: 2.0 throws a
@@ -476,6 +475,14 @@ call to a removed method.
     or `ExtensionDetector` itself, stop doing so and inject the service instead. In the rare case it
     must, `DataTablesRuntime` (not `DataTablesExtension`) renders tables, and the services above now
     require a `DataTableRuntime` or `TableDefinitionBuilder` argument (1-based positions: `MercureTopicResolver` runtime first and required, the other arguments shift by one; `RowScopeGuard` 2; `ExportService` 3; `MercureUpdatePublisher` 2; `EditModalTemplateResolver` 4; `ExtensionDetector` 2; `SecurityVoter` builder 2; appended: `BulkActionRunner` scope guard 6 and runtime 7, `AjaxDataTableRegistry` builder 5, `InstallCommand` runtime 3; `DataTableResponder` takes only the runtime).
-    A mapping error from `rows()` now surfaces inside `render_datatable()`, wrapped by Twig.
+    A mapping error from inline rows now surfaces inside `render_datatable()`, wrapped by Twig.
+27. For each `$table->rows($x)` (and `$table->setData($x)`) left on an `AbstractDataTable`, delete the
+    call, pass `$x` to the template as a variable, and add `rows: <variable>` to the
+    `render_datatable()` call that renders that table. When the table is not rendered through Twig,
+    use `DataTableRuntime::render($table, rows: $x)`. `rows: []` renders an empty table, `null`
+    renders the configured source. `rows()`, `getInlineRows()` and `resetDataTableState()` no longer
+    exist.
+28. Remove the `kernel.reset` tag (method `resetDataTableState`) from every table registered by
+    hand, and every test call to `resetDataTableState()`: tables hold no state.
 
 </upgrade-prompt>

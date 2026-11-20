@@ -49,7 +49,7 @@ Override only what you need; each returns its argument fluently.
 For client-side tables (no `serverSide()`), provide rows in one of three ways:
 
 1. **Auto-hydration** — if the attribute is set and no `data()`/`ajax()`/`apiPlatform`, the bundle fetches & maps rows automatically at render time.
-2. **Domain objects** — in the controller: `render_datatable(table, rows: users)` in Twig runs the row-mapper pipeline (template columns, typed actions). `AbstractDataTable::rows()` is deprecated since 1.8.
+2. **Domain objects** — in the controller: `render_datatable(table, rows: users)` in Twig runs the row-mapper pipeline (template columns, typed actions). `AbstractDataTable::rows()` no longer exists; outside Twig use `DataTableRuntime::render($table, rows: $users)`.
 3. **Inline arrays** — `configureDataTable`: `$table->data([['id' => 1, 'name' => 'Alice']]);`
 
 ## Data providers

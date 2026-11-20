@@ -100,7 +100,7 @@ table, the hydrated rows, the resolved Mercure configuration or the translated l
   `getBulkActions()`, `getFilters()`), and the rendered value from the payload.
 - The data source, API Platform, Mercure and edit modal opt-ins are resolved once, when the table is
   configured. Change them in `configureDataTable()` or `#[AsDataTable]`: a change made later through
-  `getConfiguredDataTable()` is not picked up. `rows()` still switches the table to its rows.
+  `getConfiguredDataTable()` is not picked up.
 - `MercureUpdatePublisher::publishForDataTable()` takes the `AbstractDataTable` only:
   `publishForDataTable($table, $data)` instead of `publishForDataTable($table->getDataTable(), $data)`.
 - `DataTable::apiPlatformServerSide()` is removed. The bundle still sends the flag when a table
@@ -171,10 +171,12 @@ hooks.
   // After (2.0)
   $columns = $runtime->definition($table)->table->getColumns();
   ```
-- **`rows()` is mapped when the table renders.** A mapping error now surfaces inside
-  `render_datatable()`, wrapped by Twig, instead of in `rows()`. It still stores the rows on the instance, so the
-  `kernel.reset` tag stays on tables to drop them between requests under a worker runtime. The
-  rendered payload is unchanged.
+- **Inline rows are mapped when the table renders.** A mapping error surfaces inside
+  `render_datatable()`, wrapped by Twig. The rendered payload is unchanged. See
+  "Inline rows are passed to `render_datatable()`".
+- **The `kernel.reset` tag and `resetDataTableState()` are gone.** A table holds no state, so the
+  bundle no longer tags tables with `kernel.reset`. Remove the tag from tables you register by hand,
+  and the `resetDataTableState()` calls from your tests.
 - **Services that were built by hand.** `DataTableInfrastructure`, `DataTableRuntimeFactory` and the
   `datatables.infrastructure` and `datatables.runtime.factory` services are removed; `datatables.runtime`
   and `datatables.definition_builder` replace them. `DataTablesExtension` only declares
@@ -198,6 +200,40 @@ hooks.
   builder as argument 5, `InstallCommand` the optional runtime as argument 3. `SecurityVoter`
   takes the definition builder as argument 2. `DataTableResponder` takes the runtime as its only
   argument.
+
+### Inline rows are passed to `render_datatable()`
+
+`AbstractDataTable::rows()`, `getInlineRows()` and `resetDataTableState()` are removed. Rows a
+controller resolved are an input of one render, not state on the shared table. `null` (the default)
+renders the configured source, and `rows: []` renders an empty inline table without falling back to
+the entity source.
+
+```php
+// Before (1.x)
+$table->rows($users->findBy([], ['lastName' => 'ASC']));
+
+return $this->render('admin/users/index.html.twig', ['table' => $table]);
+```
+
+```php
+// After (2.0)
+return $this->render('admin/users/index.html.twig', [
+    'table' => $table,
+    'users' => $users->findBy([], ['lastName' => 'ASC']),
+]);
+```
+
+```twig
+{{ render_datatable(table, {}, users) }}
+{# or #}
+{{ render_datatable(table, rows: users) }}
+```
+
+When the table is rendered without Twig, pass the rows to the runtime:
+
+```php
+$prepared = $runtime->render($table, rows: $users);
+```
 
 ### A payload key set twice throws
 
@@ -244,7 +280,7 @@ Both 1.6 deprecations now throw a `LogicException`:
 - an API Platform opt-in with no collection to read (no collection operation, or API Platform not
   installed) throws at render. The data and export routes keep answering 404. Expose a collection
   operation or drop the opt-in;
-- `data()` or `rows()` combined with an API Platform opt-in throws when the table is configured.
+- `data()` or the `rows` render argument combined with an API Platform opt-in throws when the table is configured.
   Keep one of them, or add `apiPlatform(false)` over an attribute opt-in.
 
 ### Row actions need the URLs from the payload
@@ -577,7 +613,10 @@ Everything below was deprecated in 1.x and is removed. Each line names its repla
   `setHighlightConfig()` on `DataTable`: use the bare method (`className()`, `entityClass()`, ...).
 - `DataTable::setExtensions()`: declare extensions with `extensions([...])`.
 - `Action::csrfTokenId()`: use `csrfToken()`.
-- `AbstractDataTable::setData()`: use `rows()`.
+- `AbstractDataTable::setData()`: pass the rows as the `rows` argument of `render_datatable()`.
+- `AbstractDataTable::rows()`: pass the rows as the `rows` argument of `render_datatable()`, or to
+  `DataTableRuntime::render($table, rows:)` without Twig. See "Inline rows are passed to
+  `render_datatable()`".
 - `EntityMutator::delete()` and `setProperty()`, `DetailRowService::handleView()`,
   `EditFormService::handleView()` and `handleSubmit()`: the bundle's Ajax controllers call
   `deleteRow()`, `toggleRow()`, `render()`, `renderForm()` and `submitForm()` after the row gate has

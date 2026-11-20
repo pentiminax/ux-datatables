@@ -297,8 +297,7 @@ instance serves many requests, for many users.
 
 The bundle calls `configure*()` once per table and keeps the result as an immutable
 definition, so a configure method is never re-run for another request or user. The table
-holds no request state; the only exception is the rows passed to `rows()`, which the
-`kernel.reset` tag clears between requests. Treat `configure*()` as pure: define
+holds no request state, so no `kernel.reset` tag is needed. Treat `configure*()` as pure: define
 columns, actions, filters, extensions, and table options, and nothing else.
 
 Do not read the current HTTP request, the security token, the session, the
@@ -320,10 +319,6 @@ the table declaratively and let the request-scoped boundaries do the rest:
     ['`getCurrentRequest()`', 'Protected, final: the DataTableRequest being handled, for hooks such as `mapRow()`'],
     ['`getHttpRequest()`', 'Get the current Symfony HTTP request while a DataTables request is handled'],
     ['`mapRow(mixed $row)`', 'Map a single row to array'],
-    [
-      '`rows(array $data)`',
-      'Deprecated since 1.8, use the `rows` argument of `render_datatable()`. Sets inline data through the row-processing pipeline',
-    ],
     ['`createRowMapper()`', 'Final protected helper returning the internal row-processing mapper'],
     [
       '`customizeQueryBuilder(QueryBuilder $qb, ...)`',
