@@ -171,7 +171,7 @@ final class AbstractDataTableBulkActionsTest extends TestCase
     {
         $definition = self::definitionOf($this->table());
         $preparer   = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()));
-        $payload    = $preparer->prepareAfterDataHydration($definition->table, $definition->optIns, bulkRowIdField: 'sku');
+        $payload    = $preparer->prepareAfterDataHydration($definition->table, $definition->optIns, rows: null, bulkRowIdField: 'sku', mercure: static fn (): null => null);
 
         $this->assertSame('sku', $payload->getView()['bulkActions']['idField']);
     }

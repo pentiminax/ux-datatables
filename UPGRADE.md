@@ -107,9 +107,10 @@ table, the hydrated rows, the resolved Mercure configuration or the translated l
   needs it: remove the call.
 - `RenderingPreparer`, `FilterEntityOptionsResolver` and `SearchListOptionsResolver` are now
   `@internal` and their signatures changed. Do not call them from application code.
-  `RenderingPreparer::prepare()` is removed. `prepareBeforeDataHydration()`,
-  `prepareAfterDataHydration()` and `resolveMercureConfig()` lose the `?AsDataTable` parameter, and
-  `prepareAfterDataHydration()` returns a `PreparedDataTable`. `FilterEntityOptionsResolver::prepare()`
+  `RenderingPreparer::prepare()` is removed. `prepareBeforeDataHydration()` and
+  `prepareAfterDataHydration()` lose the `?AsDataTable` parameter, and `prepareAfterDataHydration()`
+  returns a `PreparedDataTable`. `RenderingPreparer::resolveMercureConfig()` and its Mercure
+  constructor arguments are removed: use `DataTableRuntime::mercureConfig($table)`. `FilterEntityOptionsResolver::prepare()`
   takes the `Filters`. `SearchListOptionsResolver::prepare()` is removed.
 
 ### The table is a definition, served by `DataTableRuntime`

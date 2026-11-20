@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Runtime;
 
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
-use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceMercureMetadataResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
@@ -21,9 +20,6 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
 use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
 use Pentiminax\UX\DataTables\Filter\NumberRangeFilter;
 use Pentiminax\UX\DataTables\Filter\TextFilter;
-use Pentiminax\UX\DataTables\Mercure\MercureConfig;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
-use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\BulkAction;
@@ -44,7 +40,9 @@ use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsAjaxRegistry;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
+use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
+use Pentiminax\UX\DataTables\Tests\Support\TestRuntime;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -110,6 +108,17 @@ final class RenderingPreparerTest extends TestCase
         $this->expectExceptionMessage('The payload key "select" of table "t" is set twice. Rename the option or the extension that sets it.');
 
         self::payloadOf($table);
+    }
+
+    #[Test]
+    public function it_reports_the_polling_error_before_an_unresolvable_mercure_hub(): void
+    {
+        $table = (new ConfigurableDataTable([], configureTable: static fn (DataTable $table): DataTable => $table->poll('10s')->mercure(topics: ['/books/{id}'])));
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Polling requires an Ajax source');
+
+        TestRuntime::make()->render($table);
     }
 
     #[Test]
@@ -367,251 +376,6 @@ final class RenderingPreparerTest extends TestCase
         $this->expectExceptionMessage('Table "Test" opts into API Platform but "stdClass" exposes no collection operation');
 
         self::prepare($preparer, new DataTable('Test'), new AsDataTable(entityClass: \stdClass::class, apiPlatform: true), $urlResolver);
-    }
-
-    #[Test]
-    public function it_configures_mercure(): void
-    {
-        $mercureConfig = (new MercureConfig(topics: ['/products/{id}']))
-            ->withHubUrl('/.well-known/mercure');
-
-        $mercureResolver = $this->createMock(MercureConfigResolver::class);
-        $mercureResolver->method('resolveMercureConfig')
-            ->with(\stdClass::class)
-            ->willReturn($mercureConfig);
-
-        $preparer = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), mercureResolver: $mercureResolver);
-        $table    = (new DataTable('Test'))->serverSide();
-
-        $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, mercure: true));
-
-        $this->assertNotNull($tablePayload->mercure);
-        $this->assertSame('/.well-known/mercure', $tablePayload->mercure->hubUrl);
-    }
-
-    #[Test]
-    public function it_carries_the_hub_protocol_version_into_a_manual_mercure_config(): void
-    {
-        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
-        $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
-        $hubUrlResolver->method('resolveProtocolVersion')->willReturn(MercureConfig::PROTOCOL_VERSION_1_0);
-
-        $preparer = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), mercureHubUrlResolver: $hubUrlResolver);
-        $table    = new DataTable('Test');
-        $table->mercure(topics: ['/api/books/{id}']);
-
-        $tablePayload = self::prepare($preparer, $table, null);
-
-        $this->assertSame(MercureConfig::PROTOCOL_VERSION_1_0, $tablePayload->mercure?->protocolVersion);
-    }
-
-    #[Test]
-    public function it_carries_the_hub_protocol_version_into_attribute_mercure_topics(): void
-    {
-        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
-        $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
-        $hubUrlResolver->method('resolveProtocolVersion')->willReturn(MercureConfig::PROTOCOL_VERSION_1_0);
-
-        $preparer = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), mercureHubUrlResolver: $hubUrlResolver);
-        $table    = (new DataTable('Test'))->ajax('/api/books');
-
-        $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, mercure: [
-            'topics' => ['/api/books/{id}'],
-        ]));
-
-        $this->assertSame(MercureConfig::PROTOCOL_VERSION_1_0, $tablePayload->mercure?->protocolVersion);
-    }
-
-    #[Test]
-    public function it_resolves_mercure_config_without_mutating_the_table(): void
-    {
-        $mercureConfig = (new MercureConfig(topics: ['/products/{id}']))
-            ->withHubUrl('/.well-known/mercure');
-
-        $mercureResolver = $this->createMock(MercureConfigResolver::class);
-        $mercureResolver->method('resolveMercureConfig')
-            ->with(\stdClass::class)
-            ->willReturn($mercureConfig);
-
-        $preparer = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), mercureResolver: $mercureResolver);
-        $table    = (new DataTable('Test'))->serverSide();
-
-        $resolved = $preparer->resolveMercureConfig($table, ResolvedOptIns::resolve($table, new AsDataTable(entityClass: \stdClass::class, mercure: true)));
-
-        // The pure resolver returns the config the render path would serialize
-        // but must never write it back onto the (container-shared) table — that
-        // is configureMercure()'s job. This is what lets the server-side publish
-        // path reuse it during a mutation without polluting the shared instance.
-        $this->assertSame($mercureConfig, $resolved);
-        $this->assertNull($table->getMercureConfig());
-    }
-
-    #[Test]
-    public function it_configures_explicit_mercure_topics_from_attribute(): void
-    {
-        $mercureResolver = $this->createMock(MercureConfigResolver::class);
-        $mercureResolver->expects($this->never())->method('resolveMercureConfig');
-
-        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
-        $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
-
-        $preparer = new RenderingPreparer(
-            new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()),
-            mercureResolver: $mercureResolver,
-            mercureHubUrlResolver: $hubUrlResolver,
-        );
-        $table = (new DataTable('Test'))->ajax('/api/books');
-
-        $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, mercure: [
-            'topics'          => ['https://example.com/books'],
-            'withCredentials' => true,
-            'debounceMs'      => 250,
-        ]));
-
-        $this->assertSame([
-            'hubUrl'          => '/.well-known/mercure',
-            'topics'          => ['https://example.com/books'],
-            'withCredentials' => true,
-            'debounceMs'      => 250,
-        ], $tablePayload->getView()['mercure']);
-    }
-
-    #[Test]
-    public function it_subscribes_with_credentials_for_a_private_api_platform_resource(): void
-    {
-        $metadataResolver = $this->createStub(ApiResourceMercureMetadataResolver::class);
-        $metadataResolver->method('resolveTopics')->willReturn(['https://example.com/api/books/{id}']);
-        $metadataResolver->method('resolvePrivate')->willReturn(true);
-
-        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
-        $hubUrlResolver->method('resolveHubUrl')->willReturn('https://example.com/.well-known/mercure');
-
-        $preparer = new RenderingPreparer(
-            new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()),
-            mercureResolver: new MercureConfigResolver($hubUrlResolver, $metadataResolver),
-            mercureHubUrlResolver: $hubUrlResolver,
-        );
-        $table = (new DataTable('Test'))->ajax('/api/books');
-
-        $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, mercure: true));
-
-        $this->assertSame([
-            'hubUrl'          => 'https://example.com/.well-known/mercure',
-            'topics'          => ['https://example.com/api/books/{id}'],
-            'withCredentials' => true,
-        ], $tablePayload->getView()['mercure']);
-    }
-
-    #[Test]
-    public function it_keeps_an_explicit_with_credentials_false_over_the_private_metadata(): void
-    {
-        $metadataResolver = $this->createMock(ApiResourceMercureMetadataResolver::class);
-        $metadataResolver->expects($this->never())->method('resolveTopics');
-        $metadataResolver->expects($this->never())->method('resolvePrivate');
-
-        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
-        $hubUrlResolver->method('resolveHubUrl')->willReturn('https://example.com/.well-known/mercure');
-
-        $preparer = new RenderingPreparer(
-            new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()),
-            mercureResolver: new MercureConfigResolver($hubUrlResolver, $metadataResolver),
-            mercureHubUrlResolver: $hubUrlResolver,
-        );
-        $table = (new DataTable('Test'))->ajax('/api/books');
-
-        $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, mercure: [
-            'topics'          => ['https://example.com/api/books/{id}'],
-            'withCredentials' => false,
-        ]));
-
-        $this->assertSame([
-            'hubUrl' => 'https://example.com/.well-known/mercure',
-            'topics' => ['https://example.com/api/books/{id}'],
-        ], $tablePayload->getView()['mercure']);
-    }
-
-    /**
-     * @param \Closure(DataTable): DataTable $configure
-     */
-    #[Test]
-    #[DataProvider('provideCasesSkippingMercure')]
-    public function it_skips_mercure_without_consulting_the_resolver(AsDataTable $attribute, \Closure $configure): void
-    {
-        $mercureResolver = $this->createMock(MercureConfigResolver::class);
-        $mercureResolver->expects($this->never())->method('resolveMercureConfig');
-
-        $preparer = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), mercureResolver: $mercureResolver);
-        $table    = $configure(new DataTable('Test'));
-
-        $tablePayload = self::prepare($preparer, $table, $attribute);
-
-        $this->assertNull($tablePayload->mercure);
-    }
-
-    public static function provideCasesSkippingMercure(): iterable
-    {
-        yield 'attribute mercure is false' => [
-            new AsDataTable(entityClass: \stdClass::class, mercure: false),
-            self::unchanged(),
-        ];
-
-        yield 'client side data without ajax' => [
-            new AsDataTable(entityClass: \stdClass::class, mercure: true),
-            static fn (DataTable $table): DataTable => $table->data([['id' => 1]]),
-        ];
-    }
-
-    #[Test]
-    public function it_enriches_manual_mercure_config_with_resolved_hub_url(): void
-    {
-        $mercureResolver = $this->createMock(MercureConfigResolver::class);
-        $mercureResolver->expects($this->never())->method('resolveMercureConfig');
-
-        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
-        $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
-
-        $preparer = new RenderingPreparer(
-            new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()),
-            mercureResolver: $mercureResolver,
-            mercureHubUrlResolver: $hubUrlResolver,
-        );
-        $table = new DataTable('Test');
-        $table->mercure(topics: ['/existing']);
-
-        $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, mercure: true));
-
-        $this->assertSame('/.well-known/mercure', $tablePayload->mercure->hubUrl);
-        $this->assertSame(['/existing'], $tablePayload->mercure->topics);
-    }
-
-    #[Test]
-    public function it_throws_when_manual_mercure_has_no_resolvable_hub_url(): void
-    {
-        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
-        $hubUrlResolver->method('resolveHubUrl')->willReturn(null);
-
-        $preparer = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), mercureHubUrlResolver: $hubUrlResolver);
-        $table    = new DataTable('Test');
-        $table->mercure(topics: ['/existing']);
-
-        $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('Mercure hub URL could not be resolved');
-
-        $tablePayload = self::prepare($preparer, $table, null);
-    }
-
-    #[Test]
-    public function it_skips_mercure_when_resolver_returns_null(): void
-    {
-        $mercureResolver = $this->createStub(MercureConfigResolver::class);
-        $mercureResolver->method('resolveMercureConfig')->willReturn(null);
-
-        $preparer = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), mercureResolver: $mercureResolver);
-        $table    = new DataTable('Test');
-
-        $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, mercure: true));
-
-        $this->assertNull($tablePayload->mercure);
     }
 
     #[Test]
@@ -1312,133 +1076,6 @@ final class RenderingPreparerTest extends TestCase
                 'apply' => 'Appliquer les filtres',
                 'all'   => 'Tous',
             ],
-        ];
-    }
-
-    #[Test]
-    public function it_resolves_auto_topics_when_the_attribute_mercure_array_has_none(): void
-    {
-        $mercureConfig = (new MercureConfig(topics: ['https://example.com/api/books/{id}']))
-            ->withHubUrl('https://example.com/.well-known/mercure');
-
-        $mercureResolver = $this->createMock(MercureConfigResolver::class);
-        $mercureResolver->expects($this->once())
-            ->method('resolveMercureConfig')
-            ->with(\stdClass::class)
-            ->willReturn($mercureConfig);
-
-        $preparer = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), mercureResolver: $mercureResolver);
-        $table    = (new DataTable('Test'))->ajax('/api/books');
-
-        $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, mercure: [
-            'debounceMs' => 250,
-        ]));
-
-        $this->assertSame([
-            'hubUrl'     => 'https://example.com/.well-known/mercure',
-            'topics'     => ['https://example.com/api/books/{id}'],
-            'debounceMs' => 250,
-        ], $tablePayload->getView()['mercure']);
-    }
-
-    #[Test]
-    public function it_applies_an_explicit_with_credentials_over_the_auto_resolved_one(): void
-    {
-        $mercureConfig = (new MercureConfig(topics: ['/api/books/{id}'], withCredentials: true))
-            ->withHubUrl('/.well-known/mercure');
-
-        $mercureResolver = $this->createStub(MercureConfigResolver::class);
-        $mercureResolver->method('resolveMercureConfig')->willReturn($mercureConfig);
-
-        $preparer = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), mercureResolver: $mercureResolver);
-        $table    = (new DataTable('Test'))->ajax('/api/books');
-
-        $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, mercure: [
-            'withCredentials' => false,
-        ]));
-
-        $this->assertSame([
-            'hubUrl' => '/.well-known/mercure',
-            'topics' => ['/api/books/{id}'],
-        ], $tablePayload->getView()['mercure']);
-    }
-
-    /**
-     * @param array<string, mixed> $mercure
-     */
-    #[Test]
-    #[DataProvider('provideTopiclessMercureOptions')]
-    public function it_skips_mercure_without_topics_when_the_auto_resolver_finds_none(array $mercure): void
-    {
-        $mercureResolver = $this->createStub(MercureConfigResolver::class);
-        $mercureResolver->method('resolveMercureConfig')->willReturn(null);
-
-        $preparer = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), mercureResolver: $mercureResolver);
-        $table    = (new DataTable('Test'))->ajax('/api/books');
-
-        $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, mercure: $mercure));
-
-        $this->assertArrayNotHasKey('mercure', $tablePayload->getView());
-    }
-
-    /**
-     * @return iterable<string, array{array<string, mixed>}>
-     */
-    public static function provideTopiclessMercureOptions(): iterable
-    {
-        yield 'empty array' => [[]];
-
-        yield 'subscription options only' => [['debounceMs' => 250, 'withCredentials' => true]];
-    }
-
-    #[Test]
-    public function it_names_the_attribute_and_the_class_for_an_unknown_mercure_option(): void
-    {
-        $preparer = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()));
-        $table    = (new DataTable('Test'))->ajax('/api/books');
-
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Unknown mercure option(s) "topic" declared on #[AsDataTable] for "stdClass". Supported options are "topics", "withCredentials" and "debounceMs".');
-
-        $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, mercure: [
-            'topic' => 'https://example.com/books',
-        ]));
-    }
-
-    /**
-     * @param array<string, mixed> $mercure
-     */
-    #[Test]
-    #[DataProvider('provideInvalidMercureOptions')]
-    public function it_rejects_an_invalid_mercure_option(string $expectedMessage, array $mercure): void
-    {
-        $preparer = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()));
-        $table    = (new DataTable('Test'))->ajax('/api/books');
-
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage($expectedMessage);
-
-        $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, mercure: $mercure));
-    }
-
-    /**
-     * @return iterable<string, array{string, array<string, mixed>}>
-     */
-    public static function provideInvalidMercureOptions(): iterable
-    {
-        yield 'topics is neither a string nor an array' => [
-            'The mercure "topics" option declared on #[AsDataTable] for "stdClass" must be a string or an array of strings.',
-            ['topics' => 42],
-        ];
-
-        yield 'withCredentials is not a boolean' => [
-            'The mercure "withCredentials" option declared on #[AsDataTable] for "stdClass" must be a boolean.',
-            ['topics' => ['/api/books/{id}'], 'withCredentials' => 'yes'],
-        ];
-
-        yield 'debounceMs is not an integer' => [
-            'The mercure "debounceMs" option declared on #[AsDataTable] for "stdClass" must be an integer or null.',
-            ['topics' => ['/api/books/{id}'], 'debounceMs' => '250'],
         ];
     }
 

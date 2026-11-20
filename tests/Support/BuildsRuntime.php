@@ -11,6 +11,7 @@ use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\Rendering\UrlColumnDataResolver;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
+use Pentiminax\UX\DataTables\Mercure\MercureTableConfigResolver;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
@@ -55,6 +56,7 @@ trait BuildsRuntime
         ?ManagerRegistry $doctrine = null,
         ?ActionRowDataResolver $actionRowDataResolver = null,
         ?UrlColumnDataResolver $urlColumnDataResolver = null,
+        ?MercureTableConfigResolver $mercure = null,
     ): DataTableRuntime {
         $checker ??= new AuthorizationChecker();
         $columnResolver = new ColumnResolver($checker);
@@ -81,6 +83,7 @@ trait BuildsRuntime
             profiler: $profiler,
             logger: $logger,
             hydrationRowThreshold: $hydrationRowThreshold,
+            mercure: $mercure ?? new MercureTableConfigResolver(),
         );
     }
 

@@ -14,8 +14,6 @@ use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\TemplateAwareColumnInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
-use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Model\BulkActions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
@@ -94,9 +92,7 @@ final class RenderingPreparer
         private readonly AuthorizationChecker $permissionChecker,
         private readonly ColumnResolver $columnResolver,
         private readonly ?ApiResourceCollectionUrlResolver $urlResolver = null,
-        private readonly ?MercureConfigResolver $mercureResolver = null,
         private readonly ?TranslatorInterface $translator = null,
-        private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
         private readonly ?UrlGeneratorInterface $urlGenerator = null,
         private readonly ?AjaxDataTableRegistry $ajaxRegistry = null,
         private readonly ?RequestStack $requestStack = null,
@@ -142,11 +138,12 @@ final class RenderingPreparer
     /**
      * Build the payload of one render. Nothing is written back to the table.
      *
-     * @param list<array<string, mixed>>|null $rows rows read for this render, replacing the table's `data`
+     * @param list<array<string, mixed>>|null $rows    rows read for this render, replacing the table's `data`
+     * @param \Closure(): ?MercureConfig      $mercure resolves the Mercure config once the payload checks have passed
      *
      * @throws \LogicException when the table polls without an Ajax source, or the payload sets a key twice
      */
-    public function prepareAfterDataHydration(DataTable $table, ResolvedOptIns $optIns, ?array $rows = null, ?string $bulkRowIdField = null): PreparedDataTable
+    public function prepareAfterDataHydration(DataTable $table, ResolvedOptIns $optIns, ?array $rows, ?string $bulkRowIdField, \Closure $mercure): PreparedDataTable
     {
         $dataTableClass    = $table->getDataTableClass();
         $configuredColumns = $this->translatedColumns($table->getColumns());
@@ -236,7 +233,7 @@ final class RenderingPreparer
             apiPlatform: $apiPlatform,
             apiPlatformServerSide: $apiPlatformServerSide,
             exportUrl: $table->getBundleOption('exportUrl') ?? $this->exportUrl($table),
-            mercure: $this->resolveMercureConfig($table, $optIns),
+            mercure: $mercure(),
             highlight: $table->getHighlightConfig()?->jsonSerialize(),
             bulkActions: null === $bulkActions ? null : [
                 'actions'               => $bulkActions['actions'],
@@ -264,41 +261,6 @@ final class RenderingPreparer
             locale: $this->requestStack?->getCurrentRequest()?->getLocale(),
             csrfToken: $this->mutationToken(),
         );
-    }
-
-    /**
-     * Resolve the Mercure configuration a table serializes to the browser.
-     *
-     * Single source of truth for the topic precedence — manual ->mercure() >
-     * explicit #[AsDataTable(mercure: [...])] > entity-class auto-resolver —
-     * so the server-side publish path can reuse it and always publish to the
-     * exact topics the client subscribed to. Returns null when the table
-     * exposes no live Mercure config.
-     */
-    public function resolveMercureConfig(DataTable $table, ResolvedOptIns $optIns): ?MercureConfig
-    {
-        $mercure = $optIns->mercure;
-
-        if ($mercure instanceof MercureConfig) {
-            return $mercure
-                ->withHubUrl($this->resolveHubUrlOrThrow())
-                ->withProtocolVersion($this->resolveProtocolVersion());
-        }
-
-        if (false === $mercure || null === $optIns->entityClass) {
-            return null;
-        }
-
-        // Embedded rows never refresh, so only a manual ->mercure() config subscribes them.
-        if (\in_array($optIns->dataSourceMode, [DataSourceMode::Inline, DataSourceMode::ClientHydrated], true)) {
-            return null;
-        }
-
-        if (\is_array($mercure)) {
-            return $this->createExplicitMercureConfig($mercure, $optIns->entityClass);
-        }
-
-        return $this->mercureResolver?->resolveMercureConfig($optIns->entityClass);
     }
 
     /**
@@ -544,91 +506,5 @@ final class RenderingPreparer
         } catch (SessionNotFoundException) {
             return null;
         }
-    }
-
-    /**
-     * Build the config declared on the attribute.
-     *
-     * Without a `topics` key the array only carries subscription options, so topics come from the
-     * auto-resolver and the declared options are applied on top of it.
-     *
-     * @param array<string, mixed> $mercure
-     */
-    private function createExplicitMercureConfig(array $mercure, string $entityClass): ?MercureConfig
-    {
-        $this->assertKnownMercureOptions($mercure, $entityClass);
-
-        $debounceMs = $mercure['debounceMs'] ?? null;
-        if (null !== $debounceMs && !\is_int($debounceMs)) {
-            throw new \InvalidArgumentException(\sprintf('The mercure "debounceMs" option declared on #[AsDataTable] for "%s" must be an integer or null.', $entityClass));
-        }
-
-        $withCredentials = $mercure['withCredentials'] ?? null;
-        if (null !== $withCredentials && !\is_bool($withCredentials)) {
-            throw new \InvalidArgumentException(\sprintf('The mercure "withCredentials" option declared on #[AsDataTable] for "%s" must be a boolean.', $entityClass));
-        }
-
-        if (!\array_key_exists('topics', $mercure)) {
-            $resolved = $this->mercureResolver?->resolveMercureConfig($entityClass);
-
-            if (null === $resolved) {
-                return null;
-            }
-
-            return new MercureConfig(
-                topics: $resolved->topics,
-                withCredentials: $withCredentials ?? $resolved->withCredentials,
-                debounceMs: $debounceMs,
-                hubUrl: $resolved->hubUrl,
-                protocolVersion: $resolved->protocolVersion,
-            );
-        }
-
-        $topics = $mercure['topics'];
-        if (\is_string($topics)) {
-            $topics = [$topics];
-        }
-
-        if (!\is_array($topics)) {
-            throw new \InvalidArgumentException(\sprintf('The mercure "topics" option declared on #[AsDataTable] for "%s" must be a string or an array of strings.', $entityClass));
-        }
-
-        return (new MercureConfig(
-            topics: $topics,
-            withCredentials: $withCredentials ?? false,
-            debounceMs: $debounceMs,
-        ))
-            ->withHubUrl($this->resolveHubUrlOrThrow())
-            ->withProtocolVersion($this->resolveProtocolVersion());
-    }
-
-    /**
-     * @param array<string, mixed> $mercure
-     */
-    private function assertKnownMercureOptions(array $mercure, string $entityClass): void
-    {
-        $unknown = array_diff(array_keys($mercure), ['topics', 'withCredentials', 'debounceMs']);
-
-        if ([] === $unknown) {
-            return;
-        }
-
-        throw new \InvalidArgumentException(\sprintf('Unknown mercure option(s) "%s" declared on #[AsDataTable] for "%s". Supported options are "topics", "withCredentials" and "debounceMs".', implode('", "', $unknown), $entityClass));
-    }
-
-    private function resolveHubUrlOrThrow(): string
-    {
-        $hubUrl = $this->mercureHubUrlResolver?->resolveHubUrl();
-
-        if (null === $hubUrl || '' === $hubUrl) {
-            throw new \LogicException('Cannot enable Mercure on this DataTable: the Mercure hub URL could not be resolved. Ensure symfony/mercure-bundle is installed and configured (e.g. MERCURE_URL / MERCURE_PUBLIC_URL).');
-        }
-
-        return $hubUrl;
-    }
-
-    private function resolveProtocolVersion(): string
-    {
-        return $this->mercureHubUrlResolver?->resolveProtocolVersion() ?? MercureConfig::PROTOCOL_VERSION_0_X;
     }
 }

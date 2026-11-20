@@ -19,6 +19,7 @@ use Pentiminax\UX\DataTables\DataTableRequest\Columns as RequestColumns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
+use Pentiminax\UX\DataTables\Mercure\MercureTableConfigResolver;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
@@ -65,6 +66,7 @@ final class DataTableRuntime
         private readonly ?LoggerInterface $logger = null,
         private readonly int $hydrationRowThreshold = 0,
         private readonly DataSourceFeatureGuard $featureGuard = new DataSourceFeatureGuard(),
+        private readonly MercureTableConfigResolver $mercure = new MercureTableConfigResolver(),
     ) {
         $this->searchListOptionsResolver = $searchListOptionsResolver;
     }
@@ -106,7 +108,14 @@ final class DataTableRuntime
             ? $this->resolveRowIdField(null, $definition->table->getBulkActions()?->getIdField(), $definition->entityClass())
             : null;
 
-        return $this->renderingPreparer->prepareAfterDataHydration($definition->table, $optIns, $rows, $bulkRowIdField);
+        // Resolved last, so a table failing both reports the preparer's own error first.
+        return $this->renderingPreparer->prepareAfterDataHydration(
+            $definition->table,
+            $optIns,
+            rows: $rows,
+            bulkRowIdField: $bulkRowIdField,
+            mercure: fn (): ?MercureConfig => $this->mercure->resolve($optIns),
+        );
     }
 
     /**
@@ -118,7 +127,7 @@ final class DataTableRuntime
     {
         $definition = $this->definitions->build($table);
 
-        return $this->renderingPreparer->resolveMercureConfig($definition->table, $definition->optIns);
+        return $this->mercure->resolve($definition->optIns);
     }
 
     /**
