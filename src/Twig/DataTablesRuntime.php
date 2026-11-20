@@ -28,7 +28,10 @@ final class DataTablesRuntime implements RuntimeExtensionInterface
     ) {
     }
 
-    public function renderDataTable(AbstractDataTable $table, array $attributes = []): string
+    /**
+     * @param array<array-key, mixed>|null $rows null renders the configured source, an empty array renders an empty inline table
+     */
+    public function renderDataTable(AbstractDataTable $table, array $attributes = [], ?array $rows = null): string
     {
         $definition = $this->runtime->definition($table);
 
@@ -36,7 +39,7 @@ final class DataTablesRuntime implements RuntimeExtensionInterface
             throw new AccessDeniedException('Access to this DataTable is denied.');
         }
 
-        $prepared = $this->runtime->render($table);
+        $prepared = $this->runtime->render($table, rows: $rows);
         $view     = $prepared->getView();
 
         $attributes = array_merge($prepared->attributes, $attributes);

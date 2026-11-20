@@ -79,14 +79,16 @@ final class DataTableRuntime
     /**
      * Build the payload of one render. The table and its definition are left as configured.
      *
+     * @param array<array-key, mixed>|null $rows null renders the configured source, an empty array renders an empty inline table
+     *
      * @throws \LogicException when the table cannot be rendered as configured
      */
-    public function render(AbstractDataTable $table): PreparedDataTable
+    public function render(AbstractDataTable $table, ?array $rows = null): PreparedDataTable
     {
         $definition = $this->definitions->build($table);
         $call       = new DataTableCall($this, $definition, $table);
 
-        $inlineRows = $table->getInlineRows();
+        $inlineRows = $rows ?? $table->getInlineRows();
         if (null !== $inlineRows) {
             $definition = $this->definitions->withInlineRows($definition, $this->mapRows($call, $inlineRows));
             $call       = new DataTableCall($this, $definition, $table);

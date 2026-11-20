@@ -279,6 +279,9 @@ final class DataTablesExtensionTest extends TestCase
     /**
      * @param array<string, mixed> $expectedRow
      */
+    /**
+     * @param array<string, mixed> $expectedRow
+     */
     #[Test]
     #[DataProvider('inlineObjectRowCases')]
     public function it_prepares_inline_object_rows_during_rendering(string $mode, array $expectedRow): void
@@ -310,9 +313,52 @@ final class DataTablesExtensionTest extends TestCase
         ]];
     }
 
-    /**
-     * @param array<string, mixed> $expectedRow
-     */
+    #[Test]
+    public function it_renders_the_rows_argument_like_rows(): void
+    {
+        $expected = $this->renderPayload($this->createInlineObjectTable('setData'));
+
+        $rendered = $this->container->get('test.datatables.twig_runtime')->renderDataTable(
+            $this->createInlineObjectTable('argument'),
+            rows: [new InlineBook(id: 5, title: 'Dune', status: 'active')],
+        );
+
+        $this->assertSame($expected, $this->payloadOf($rendered));
+    }
+
+    #[Test]
+    public function it_leaves_no_rows_on_the_table_after_rendering_the_rows_argument(): void
+    {
+        $table = $this->createInlineObjectTable('argument');
+
+        $this->container->get('test.datatables.twig_runtime')->renderDataTable($table, rows: [new InlineBook(id: 5, title: 'Dune', status: 'active')]);
+
+        $this->assertNull($table->getInlineRows());
+    }
+
+    #[Test]
+    public function it_gives_each_render_its_own_rows(): void
+    {
+        $table   = $this->createInlineObjectTable('argument');
+        $runtime = $this->container->get('test.datatables.twig_runtime');
+
+        $first  = $this->payloadOf($runtime->renderDataTable($table, rows: [new InlineBook(id: 5, title: 'Dune', status: 'active')]));
+        $second = $this->payloadOf($runtime->renderDataTable($table, rows: [new InlineBook(id: 6, title: 'Emma', status: 'active')]));
+
+        $this->assertSame([5], array_column($first['data'], 'id'));
+        $this->assertSame([6], array_column($second['data'], 'id'));
+    }
+
+    #[Test]
+    public function it_renders_an_empty_array_as_an_empty_inline_table(): void
+    {
+        $table = $this->createInlineObjectTable('configured');
+
+        $payload = $this->payloadOf($this->container->get('test.datatables.twig_runtime')->renderDataTable($table, rows: []));
+
+        $this->assertSame([], $payload['data']);
+    }
+
     #[Test]
     #[DataProvider('inlineObjectRowCases')]
     public function it_renders_the_same_payload_twice(string $mode, array $expectedRow): void
@@ -611,7 +657,7 @@ final class DataTablesExtensionTest extends TestCase
     private function createInlineObjectTable(string $mode): AbstractDataTable
     {
         $rows     = [new InlineBook(id: 5, title: 'Dune', status: 'active')];
-        $template = 'setData' === $mode
+        $template = 'configured' !== $mode
             ? 'datatable/columns/status_badge.html.twig'
             : 'datatable/columns/entity_status_badge.html.twig';
 
@@ -626,9 +672,9 @@ final class DataTablesExtensionTest extends TestCase
             actions: static fn (Actions $actions): Actions => $actions->add(
                 Action::detail()->linkToUrl(static fn (InlineBook $book): string => '/books/'.$book->getId())
             ),
-            configureTable: 'setData' === $mode
-                ? null
-                : static fn (DataTable $table): DataTable => $table->data($rows),
+            configureTable: 'configured' === $mode
+                ? static fn (DataTable $table): DataTable => $table->data($rows)
+                : null,
         );
 
         if ('setData' === $mode) {
@@ -695,6 +741,17 @@ final class DataTablesExtensionTest extends TestCase
         yield 'client side' => ['default'];
         yield 'server side' => ['serverSide'];
         yield 'ajax' => ['ajax'];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function payloadOf(string $rendered): array
+    {
+        $dom = new \DOMDocument();
+        $dom->loadHTML($rendered);
+
+        return $this->decodePayload($dom->getElementsByTagName('table')->item(0));
     }
 
     /**
