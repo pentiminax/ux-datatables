@@ -14,8 +14,8 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
  * services eagerly record rendered tables and AJAX queries on every request via direct calls
  * from application code, not just when Symfony's own profiler pulls a collect(), so they
  * cannot be left registered unconditionally without a real (if small) per-request cost in
- * production. Every consumer of datatables.profiler (DataTablesExtension, AbstractDataTable,
- * DataTableInfrastructure) already treats it as optional and no-ops when it is absent, so
+ * production. Every consumer of datatables.profiler (DataTablesRuntime, DataTableRuntime)
+ * already treats it as optional and no-ops when it is absent, so
  * this import guard is the only thing standing between debug-only and always-on.
  */
 return static function (ContainerConfigurator $container): void {

@@ -9,6 +9,7 @@ use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\RowScopeGuard;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 
 /**
  * A real RowScopeGuard that lets every row through, for tests that are not about the table scope.
@@ -19,7 +20,9 @@ use Pentiminax\UX\DataTables\Mutation\RowScopeGuard;
  */
 trait BuildsUnscopedRowScopeGuard
 {
-    protected function unscopedRowScopeGuard(): RowScopeGuard
+    use BuildsRuntime;
+
+    protected function unscopedRowScopeGuard(?DataTableRuntime $runtime = null): RowScopeGuard
     {
         $metadata = $this->createStub(ClassMetadata::class);
         $metadata->method('getIdentifier')->willReturn(['id']);
@@ -30,6 +33,6 @@ trait BuildsUnscopedRowScopeGuard
         $doctrine = $this->createStub(ManagerRegistry::class);
         $doctrine->method('getManagerForClass')->willReturn($manager);
 
-        return new RowScopeGuard(new EntityLocator($doctrine));
+        return new RowScopeGuard(new EntityLocator($doctrine), $runtime ?? self::buildRuntime());
     }
 }

@@ -49,6 +49,22 @@ final class AjaxDataTableRegistryTest extends TestCase
     }
 
     #[Test]
+    public function it_builds_the_definition_of_a_table_from_its_read_token(): void
+    {
+        $table    = new RegistryDataTableFixture();
+        $registry = $this->createAjaxRegistry(
+            [self::TABLE_CLASS => self::SERVICE_ID],
+            [self::SERVICE_ID => $table],
+        );
+
+        $definition = $registry->getDefinition((string) $registry->getToken(self::TABLE_CLASS));
+
+        $this->assertSame(RegistryDataTableFixture::class, $definition?->class);
+        $this->assertSame(RegistryEntityFixture::class, $definition->entityClass());
+        $this->assertNull($registry->getDefinition('unknown-token'));
+    }
+
+    #[Test]
     public function it_returns_null_for_unknown_tables_and_tokens(): void
     {
         $registry = $this->createAjaxRegistry([]);

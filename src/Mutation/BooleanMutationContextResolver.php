@@ -22,7 +22,7 @@ final readonly class BooleanMutationContextResolver
     {
         $resolved = $this->registry->resolveAction($dataTableToken);
 
-        foreach ($resolved->table->getConfiguredDataTable()->getColumns() as $column) {
+        foreach ($resolved->definition->table->getColumns() as $column) {
             if (!$column instanceof BooleanColumn || !$column->isRenderedAsSwitch()) {
                 continue;
             }

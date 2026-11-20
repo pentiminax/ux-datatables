@@ -5,22 +5,20 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
 use Pentiminax\UX\DataTables\Column\ActionColumn;
-use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
-use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use Pentiminax\UX\DataTables\Tests\Support\PreparesPayload;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
@@ -33,63 +31,50 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 #[CoversClass(AbstractDataTable::class)]
 final class AbstractDataTableResetTest extends TestCase
 {
+    use BuildsRuntime;
     use PreparesPayload;
 
     #[Test]
-    public function it_re_evaluates_the_configuration_after_a_reset(): void
+    public function it_drops_the_rows_set_on_the_table_after_a_reset(): void
     {
-        $rows = [['id' => 1]];
+        $runtime = self::buildRuntime();
+        $table   = new ConfigurableDataTable([TextColumn::new('id')]);
 
-        $table = new ConfigurableDataTable(
+        $table->rows([['id' => 1]]);
+
+        $this->assertSame([['id' => 1]], self::optionOf($runtime->render($table), 'data'));
+
+        $table->resetDataTableState();
+
+        $this->assertSame([], self::optionOf($runtime->render($table), 'data'));
+    }
+
+    #[Test]
+    public function it_renders_the_same_payload_twice_for_the_same_table(): void
+    {
+        $runtime = self::buildRuntime();
+        $table   = new ConfigurableDataTable(
             [TextColumn::new('id')],
-            configureTable: static function (DataTable $table) use (&$rows): DataTable {
-                return $table->data($rows);
-            },
-        );
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
-
-        $this->assertSame([['id' => 1]], self::optionOf($table->prepareRendering(), 'data'));
-
-        $rows = [['id' => 2]];
-
-        $this->assertSame(
-            [['id' => 1]],
-            self::optionOf($table->prepareRendering(), 'data'),
-            'Without a reset the first request\'s rows stay frozen on the shared instance.',
+            configureTable: static fn (DataTable $table): DataTable => $table->data([['id' => 1]]),
         );
 
-        $table->resetDataTableState();
-
-        $this->assertSame([['id' => 2]], self::optionOf($table->prepareRendering(), 'data'));
+        $this->assertSame($runtime->render($table)->getView(), $runtime->render($table)->getView());
     }
 
     #[Test]
-    public function it_rebuilds_the_data_table_after_a_reset(): void
+    public function it_maps_the_rows_at_render_time(): void
     {
-        $table = new ConfigurableDataTable([TextColumn::new('id')]);
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
+        $runtime = self::buildRuntime();
+        $table   = new ConfigurableDataTable([TextColumn::new('id')]);
 
-        $first = $table->getConfiguredDataTable();
+        $table->rows([['id' => 1]]);
+        $first = $runtime->render($table)->getView();
 
-        $table->resetDataTableState();
+        $this->assertSame($first, $runtime->render($table)->getView());
 
-        $this->assertNotSame($first, $table->getConfiguredDataTable());
-    }
+        $table->rows([['id' => 2]]);
 
-    #[Test]
-    public function it_drops_the_handled_request_after_a_reset(): void
-    {
-        $table = new ConfigurableDataTable([TextColumn::new('id')]);
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
-
-        $table->handleDataTableRequest(new Request(['draw' => '1']));
-
-        $this->assertNotNull($table->getDataTableRequest());
-
-        $table->resetDataTableState();
-
-        $this->assertNull($table->getDataTableRequest());
-        $this->assertFalse($table->isDataTableRequestHandled());
+        $this->assertSame([['id' => 2]], self::optionOf($runtime->render($table), 'data'));
     }
 
     /**
@@ -98,11 +83,11 @@ final class AbstractDataTableResetTest extends TestCase
      * next render hands them to whoever asks.
      */
     #[Test]
-    public function it_drops_action_data_resolved_for_the_previous_user_after_a_reset(): void
+    public function it_drops_action_data_resolved_for_the_previous_user_on_the_next_render(): void
     {
         $granted = true;
 
-        $table = $this->tableWithAction(
+        [$runtime, $table] = $this->tableWithAction(
             Action::detail()
                 ->permission('ROLE_ADMIN')
                 ->linkToUrl(static fn (array $row): string => '/books/'.$row['id']),
@@ -111,13 +96,13 @@ final class AbstractDataTableResetTest extends TestCase
 
         $this->assertSame(
             ['DETAIL' => ['url' => '/books/5']],
-            $this->rowActions($table),
+            $this->rowActions($runtime, $table),
         );
 
         $granted = false;
         $table->resetDataTableState();
 
-        $this->assertNull($this->rowActions($table));
+        $this->assertNull($this->rowActions($runtime, $table));
     }
 
     /**
@@ -126,11 +111,11 @@ final class AbstractDataTableResetTest extends TestCase
      * configured and only its subject is denied.
      */
     #[Test]
-    public function it_drops_per_row_denied_action_data_after_a_reset(): void
+    public function it_drops_per_row_denied_action_data_on_the_next_render(): void
     {
         $granted = true;
 
-        $table = $this->tableWithAction(
+        [$runtime, $table] = $this->tableWithAction(
             Action::detail()
                 ->permission('BOOK_VIEW', static fn (array $row): array => $row)
                 ->linkToUrl(static fn (array $row): string => '/books/'.$row['id']),
@@ -139,27 +124,13 @@ final class AbstractDataTableResetTest extends TestCase
 
         $this->assertSame(
             ['DETAIL' => ['url' => '/books/5']],
-            $this->rowActions($table),
+            $this->rowActions($runtime, $table),
         );
 
         $granted = false;
         $table->resetDataTableState();
 
-        $this->assertNull($this->rowActions($table));
-    }
-
-    #[Test]
-    public function it_accepts_infrastructure_injection_after_a_reset(): void
-    {
-        $table = new ConfigurableDataTable([TextColumn::new('id')]);
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
-
-        $table->prepareRendering();
-        $table->resetDataTableState();
-
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
-
-        $this->assertNotNull($table->getConfiguredDataTable());
+        $this->assertNull($this->rowActions($runtime, $table));
     }
 
     /**
@@ -184,17 +155,16 @@ final class AbstractDataTableResetTest extends TestCase
                 return [TextColumn::new('id')];
             }
         };
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
-
-        $first = $table->getConfiguredDataTable();
 
         $table->resetDataTableState();
 
-        $this->assertNotSame($first, $table->getConfiguredDataTable());
         $this->assertFalse($table->resetCalled);
     }
 
-    private function tableWithAction(Action $action, bool &$granted): ConfigurableDataTable
+    /**
+     * @return array{DataTableRuntime, ConfigurableDataTable}
+     */
+    private function tableWithAction(Action $action, bool &$granted): array
     {
         $checker = $this->createStub(AuthorizationCheckerInterface::class);
         $checker
@@ -202,8 +172,6 @@ final class AbstractDataTableResetTest extends TestCase
             ->willReturnCallback(static function () use (&$granted): bool {
                 return $granted;
             });
-
-        $permissionChecker = new AuthorizationChecker($checker);
 
         $table = new ConfigurableDataTable(
             [
@@ -213,23 +181,23 @@ final class AbstractDataTableResetTest extends TestCase
             configureTable: static fn (DataTable $table): DataTable => $table->data([['id' => 5]]),
         );
 
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            columnResolver: new ColumnResolver(permissionChecker: $permissionChecker),
-            runtimeFactory: new DataTableRuntimeFactory(
-                actionRowDataResolver: new ActionRowDataResolver($permissionChecker),
-                permissionChecker: $permissionChecker,
-            ),
-        ));
+        $permissionChecker = new AuthorizationChecker($checker);
 
-        return $table;
+        return [
+            self::buildRuntime(
+                checker: $permissionChecker,
+                actionRowDataResolver: new ActionRowDataResolver($permissionChecker),
+            ),
+            $table,
+        ];
     }
 
     /**
      * @return array<string, mixed>|null
      */
-    private function rowActions(ConfigurableDataTable $table): ?array
+    private function rowActions(DataTableRuntime $runtime, ConfigurableDataTable $table): ?array
     {
-        $data = self::optionOf($table->prepareRendering(), 'data');
+        $data = self::optionOf($runtime->render($table), 'data');
 
         return $data[0][ActionRowDataResolver::ROW_ACTIONS_KEY] ?? null;
     }

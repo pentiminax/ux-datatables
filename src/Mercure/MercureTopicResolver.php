@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Mercure;
 
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -37,6 +38,7 @@ class MercureTopicResolver
         private readonly ?MercureConfigResolver $configResolver = null,
         private readonly ?ContainerInterface $dataTables = null,
         private readonly ?LoggerInterface $logger = null,
+        private readonly ?DataTableRuntime $runtime = null,
     ) {
     }
 
@@ -66,12 +68,12 @@ class MercureTopicResolver
         if (null !== $dataTableClass && null !== $this->dataTables && $this->dataTables->has($dataTableClass)) {
             $dataTable = $this->dataTables->get($dataTableClass);
 
-            if ($dataTable instanceof AbstractDataTable && $dataTable->getEntityClass() === $entityClass) {
+            if ($dataTable instanceof AbstractDataTable && null !== $this->runtime && $this->runtime->definition($dataTable)->entityClass() === $entityClass) {
                 try {
                     // Resolve the topics the render path serialized to the browser
                     // WITHOUT hydrating client-side data: no data-provider / DB
                     // query is triggered as a side effect of the mutation.
-                    $config = $dataTable->resolveMercureConfigWithoutHydration();
+                    $config = $this->runtime->mercureConfig($dataTable);
                 } catch (\Throwable) {
                     // Topic resolution must never fail a mutation that has already
                     // committed (e.g. an unresolvable Mercure hub URL throws a

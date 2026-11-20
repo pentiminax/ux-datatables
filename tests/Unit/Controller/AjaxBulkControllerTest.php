@@ -11,6 +11,7 @@ use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxBulkController;
@@ -30,10 +31,13 @@ use Pentiminax\UX\DataTables\Mutation\BulkActionRunner;
 use Pentiminax\UX\DataTables\Mutation\BulkRecords;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
+use Pentiminax\UX\DataTables\Mutation\RowScopeGuard;
 use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
+use Pentiminax\UX\DataTables\Runtime\TableDefinitionBuilder;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -49,6 +53,8 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 #[CoversClass(AjaxBulkController::class)]
 final class AjaxBulkControllerTest extends TestCase
 {
+    use BuildsRuntime;
+
     private const TOKEN_SECRET = 'test-secret';
 
     /** @var list<object> */
@@ -230,12 +236,17 @@ final class AjaxBulkControllerTest extends TestCase
 
     private function runner(ManagerRegistry $registry, AuthorizationChecker $permissionChecker): BulkActionRunner
     {
+        $locator = new EntityLocator($registry);
+        $runtime = self::buildRuntime();
+
         return new BulkActionRunner(
-            new EntityLocator($registry),
+            $locator,
             $permissionChecker,
             new MutationFlusher(),
             new NullMercurePublisher(),
             new MercureTopicResolver(),
+            new RowScopeGuard($locator, $runtime),
+            $runtime,
         );
     }
 
@@ -249,6 +260,7 @@ final class AjaxBulkControllerTest extends TestCase
             new AjaxDataTableTokenManager(self::TOKEN_SECRET),
             [BulkEntityFixtureDataTable::class => 'bulk_table'],
             new AuthorizationChecker(),
+            new TableDefinitionBuilder(new ColumnResolver(new AuthorizationChecker())),
         );
     }
 
@@ -325,7 +337,7 @@ class BulkEntityFixtureDataTable extends AbstractDataTable
         yield TextColumn::new('id');
     }
 
-    protected function createDataProvider(): ?DataProviderInterface
+    public function createDataProvider(): ?DataProviderInterface
     {
         return new ArrayDataProvider([], new DefaultRowMapper([]));
     }

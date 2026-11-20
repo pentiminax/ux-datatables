@@ -10,7 +10,7 @@ use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
 use Pentiminax\UX\DataTables\Filter\TextFilter;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Filters;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -21,6 +21,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(AbstractDataTable::class)]
 final class AbstractDataTableAttributeFiltersTest extends TestCase
 {
+    use BuildsRuntime;
+
     #[Test]
     public function it_reads_the_filters_declared_on_the_data_class(): void
     {
@@ -62,15 +64,9 @@ final class AbstractDataTableAttributeFiltersTest extends TestCase
         $this->assertTrue($this->filtersOf(new BareFilterTable())->isEmpty());
     }
 
-    /**
-     * getConfiguredDataTable() stops at initialization, where the filters are already resolved. Going
-     * as far as rendering would pull in a data provider none of these fixtures needs.
-     */
     private function filtersOf(AbstractDataTable $table): Filters
     {
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
-
-        return $table->getConfiguredDataTable()->getFilters();
+        return self::definitionOf($table)->filters;
     }
 }
 

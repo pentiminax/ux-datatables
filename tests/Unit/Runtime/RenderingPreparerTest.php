@@ -39,6 +39,7 @@ use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Model\Summary\Sum;
 use Pentiminax\UX\DataTables\Runtime\PreparedDataTable;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Runtime\ResolvedOptIns;
 use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsAjaxRegistry;
@@ -173,7 +174,7 @@ final class RenderingPreparerTest extends TestCase
         $preparer = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), urlResolver: $urlResolver);
         $table    = $configure(new DataTable('Test'));
 
-        $tablePayload = self::prepare($preparer, $table, $attribute);
+        $tablePayload = self::prepare($preparer, $table, $attribute, $urlResolver);
 
         $this->assertSame($expectedAjax, self::optionOf($tablePayload, 'ajax'));
         $this->assertNull(self::optionOf($tablePayload, 'apiPlatform'));
@@ -213,7 +214,7 @@ final class RenderingPreparerTest extends TestCase
         $preparer = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), urlResolver: $urlResolver);
         $table    = $configure(new DataTable('Test'));
 
-        $tablePayload = self::prepare($preparer, $table, $attribute);
+        $tablePayload = self::prepare($preparer, $table, $attribute, $urlResolver);
 
         $this->assertSame(['type' => 'GET', 'url' => '/api/products'], self::optionOf($tablePayload, 'ajax'));
         $this->assertTrue(self::optionOf($tablePayload, 'apiPlatform'));
@@ -230,7 +231,7 @@ final class RenderingPreparerTest extends TestCase
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('Column summaries are not supported on an API Platform collection');
 
-        $tablePayload = self::prepare(new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), urlResolver: $urlResolver), $table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
+        $tablePayload = self::prepare(new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), urlResolver: $urlResolver), $table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true), $urlResolver);
     }
 
     public static function provideApiPlatformOptIns(): iterable
@@ -279,8 +280,8 @@ final class RenderingPreparerTest extends TestCase
             ->columns($columns);
 
         $tablePayload = null;
-        $deprecations = $this->deprecationsOf(static function () use ($preparer, $table, &$tablePayload): void {
-            $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
+        $deprecations = $this->deprecationsOf(static function () use ($preparer, $table, $urlResolver, &$tablePayload): void {
+            $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true), $urlResolver);
         });
 
         $this->assertSame([], $this->withoutAuthorizationFallback($deprecations));
@@ -337,7 +338,7 @@ final class RenderingPreparerTest extends TestCase
         $table = (new DataTable('Test'))->editModalTemplate(' ')->editModalAdapter('');
 
         $preparer     = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()));
-        $optIns       = $preparer->resolveOptIns($table, new AsDataTable(entityClass: \stdClass::class, editModalTemplate: 'attribute.html.twig', editModalAdapter: 'bootstrap'));
+        $optIns       = ResolvedOptIns::resolve($table, new AsDataTable(entityClass: \stdClass::class, editModalTemplate: 'attribute.html.twig', editModalAdapter: 'bootstrap'));
         $tablePayload = self::prepareWith($preparer, $table, $optIns);
 
         $this->assertSame('attribute.html.twig', $optIns->editModalTemplate);
@@ -365,7 +366,7 @@ final class RenderingPreparerTest extends TestCase
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('Table "Test" opts into API Platform but "stdClass" exposes no collection operation');
 
-        self::prepare($preparer, new DataTable('Test'), new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
+        self::prepare($preparer, new DataTable('Test'), new AsDataTable(entityClass: \stdClass::class, apiPlatform: true), $urlResolver);
     }
 
     #[Test]
@@ -435,7 +436,7 @@ final class RenderingPreparerTest extends TestCase
         $preparer = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), mercureResolver: $mercureResolver);
         $table    = (new DataTable('Test'))->serverSide();
 
-        $resolved = $preparer->resolveMercureConfig($table, $preparer->resolveOptIns($table, new AsDataTable(entityClass: \stdClass::class, mercure: true)));
+        $resolved = $preparer->resolveMercureConfig($table, ResolvedOptIns::resolve($table, new AsDataTable(entityClass: \stdClass::class, mercure: true)));
 
         // The pure resolver returns the config the render path would serialize
         // but must never write it back onto the (container-shared) table — that
@@ -864,7 +865,7 @@ final class RenderingPreparerTest extends TestCase
             ->addExtension(new ButtonsExtension([Button::csv(serverSide: true)]));
 
         try {
-            $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
+            $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true), $resolver);
             $this->fail('An API Platform opt-in without a collection must throw.');
         } catch (\LogicException) {
         }
@@ -977,7 +978,7 @@ final class RenderingPreparerTest extends TestCase
             ->setDataTableClass(self::TABLE_CLASS)
             ->serverSide();
 
-        $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
+        $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true), $urlResolver);
 
         $this->assertSame('/api/users', self::optionOf($tablePayload, 'ajax')['url']);
     }
@@ -1003,7 +1004,7 @@ final class RenderingPreparerTest extends TestCase
             ->apiPlatform();
 
         try {
-            $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class));
+            $tablePayload = self::prepare($preparer, $table, new AsDataTable(entityClass: \stdClass::class), $urlResolver);
             $this->fail('An API Platform opt-in without a collection must throw.');
         } catch (\LogicException) {
         }
@@ -1476,8 +1477,8 @@ final class RenderingPreparerTest extends TestCase
         return $stack;
     }
 
-    private static function prepare(RenderingPreparer $preparer, DataTable $table, ?AsDataTable $asDataTable): PreparedDataTable
+    private static function prepare(RenderingPreparer $preparer, DataTable $table, ?AsDataTable $asDataTable, ?ApiResourceCollectionUrlResolver $urlResolver = null): PreparedDataTable
     {
-        return self::prepareWith($preparer, $table, $preparer->resolveOptIns($table, $asDataTable));
+        return self::prepareWith($preparer, $table, ResolvedOptIns::resolve($table, $asDataTable, $urlResolver));
     }
 }

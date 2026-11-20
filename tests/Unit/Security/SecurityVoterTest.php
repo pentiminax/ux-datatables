@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Security;
 
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Runtime\TableDefinitionBuilder;
 use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
 use Pentiminax\UX\DataTables\Security\SecurityVoter;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -41,7 +44,7 @@ final class SecurityVoterTest extends TestCase
 
         $this->assertSame(
             VoterInterface::ACCESS_DENIED,
-            (new SecurityVoter($decisionManager))->vote($token, $table, [Permission::DT_ACCESS_TABLE])
+            (new SecurityVoter($decisionManager, new TableDefinitionBuilder(new ColumnResolver(new AuthorizationChecker()))))->vote($token, $table, [Permission::DT_ACCESS_TABLE])
         );
     }
 
@@ -53,7 +56,7 @@ final class SecurityVoterTest extends TestCase
 
         $this->assertSame(
             VoterInterface::ACCESS_GRANTED,
-            (new SecurityVoter($decisionManager))->vote(
+            (new SecurityVoter($decisionManager, new TableDefinitionBuilder(new ColumnResolver(new AuthorizationChecker()))))->vote(
                 $this->createToken(),
                 new VoterPermissionDataTable(),
                 [Permission::DT_ACCESS_TABLE]
@@ -77,7 +80,7 @@ final class SecurityVoterTest extends TestCase
 
         $this->assertSame(
             VoterInterface::ACCESS_GRANTED,
-            (new SecurityVoter($decisionManager))->vote($token, $context, [Permission::DT_EXECUTE_ACTION])
+            (new SecurityVoter($decisionManager, new TableDefinitionBuilder(new ColumnResolver(new AuthorizationChecker()))))->vote($token, $context, [Permission::DT_EXECUTE_ACTION])
         );
     }
 
@@ -97,7 +100,7 @@ final class SecurityVoterTest extends TestCase
 
         $this->assertSame(
             VoterInterface::ACCESS_DENIED,
-            (new SecurityVoter($decisionManager))->vote(
+            (new SecurityVoter($decisionManager, new TableDefinitionBuilder(new ColumnResolver(new AuthorizationChecker()))))->vote(
                 $token,
                 ActionPermissionContext::forRow(VoterPermissionDataTable::class, $action, $source),
                 [Permission::DT_EXECUTE_ACTION]
@@ -117,7 +120,7 @@ final class SecurityVoterTest extends TestCase
 
         $this->assertSame(
             VoterInterface::ACCESS_GRANTED,
-            (new SecurityVoter($decisionManager))->vote(
+            (new SecurityVoter($decisionManager, new TableDefinitionBuilder(new ColumnResolver(new AuthorizationChecker()))))->vote(
                 $this->createToken(),
                 ActionPermissionContext::forTable(VoterPermissionDataTable::class, $action),
                 [Permission::DT_EXECUTE_ACTION]
@@ -133,7 +136,7 @@ final class SecurityVoterTest extends TestCase
 
         $this->assertSame(
             VoterInterface::ACCESS_ABSTAIN,
-            (new SecurityVoter($decisionManager))->vote(
+            (new SecurityVoter($decisionManager, new TableDefinitionBuilder(new ColumnResolver(new AuthorizationChecker()))))->vote(
                 $this->createToken(),
                 new VoterPermissionDataTable('VIEW_REPORTS'),
                 ['ROLE_ADMIN']

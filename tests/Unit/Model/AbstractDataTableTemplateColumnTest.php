@@ -8,9 +8,7 @@ use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
-use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
-use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -23,6 +21,8 @@ use Twig\Loader\ArrayLoader;
 #[CoversClass(AbstractDataTable::class)]
 final class AbstractDataTableTemplateColumnTest extends TestCase
 {
+    use BuildsRuntime;
+
     #[Test]
     public function it_renders_template_column_when_map_row_is_overridden(): void
     {
@@ -30,7 +30,7 @@ final class AbstractDataTableTemplateColumnTest extends TestCase
             'datatable/columns/status_badge.html.twig' => '<span>{{ row.id }}-{{ data }}</span>',
         ])));
 
-        $table = new TemplatePipelineTable($renderer);
+        $table = self::buildRuntime(templateColumnRenderer: $renderer)->open(new TemplatePipelineTable())->hooks;
 
         $row = $table->mapViaPipeline(new TemplatePipelineEntity(id: 9, status: 'active'));
 
@@ -43,16 +43,6 @@ final class AbstractDataTableTemplateColumnTest extends TestCase
 
 final class TemplatePipelineTable extends AbstractDataTable
 {
-    public function __construct(private readonly TemplateColumnRenderer $renderer)
-    {
-        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            runtimeFactory: new DataTableRuntimeFactory(
-                new AuthorizationChecker(),
-                templateColumnRenderer: $this->renderer,
-            )
-        ));
-    }
-
     public function configureColumns(): iterable
     {
         yield TextColumn::new('id');
@@ -61,7 +51,7 @@ final class TemplatePipelineTable extends AbstractDataTable
             ->template('datatable/columns/status_badge.html.twig');
     }
 
-    protected function mapRow(mixed $row): array
+    public function mapRow(mixed $row): array
     {
         return ['id' => $row->getId()];
     }

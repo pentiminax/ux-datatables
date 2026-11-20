@@ -15,15 +15,15 @@ use Pentiminax\UX\DataTables\DataTableRequest\Order;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
-use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
-use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Runtime\DataTableCall;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountCustomer;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountTag;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * End-to-end cover for a table whose shape class is a DTO while Doctrine still queries the entity.
@@ -34,6 +34,7 @@ use PHPUnit\Framework\TestCase;
 final class AbstractDataTableProjectedDataClassTest extends TestCase
 {
     use BuildsEntityManager;
+    use BuildsRuntime;
 
     private EntityManagerInterface $em;
 
@@ -50,7 +51,7 @@ final class AbstractDataTableProjectedDataClassTest extends TestCase
     #[Test]
     public function it_maps_the_projected_rows_and_orders_them_on_the_entity(): void
     {
-        $result = $this->table()->fetchDataTableResult($this->request(orderDir: 'desc'));
+        $result = $this->call()->fetchData($this->request(orderDir: 'desc'));
 
         $this->assertSame(2, $result->recordsTotal);
         $this->assertSame([
@@ -62,20 +63,17 @@ final class AbstractDataTableProjectedDataClassTest extends TestCase
     #[Test]
     public function it_searches_the_entity_and_returns_the_projected_value(): void
     {
-        $result = $this->table()->fetchDataTableResult($this->request(search: 'Alpha'));
+        $result = $this->call()->fetchData($this->request(search: 'Alpha'));
 
         $this->assertSame(1, $result->recordsFiltered);
         $this->assertSame([['id' => 1, 'name' => 'CUSTOMER:Alpha']], iterator_to_array($result->data));
     }
 
-    private function table(): AbstractDataTable
+    private function call(): DataTableCall
     {
-        $table = new ProjectedCustomersDataTable();
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            runtimeFactory: new DataTableRuntimeFactory(new AuthorizationChecker(), new AutoDataProviderFactory($this->em)),
-        ));
+        $runtime = self::buildRuntime(autoDataProviderFactory: new AutoDataProviderFactory($this->em));
 
-        return $table;
+        return $runtime->handle(new ProjectedCustomersDataTable(), new Request(query: ['draw' => 1, 'start' => 0, 'length' => 10]));
     }
 
     private function request(string $orderDir = 'asc', ?string $search = null): DataTableRequest
@@ -115,7 +113,7 @@ final class ProjectedCustomersDataTable extends AbstractDataTable
         return $table->serverSide(true);
     }
 
-    protected function projectPage(array $items): ?array
+    public function projectPage(array $items): ?array
     {
         return array_map(
             static fn (CountCustomer $customer): ProjectedCustomerRow => new ProjectedCustomerRow($customer->id, 'CUSTOMER:'.$customer->name),

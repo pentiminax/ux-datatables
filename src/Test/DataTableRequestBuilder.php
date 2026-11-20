@@ -219,9 +219,9 @@ final class DataTableRequestBuilder
      */
     private function derivedColumns(): array
     {
-        $table = $this->registry->get($this->token());
+        $definition = $this->registry->getDefinition($this->token());
 
-        if (null === $table) {
+        if (null === $definition) {
             throw $this->unregisteredTable();
         }
 
@@ -232,7 +232,7 @@ final class DataTableRequestBuilder
                 'searchable' => $column->isSearchable() ? 'true' : 'false',
                 'orderable'  => $column->isOrderable() ? 'true' : 'false',
             ],
-            array_values($table->getConfiguredDataTable()->getColumns()),
+            array_values($definition->table->getColumns()),
         ));
     }
 

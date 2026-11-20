@@ -15,6 +15,7 @@ use Pentiminax\UX\DataTables\Mercure\MutationUpdatePublisher;
 use Pentiminax\UX\DataTables\Model\BulkAction;
 use Pentiminax\UX\DataTables\RowMapper\RowIdField;
 use Pentiminax\UX\DataTables\Runtime\DataSourceCapability;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -33,6 +34,8 @@ final class BulkActionRunner
         private readonly MutationFlusher $flusher,
         private readonly MercurePublisherInterface $publisher,
         private readonly MercureTopicResolver $topicResolver,
+        private readonly RowScopeGuard $scopeGuard,
+        private readonly DataTableRuntime $runtime,
     ) {
     }
 
@@ -45,13 +48,13 @@ final class BulkActionRunner
         BulkSelection $selection,
         Request $request,
     ): BulkActionResult {
-        $dataTable = $table->table->getConfiguredDataTable();
+        $dataTable = $table->definition->table;
 
         if ($selection->allMatching && true === $dataTable->getBulkActions()?->isSelectCurrentPageOnly()) {
             throw InvalidBulkSelectionException::selectAllForbidden();
         }
 
-        RowScopeGuard::scopeChecker($table);
+        $this->scopeGuard->scopeChecker($table);
 
         $entityClass = $table->requireEntityClass();
         $manager     = $this->locator->manager($entityClass);
@@ -162,7 +165,7 @@ final class BulkActionRunner
 
         RequestQueryHydrator::hydrate($request, $selection->query);
 
-        return RowScopeGuard::keepInScope($table, $request, $identifier, $ids);
+        return $this->scopeGuard->keepInScope($table, $request, $identifier, $ids);
     }
 
     private function isGranted(BulkAction $action, object $entity, string $dataTableClass): bool
@@ -183,17 +186,17 @@ final class BulkActionRunner
             return array_values(array_unique($selection->ids));
         }
 
-        $bulkActions = $table->table->getConfiguredDataTable()->getBulkActions();
+        $bulkActions = $table->definition->table->getBulkActions();
 
         if (true === $bulkActions?->isSelectCurrentPageOnly()) {
             throw InvalidBulkSelectionException::selectAllForbidden();
         }
 
         RequestQueryHydrator::hydrate($request, $selection->query);
-        $table->table->handleDataTableRequest($request);
+        $call = $this->runtime->handle($table->table, $request);
 
-        $dataTableRequest = $table->table->getDataTableRequest();
-        $provider         = $table->table->getResolvedDataProvider();
+        $dataTableRequest = $call->request;
+        $provider         = $call->dataProvider();
 
         $collector = DataSourceCapability::identifierCollector($provider);
 

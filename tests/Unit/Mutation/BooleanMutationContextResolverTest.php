@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\InvalidBooleanMutationContextException;
@@ -15,6 +16,7 @@ use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContext;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
+use Pentiminax\UX\DataTables\Runtime\TableDefinitionBuilder;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -150,6 +152,7 @@ final class BooleanMutationContextResolverTest extends TestCase
                 new AjaxDataTableTokenManager(self::TOKEN_SECRET),
                 [$dataTableClass => 'table'],
                 new AuthorizationChecker(),
+                new TableDefinitionBuilder(new ColumnResolver(new AuthorizationChecker())),
             ),
             $permissionChecker ?? new AuthorizationChecker(),
         );
@@ -165,6 +168,7 @@ final class BooleanMutationContextResolverTest extends TestCase
             new AjaxDataTableTokenManager(self::TOKEN_SECRET),
             [$dataTableClass => 'table'],
             new AuthorizationChecker(),
+            new TableDefinitionBuilder(new ColumnResolver(new AuthorizationChecker())),
         ))->getActionToken($dataTableClass);
 
         $this->assertNotNull($token);

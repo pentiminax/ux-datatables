@@ -12,11 +12,9 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
-use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
-use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountCustomer;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -24,8 +22,8 @@ use Symfony\Component\HttpFoundation\Request;
 
 /**
  * End-to-end regression test for the recordsTotal / customizeQueryBuilder() gap: proves the
- * wiring all the way from AbstractDataTable::runtime() through DataTableRuntimeFactory
- * and AutoDataProviderFactory into DoctrineDataProvider, not just the
+ * wiring all the way from DataTableRuntime::respond() through
+ * AutoDataProviderFactory into DoctrineDataProvider, not just the
  * DoctrineDataProvider unit itself. A business-rule override that excludes a row must be
  * reflected in recordsTotal in the real JSON response, the same way it already was in
  * recordsFiltered and the returned page.
@@ -36,6 +34,7 @@ use Symfony\Component\HttpFoundation\Request;
 final class AbstractDataTableRecordsTotalTest extends TestCase
 {
     use BuildsEntityManager;
+    use BuildsRuntime;
 
     private EntityManagerInterface $em;
 
@@ -53,17 +52,10 @@ final class AbstractDataTableRecordsTotalTest extends TestCase
     #[Test]
     public function records_total_reflects_a_customize_query_builder_business_rule(): void
     {
-        $table = new ExcludeBetaCustomerTable();
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            runtimeFactory: new DataTableRuntimeFactory(
-                new AuthorizationChecker(),
-                autoDataProviderFactory: new AutoDataProviderFactory($this->em),
-            ),
-        ));
+        $runtime  = self::buildRuntime(autoDataProviderFactory: new AutoDataProviderFactory($this->em));
+        $response = $runtime->respond(new ExcludeBetaCustomerTable(), new Request(query: ['draw' => 1, 'start' => 0, 'length' => 10]));
 
-        $table->handleDataTableRequest(new Request(query: ['draw' => 1, 'start' => 0, 'length' => 10]));
-
-        $payload = json_decode((string) $table->createDataTableResponse()->getContent(), true);
+        $payload = json_decode((string) $response?->getContent(), true);
 
         $this->assertSame(2, $payload['recordsTotal']);
         $this->assertSame(2, $payload['recordsFiltered']);
@@ -80,7 +72,7 @@ final class ExcludeBetaCustomerTable extends AbstractDataTable
         yield TextColumn::new('name');
     }
 
-    protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+    public function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
     {
         return $qb->andWhere("e.name != 'Beta'");
     }

@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Pentiminax\UX\DataTables\Tests\Kernel\ConfigDefaultsAppKernel;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -71,9 +72,14 @@ final class AbstractDataTableConfigDefaultsTest extends TestCase
 
     private function configuredDataTable(): DataTable
     {
-        /** @var AbstractDataTable $dataTable */
-        $dataTable = $this->kernel->getContainer()->get('test.datatables.config_defaults');
+        $container = $this->kernel->getContainer();
 
-        return $dataTable->getConfiguredDataTable();
+        /** @var AbstractDataTable $dataTable */
+        $dataTable = $container->get('test.datatables.config_defaults');
+
+        /** @var DataTableRuntime $runtime */
+        $runtime = $container->get('test.service_container')->get('datatables.runtime');
+
+        return $runtime->definition($dataTable)->table;
     }
 }

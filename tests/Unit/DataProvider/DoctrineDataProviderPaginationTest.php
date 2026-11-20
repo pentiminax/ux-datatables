@@ -5,19 +5,16 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\DataProvider;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Pentiminax\UX\DataTables\Column\ColumnResolver;
-use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
-use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
-use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountCustomer;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountTag;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
+use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -30,6 +27,7 @@ use Symfony\Component\HttpFoundation\Request;
 final class DoctrineDataProviderPaginationTest extends TestCase
 {
     use BuildsEntityManager;
+    use BuildsRuntime;
 
     private EntityManagerInterface $em;
 
@@ -66,16 +64,15 @@ final class DoctrineDataProviderPaginationTest extends TestCase
     #[Test]
     public function it_caps_show_all_to_the_maximum_page_length_when_the_table_forbids_it(): void
     {
-        $runtime = new DataTableRuntime(
-            table: (new DataTable('customers'))->lengthMenu([10, 25]),
-            dataProviderFactory: fn (): ?DataProviderInterface => $this->provider(),
-            maxPageLength: 5,
-            searchListOptionsResolver: new SearchListOptionsResolver(columnResolver: new ColumnResolver(new AuthorizationChecker())),
+        $table = new ConfigurableDataTable(
+            [],
+            configureTable: static fn (DataTable $table): DataTable => $table->lengthMenu([10, 25]),
+            dataProvider: $this->provider(),
         );
 
-        $runtime->handleRequest(new Request(query: ['draw' => 1, 'start' => -5, 'length' => -1]));
+        $response = self::buildRuntime(maxPageLength: 5)->respond($table, new Request(query: ['draw' => 1, 'start' => -5, 'length' => -1]));
 
-        $payload = json_decode((string) $runtime->getResponse()->getContent(), true);
+        $payload = json_decode((string) $response?->getContent(), true);
 
         $this->assertCount(5, $payload['data']);
         $this->assertSame([1, 2, 3, 4, 5], array_column($payload['data'], 'id'));

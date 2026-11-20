@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Form\EditModalTemplateResolver;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -22,6 +23,8 @@ use Symfony\Component\DependencyInjection\ServiceLocator;
 #[CoversClass(EditModalTemplateResolver::class)]
 final class EditModalTemplateResolverTest extends TestCase
 {
+    use BuildsRuntime;
+
     /**
      * @param class-string<AbstractDataTable> $dataTableClass
      */
@@ -42,15 +45,10 @@ final class EditModalTemplateResolverTest extends TestCase
             static fn (): FluentEditModalDataTable => new FluentEditModalDataTable(),
         ];
 
-        yield 'blank fluent template falls back to the attribute, rendered or not' => [
+        yield 'blank fluent template falls back to the attribute' => [
             'attribute.html.twig',
             BlankFluentEditModalDataTable::class,
-            static function (): BlankFluentEditModalDataTable {
-                $table = new BlankFluentEditModalDataTable();
-                $table->prepareRendering();
-
-                return $table;
-            },
+            static fn (): BlankFluentEditModalDataTable => new BlankFluentEditModalDataTable(),
         ];
 
         yield 'attribute template without a fluent override' => [
@@ -118,6 +116,7 @@ final class EditModalTemplateResolverTest extends TestCase
             new ServiceLocator($factories),
             '@PentiminaxDataTables/modal/datatables/edit_modal.html.twig',
             '@PentiminaxDataTables/modal/datatables/_form_body.html.twig',
+            self::buildRuntime(),
         );
     }
 }

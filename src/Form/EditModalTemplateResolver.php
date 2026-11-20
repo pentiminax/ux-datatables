@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Form;
 use Pentiminax\UX\DataTables\Attribute\AsDataTableResolver;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Psr\Container\ContainerInterface;
 
 class EditModalTemplateResolver
@@ -15,6 +16,7 @@ class EditModalTemplateResolver
         private readonly ContainerInterface $dataTables,
         private readonly string $defaultTemplate,
         private readonly string $defaultBodyTemplate,
+        private readonly DataTableRuntime $runtime,
         private readonly AsDataTableResolver $asDataTableResolver = new AsDataTableResolver(),
     ) {
     }
@@ -25,7 +27,7 @@ class EditModalTemplateResolver
             $dataTable = $this->dataTables->get($dataTableClass);
 
             $template = $dataTable instanceof AbstractDataTable
-                ? $dataTable->getResolvedOptIns()->editModalTemplate
+                ? $this->runtime->definition($dataTable)->optIns->editModalTemplate
                 : $this->asDataTableResolver->resolve($dataTableClass)?->editModalTemplate;
 
             if (null !== $template && '' !== trim($template)) {
@@ -56,6 +58,6 @@ class EditModalTemplateResolver
             throw new \RuntimeException(\sprintf('"%s" must extend AbstractDataTable.', $dataTableClass));
         }
 
-        return array_values($dataTable->getConfiguredDataTable()->getColumns());
+        return array_values($this->runtime->definition($dataTable)->table->getColumns());
     }
 }

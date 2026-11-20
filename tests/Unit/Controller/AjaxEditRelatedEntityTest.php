@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Ajax\RowActionGate;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
@@ -29,12 +30,14 @@ use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Mutation\RowScopeGuard;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
+use Pentiminax\UX\DataTables\Runtime\TableDefinitionBuilder;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\RelatedToggleCustomer;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\RelatedToggleOrder;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -53,6 +56,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 final class AjaxEditRelatedEntityTest extends TestCase
 {
     use BuildsEntityManager;
+    use BuildsRuntime;
 
     private static function requestStack(): \Symfony\Component\HttpFoundation\RequestStack
     {
@@ -170,7 +174,7 @@ final class AjaxEditRelatedEntityTest extends TestCase
 
         return new AjaxEditController(
             new EntityMutator(PropertyAccess::createPropertyAccessor(), new NullMercurePublisher(), new MercureTopicResolver(), new MutationFlusher()),
-            new RowActionGate($this->tokenValidator(), $registry, new BooleanMutationContextResolver($registry, new AuthorizationChecker()), new RowScopeGuard($locator, self::requestStack()), $locator, $permissions),
+            new RowActionGate($this->tokenValidator(), $registry, new BooleanMutationContextResolver($registry, new AuthorizationChecker()), new RowScopeGuard($locator, self::buildRuntime(), self::requestStack()), $locator, $permissions),
         );
     }
 
@@ -190,7 +194,7 @@ final class AjaxEditRelatedEntityTest extends TestCase
         $containerLocator = $this->createStub(ContainerInterface::class);
         $containerLocator->method('get')->willReturn($table);
 
-        return new AjaxDataTableRegistry($containerLocator, new AjaxDataTableTokenManager('test-secret'), [$dataTableClass => 'orders'], new AuthorizationChecker());
+        return new AjaxDataTableRegistry($containerLocator, new AjaxDataTableTokenManager('test-secret'), [$dataTableClass => 'orders'], new AuthorizationChecker(), new TableDefinitionBuilder(new ColumnResolver(new AuthorizationChecker())));
     }
 
     private function provider(): DoctrineDataProvider
@@ -235,7 +239,7 @@ final class RelatedToggleOrderDataTable extends AbstractDataTable
             ->toggleAjax(idField: 'customer.id');
     }
 
-    protected function createDataProvider(): DataProviderInterface
+    public function createDataProvider(): DataProviderInterface
     {
         return $this->dataProvider;
     }

@@ -19,6 +19,7 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsAjaxRegistry;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use Pentiminax\UX\DataTables\Tests\Support\RecordingExporter;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -36,6 +37,7 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 final class AjaxExportControllerTest extends TestCase
 {
     use BuildsAjaxRegistry;
+    use BuildsRuntime;
 
     #[Test]
     public function it_throws_404_when_the_table_field_is_missing(): void
@@ -66,7 +68,7 @@ final class AjaxExportControllerTest extends TestCase
         $registry = $this->createRegistry($table, $table::class);
         $token    = $registry->getToken($table::class);
 
-        $controller = new AjaxExportController($registry, new ExportService(new ExporterRegistry([$exporter]), columnResolver: new ColumnResolver(new AuthorizationChecker())));
+        $controller = new AjaxExportController($registry, new ExportService(new ExporterRegistry([$exporter]), columnResolver: new ColumnResolver(new AuthorizationChecker()), runtime: self::buildRuntime()));
         $response   = $controller(new Request(
             query: ['table' => $token],
             request: ['draw' => 1, 'start' => 0, 'length' => 10, 'exportKey' => 'csv'],
@@ -93,7 +95,7 @@ final class AjaxExportControllerTest extends TestCase
         $registry = $this->createRegistry($table, $table::class, $this->denyingPermissionChecker());
         $token    = $registry->getToken($table::class);
 
-        $controller = new AjaxExportController($registry, new ExportService(new ExporterRegistry([$exporter]), columnResolver: new ColumnResolver(new AuthorizationChecker())));
+        $controller = new AjaxExportController($registry, new ExportService(new ExporterRegistry([$exporter]), columnResolver: new ColumnResolver(new AuthorizationChecker()), runtime: self::buildRuntime()));
 
         try {
             $controller(new Request(
@@ -119,7 +121,7 @@ final class AjaxExportControllerTest extends TestCase
         $table    = $this->exportTable();
         $registry = $this->createRegistry($table, $table::class);
 
-        $controller = new AjaxExportController($registry, new ExportService(new ExporterRegistry([$exporter]), columnResolver: new ColumnResolver(new AuthorizationChecker())));
+        $controller = new AjaxExportController($registry, new ExportService(new ExporterRegistry([$exporter]), columnResolver: new ColumnResolver(new AuthorizationChecker()), runtime: self::buildRuntime()));
 
         try {
             $controller(new Request(
@@ -191,6 +193,7 @@ final class AjaxExportControllerTest extends TestCase
             new RecordingExporter(failure: new \LogicException('Export service should not run.')),
         ]),
             columnResolver: new ColumnResolver(new AuthorizationChecker()),
+            runtime: self::buildRuntime(),
         );
     }
 }

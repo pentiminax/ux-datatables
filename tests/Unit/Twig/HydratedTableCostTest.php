@@ -13,9 +13,9 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
-use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
+use Pentiminax\UX\DataTables\Twig\DataTablesRuntime;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -28,9 +28,11 @@ use Symfony\UX\StimulusBundle\Helper\StimulusHelper;
  * @internal
  */
 #[CoversClass(AbstractDataTable::class)]
-#[CoversClass(DataTablesExtension::class)]
+#[CoversClass(DataTablesRuntime::class)]
 final class HydratedTableCostTest extends TestCase
 {
+    use BuildsRuntime;
+
     #[Test]
     public function an_entity_table_without_an_explicit_choice_pages_on_the_server_and_embeds_no_rows(): void
     {
@@ -56,7 +58,7 @@ final class HydratedTableCostTest extends TestCase
         $table = new RecordingHydrationTable();
         $this->render($table);
 
-        $this->assertTrue($table->rowsOnly);
+        $this->assertTrue($table->seen['rowsOnly']);
     }
 
     #[Test]
@@ -121,13 +123,9 @@ final class HydratedTableCostTest extends TestCase
 
     private function render(AbstractDataTable $table, int $threshold = 0, ?AbstractLogger $logger = null, ?DataTableProfiler $profiler = null): string
     {
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            profiler: $profiler,
-            logger: $logger,
-            hydrationRowThreshold: $threshold,
-        ));
+        $runtime = self::buildRuntime(profiler: $profiler, logger: $logger, hydrationRowThreshold: $threshold);
 
-        return (new DataTablesExtension(new StimulusHelper(null), new AuthorizationChecker(), profiler: $profiler))->renderDataTable($table);
+        return (new DataTablesRuntime(new StimulusHelper(null), new AuthorizationChecker(), $runtime, $profiler))->renderDataTable($table);
     }
 }
 
@@ -138,7 +136,7 @@ abstract class HydrationTestTable extends AbstractDataTable
         yield TextColumn::new('name');
     }
 
-    protected function createDataProvider(): ?DataProviderInterface
+    public function createDataProvider(): ?DataProviderInterface
     {
         return new ArrayDataProvider([['name' => 'Ada'], ['name' => 'Grace']], $this->createRowMapper(), $this->getResolvedColumns());
     }
@@ -161,14 +159,20 @@ final class ExplicitHydrationTable extends HydrationTestTable
 #[AsDataTable(entityClass: \stdClass::class)]
 final class RecordingHydrationTable extends HydrationTestTable
 {
-    public ?bool $rowsOnly = null;
+    /** @var \ArrayObject<string, bool|null> shared with the bound copy the runtime calls */
+    public \ArrayObject $seen;
+
+    public function __construct()
+    {
+        $this->seen = new \ArrayObject(['rowsOnly' => null]);
+    }
 
     public function configureDataTable(DataTable $table): DataTable
     {
         return $table->serverSide(false);
     }
 
-    protected function createDataProvider(): ?DataProviderInterface
+    public function createDataProvider(): ?DataProviderInterface
     {
         $inner = parent::createDataProvider();
 
@@ -189,7 +193,7 @@ final class RecordingHydrationTable extends HydrationTestTable
 
             public function fetchData(DataTableRequest $request): DataTableResult
             {
-                $this->table->rowsOnly = $request->rowsOnly;
+                $this->table->seen['rowsOnly'] = $request->rowsOnly;
 
                 return $this->inner->fetchData($request);
             }

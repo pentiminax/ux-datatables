@@ -11,6 +11,7 @@ use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\BulkAction;
+use Pentiminax\UX\DataTables\Runtime\TableDefinition;
 
 /**
  * A DataTable derived from a signed action token, together with the entity it
@@ -27,6 +28,7 @@ final readonly class ResolvedDataTable
         public AbstractDataTable $table,
         public ?string $entityClass,
         public string $dataTableClass,
+        public TableDefinition $definition,
     ) {
     }
 
@@ -47,7 +49,7 @@ final readonly class ResolvedDataTable
     {
         $matches = [];
 
-        foreach ($this->table->getConfiguredDataTable()->getColumns() as $column) {
+        foreach ($this->definition->table->getColumns() as $column) {
             if (!$column instanceof ActionsProvidingColumnInterface) {
                 continue;
             }
@@ -80,6 +82,6 @@ final readonly class ResolvedDataTable
      */
     public function findBulkAction(string $name): ?BulkAction
     {
-        return $this->table->getConfiguredDataTable()->getBulkActions()?->get($name);
+        return $this->definition->table->getBulkActions()?->get($name);
     }
 }

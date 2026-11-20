@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Request;
  * Puts DataTables parameters captured by the browser back where a table reads them.
  *
  * A JSON mutation request carries them in its body, so neither bag holds them. The request bag
- * feeds handleRequest(); the query bag feeds a customizeQueryBuilder() that scopes itself on
+ * feeds DataTableRuntime::handle(); the query bag feeds a customizeQueryBuilder() that scopes itself on
  * forwarded query parameters, which would otherwise read null.
  *
  * @internal

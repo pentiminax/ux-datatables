@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Mercure;
 use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Contracts\PrivateUpdatePublisherInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Update;
@@ -15,6 +16,7 @@ final class MercureUpdatePublisher implements MercurePublisherInterface, Private
 {
     public function __construct(
         private readonly HubInterface $hub,
+        private readonly DataTableRuntime $runtime,
         private readonly ?LoggerInterface $logger = null,
     ) {
     }
@@ -31,7 +33,7 @@ final class MercureUpdatePublisher implements MercurePublisherInterface, Private
 
     public function publishForDataTable(AbstractDataTable $table, array $data = []): string
     {
-        $config = $table->resolveMercureConfigWithoutHydration();
+        $config = $this->runtime->mercureConfig($table);
 
         if (null === $config) {
             throw new \LogicException('The DataTable does not have Mercure configured.');

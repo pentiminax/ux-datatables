@@ -23,7 +23,7 @@ final class HarnessServerSideDataTable extends AbstractDataTable
         yield TextColumn::new('title');
     }
 
-    protected function createDataProvider(): ?DataProviderInterface
+    public function createDataProvider(): ?DataProviderInterface
     {
         return new ArrayDataProvider(
             [

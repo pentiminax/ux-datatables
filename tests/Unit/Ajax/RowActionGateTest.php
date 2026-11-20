@@ -15,6 +15,7 @@ use Pentiminax\UX\DataTables\Ajax\RowActionKind;
 use Pentiminax\UX\DataTables\Ajax\RowActionRequest;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
@@ -31,6 +32,7 @@ use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\RowScopeGuard;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
+use Pentiminax\UX\DataTables\Runtime\TableDefinitionBuilder;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Security\Permission;
@@ -38,6 +40,7 @@ use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountAccount;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\RelatedToggleCustomer;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\RelatedToggleOrder;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -61,6 +64,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 final class RowActionGateTest extends TestCase
 {
     use BuildsEntityManager;
+    use BuildsRuntime;
     use CollectsDeprecations;
 
     private static function requestStack(): \Symfony\Component\HttpFoundation\RequestStack
@@ -75,6 +79,7 @@ final class RowActionGateTest extends TestCase
 
     private EntityManagerInterface $em;
     private AjaxDataTableRegistry $registry;
+    private TableDefinitionBuilder $definitions;
 
     /** @var list<string> */
     private array $deniedAttributes = [];
@@ -109,13 +114,14 @@ final class RowActionGateTest extends TestCase
         $locator = $this->createStub(ContainerInterface::class);
         $locator->method('get')->willReturnCallback(static fn (string $id) => $tables[$id]);
 
-        $this->registry = new AjaxDataTableRegistry($locator, new AjaxDataTableTokenManager(self::SECRET), [
+        $this->definitions = new TableDefinitionBuilder(new ColumnResolver(new AuthorizationChecker()));
+        $this->registry    = new AjaxDataTableRegistry($locator, new AjaxDataTableTokenManager(self::SECRET), [
             GateAccountDataTable::class             => 'accounts',
             GateBareAccountDataTable::class         => 'bare',
             GateDeniedActionAccountDataTable::class => 'denied-action',
             GateOrderDataTable::class               => 'orders',
             GateManualDataTable::class              => 'manual',
-        ], new AuthorizationChecker());
+        ], new AuthorizationChecker(), $this->definitions);
     }
 
     /**
@@ -381,7 +387,7 @@ final class RowActionGateTest extends TestCase
             new MutationTokenValidator($csrfManager),
             $this->registry,
             new BooleanMutationContextResolver($this->registry, $checker),
-            new RowScopeGuard($locator, self::requestStack()),
+            new RowScopeGuard($locator, self::buildRuntime(definitions: $this->definitions), self::requestStack()),
             $locator,
             $checker,
         );
@@ -450,7 +456,7 @@ abstract class GateDataTable extends AbstractDataTable
         return $table->serverSide();
     }
 
-    protected function createDataProvider(): DataProviderInterface
+    public function createDataProvider(): DataProviderInterface
     {
         return $this->dataProvider;
     }

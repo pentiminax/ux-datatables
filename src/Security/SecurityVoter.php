@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Security;
 
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Runtime\TableDefinitionBuilder;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\AccessDecisionManagerInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
@@ -14,6 +15,7 @@ final class SecurityVoter extends Voter
 {
     public function __construct(
         private readonly AccessDecisionManagerInterface $decisionManager,
+        private readonly TableDefinitionBuilder $definitions,
     ) {
     }
 
@@ -41,7 +43,7 @@ final class SecurityVoter extends Voter
 
     private function voteOnTable(AbstractDataTable $dataTable, TokenInterface $token): bool
     {
-        $permission = $dataTable->getConfiguredDataTable()->getPermission();
+        $permission = $this->definitions->build($dataTable)->table->getPermission();
 
         if (null === $permission) {
             return true;

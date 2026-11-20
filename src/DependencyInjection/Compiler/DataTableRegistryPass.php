@@ -44,6 +44,7 @@ final class DataTableRegistryPass implements CompilerPassInterface
                 new Reference('datatables.ajax.token_manager'),
                 $serviceIdsByClass,
                 new Reference('datatables.security.authorization_checker'),
+                new Reference('datatables.definition_builder'),
             ]));
     }
 }

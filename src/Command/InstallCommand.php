@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Command;
 use Pentiminax\UX\DataTables\Install\ExtensionDetector;
 use Pentiminax\UX\DataTables\Install\InstallStyle;
 use Pentiminax\UX\DataTables\Install\PackageCatalog;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Formatter\OutputFormatter;
@@ -32,6 +33,7 @@ final class InstallCommand extends Command
     public function __construct(
         private readonly string $projectDir,
         private readonly ?ServiceProviderInterface $tables = null,
+        private readonly ?DataTableRuntime $runtime = null,
     ) {
         parent::__construct();
     }
@@ -193,11 +195,11 @@ final class InstallCommand extends Command
      */
     private function withDetected(array $selected, InputInterface $input, SymfonyStyle $io, array &$skipped): ?array
     {
-        if ($input->getOption('all') || $input->getOption('no-detect') || null === $this->tables) {
+        if ($input->getOption('all') || $input->getOption('no-detect') || null === $this->tables || null === $this->runtime) {
             return $selected;
         }
 
-        $detection = (new ExtensionDetector($this->tables))->detect();
+        $detection = (new ExtensionDetector($this->tables, $this->runtime))->detect();
 
         $skipped = array_keys($detection->failures);
 

@@ -15,7 +15,7 @@ final class AjaxDataController
 {
     public function __construct(
         private readonly AjaxDataTableRegistry $registry,
-        private readonly DataTableResponder $responder = new DataTableResponder(),
+        private readonly DataTableResponder $responder,
     ) {
     }
 

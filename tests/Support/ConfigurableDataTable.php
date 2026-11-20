@@ -15,7 +15,7 @@ use Pentiminax\UX\DataTables\Model\DataTable;
  * A minimal table whose configuration hooks are supplied per instance.
  *
  * Use it for tests that only need columns, actions, extensions, or table options.
- * Fixtures needing a class-level attribute, an infrastructure override, or any extra
+ * Fixtures needing a class-level attribute or any extra
  * behavior must keep declaring their own subclass.
  *
  * The properties are prefixed because AbstractDataTable already owns $columns and $table.
@@ -59,7 +59,7 @@ final class ConfigurableDataTable extends AbstractDataTable
         return null === $this->bulkActions ? $actions : ($this->bulkActions)($actions);
     }
 
-    protected function createDataProvider(): ?DataProviderInterface
+    public function createDataProvider(): ?DataProviderInterface
     {
         return $this->dataProvider;
     }

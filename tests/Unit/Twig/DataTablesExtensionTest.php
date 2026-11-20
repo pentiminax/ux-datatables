@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Twig;
 
 use Pentiminax\UX\DataTables\Column\ActionColumn;
-use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
@@ -19,14 +18,15 @@ use Pentiminax\UX\DataTables\Model\BulkAction;
 use Pentiminax\UX\DataTables\Model\BulkActions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoAjaxServerSideDataTable;
 use Pentiminax\UX\DataTables\Tests\Support\BootsTwigKernel;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
+use Pentiminax\UX\DataTables\Twig\DataTablesRuntime;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -43,9 +43,11 @@ use Symfony\UX\StimulusBundle\Helper\StimulusHelper;
  * @internal
  */
 #[CoversClass(DataTablesExtension::class)]
+#[CoversClass(DataTablesRuntime::class)]
 final class DataTablesExtensionTest extends TestCase
 {
     use BootsTwigKernel;
+    use BuildsRuntime;
     use CollectsDeprecations;
 
     #[Test]
@@ -126,7 +128,7 @@ final class DataTablesExtensionTest extends TestCase
     {
         $table = $this->inlineTable([TextColumn::new('name')]);
 
-        $rendered = $this->container->get('test.datatables.twig_extension')->renderDataTable($table, ['id' => 'orders-open']);
+        $rendered = $this->container->get('test.datatables.twig_runtime')->renderDataTable($table, ['id' => 'orders-open']);
 
         $this->assertSame(1, substr_count($rendered, ' id="'));
         $this->assertStringStartsWith('<table id="orders-open" ', $rendered);
@@ -153,7 +155,7 @@ final class DataTablesExtensionTest extends TestCase
     {
         $table = $this->inlineTable([TextColumn::new('name')]);
 
-        $rendered = $this->container->get('test.datatables.twig_extension')->renderDataTable($table, ['id' => 'a"b<c']);
+        $rendered = $this->container->get('test.datatables.twig_runtime')->renderDataTable($table, ['id' => 'a"b<c']);
 
         $this->assertStringStartsWith('<table id="a&quot;b&lt;c" ', $rendered);
     }
@@ -209,13 +211,11 @@ final class DataTablesExtensionTest extends TestCase
             ->willReturn(false);
 
         $checker = new AuthorizationChecker($inner);
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            columnResolver: new ColumnResolver(permissionChecker: $checker),
-        ));
 
-        $extension = new DataTablesExtension(
+        $extension = new DataTablesRuntime(
             new StimulusHelper(null),
-            permissionChecker: $checker,
+            $checker,
+            self::buildRuntime(checker: $checker),
         );
 
         $this->expectException(AccessDeniedException::class);
@@ -396,7 +396,7 @@ final class DataTablesExtensionTest extends TestCase
         $this->assertSame([], $actionColumn['actions']);
         $this->assertArrayNotHasKey('__ux_datatables_actions', $actual['data'][0]);
 
-        $configuredActionColumn = $table->getConfiguredDataTable()->getColumnByName('actions');
+        $configuredActionColumn = $this->container->get('test.datatables.runtime')->definition($table)->table->getColumnByName('actions');
         $this->assertInstanceOf(ActionColumn::class, $configuredActionColumn);
         $this->assertSame(1, $configuredActionColumn->getActions()?->count());
     }
@@ -443,11 +443,10 @@ final class DataTablesExtensionTest extends TestCase
                 ['id' => 5, 'secret' => 'hidden'],
             ]),
         );
-        $table->setDataTableInfrastructure($this->container->get('test.datatables.infrastructure'));
 
         $this->assertSame(['id', 'secret'], array_map(
             static fn (mixed $column): string => $column->getName(),
-            array_values($table->getConfiguredDataTable()->getColumns()),
+            array_values($this->container->get('test.datatables.runtime')->definition($table)->table->getColumns()),
         ));
 
         $actual = $this->renderPayload($table);
@@ -456,7 +455,7 @@ final class DataTablesExtensionTest extends TestCase
         $this->assertSame(['id' => 5], $actual['data'][0]);
         $this->assertSame(['id', 'secret'], array_map(
             static fn (mixed $column): string => $column->getName(),
-            array_values($table->getConfiguredDataTable()->getColumns()),
+            array_values($this->container->get('test.datatables.runtime')->definition($table)->table->getColumns()),
         ));
     }
 
@@ -477,7 +476,7 @@ final class DataTablesExtensionTest extends TestCase
 
         $actual = $this->renderPayload($table);
 
-        $this->assertSame($expectedProviderCalls, $table->providerCalls);
+        $this->assertSame($expectedProviderCalls, $table->providerCalls['count']);
 
         if (null === $expectedData) {
             $this->assertArrayNotHasKey('data', $actual);
@@ -517,8 +516,8 @@ final class DataTablesExtensionTest extends TestCase
     public function it_renders_template_columns_in_service_managed_server_side_ajax_response(): void
     {
         /** @var AbstractDataTable $table */
-        $table = $this->container->get('test.datatables.server_side_template');
-        $table->handleDataTableRequest(Request::create('/datatable/books', 'GET', [
+        $table    = $this->container->get('test.datatables.server_side_template');
+        $response = $this->container->get('test.datatables.runtime')->respond($table, Request::create('/datatable/books', 'GET', [
             'draw'    => 1,
             'start'   => 0,
             'length'  => 10,
@@ -529,7 +528,7 @@ final class DataTablesExtensionTest extends TestCase
             ],
         ]));
 
-        $payload = json_decode($table->createDataTableResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $payload = json_decode($response->getContent(), true, 512, JSON_THROW_ON_ERROR);
 
         $this->assertSame('<span class="badge">7-active</span>', trim($payload['data'][0]['status_display']));
     }
@@ -632,8 +631,6 @@ final class DataTablesExtensionTest extends TestCase
                 : static fn (DataTable $table): DataTable => $table->data($rows),
         );
 
-        $table->setDataTableInfrastructure($this->container->get('test.datatables.infrastructure'));
-
         if ('setData' === $mode) {
             $table->rows($rows);
         }
@@ -647,10 +644,7 @@ final class DataTablesExtensionTest extends TestCase
      */
     private function inlineTable(array $columns, ?\Closure $configureTable = null): ConfigurableDataTable
     {
-        $table = new ConfigurableDataTable($columns, configureTable: $configureTable);
-        $table->setDataTableInfrastructure($this->container->get('test.datatables.infrastructure'));
-
-        return $table;
+        return new ConfigurableDataTable($columns, configureTable: $configureTable);
     }
 
     /**
@@ -664,14 +658,11 @@ final class DataTablesExtensionTest extends TestCase
             $action->permission($permission);
         }
 
-        $table = new ConfigurableDataTable(
+        return new ConfigurableDataTable(
             [TextColumn::new('id')],
             configureTable: static fn (DataTable $table): DataTable => (null === $configureTable ? $table : $configureTable($table))->data([['id' => 1]]),
             bulkActions: static fn (BulkActions $actions): BulkActions => $actions->add($action),
         );
-        $table->setDataTableInfrastructure($this->container->get('test.datatables.infrastructure'));
-
-        return $table;
     }
 
     #[Test]
@@ -681,7 +672,7 @@ final class DataTablesExtensionTest extends TestCase
 
         $this->renderPayload($table);
 
-        $this->assertSame(0, $table->providerCalls);
+        $this->assertSame(0, $table->providerCalls['count']);
     }
 
     #[Test]
@@ -719,7 +710,7 @@ final class DataTablesExtensionTest extends TestCase
      */
     private function renderTableElement(AbstractDataTable $table, array $attributes = []): \DOMElement
     {
-        $rendered = $this->container->get('test.datatables.twig_extension')->renderDataTable($table, $attributes);
+        $rendered = $this->container->get('test.datatables.twig_runtime')->renderDataTable($table, $attributes);
 
         $dom = new \DOMDocument();
         $dom->loadHTML($rendered);
@@ -781,7 +772,13 @@ final readonly class InlineBook
 #[AsDataTable(entityClass: InlineBook::class)]
 final class LinkEditDataTable extends AbstractDataTable
 {
-    public int $providerCalls = 0;
+    /** @var \ArrayObject<string, int> shared with the bound copy the runtime calls */
+    public \ArrayObject $providerCalls;
+
+    public function __construct()
+    {
+        $this->providerCalls = new \ArrayObject(['count' => 0]);
+    }
 
     public function configureDataTable(DataTable $table): DataTable
     {
@@ -798,9 +795,9 @@ final class LinkEditDataTable extends AbstractDataTable
         return $actions->add(Action::edit()->linkToUrl('/books/edit'));
     }
 
-    protected function createDataProvider(): ?DataProviderInterface
+    public function createDataProvider(): ?DataProviderInterface
     {
-        ++$this->providerCalls;
+        ++$this->providerCalls['count'];
 
         return null;
     }
@@ -831,7 +828,7 @@ final class UnscopedActionsDataTable extends AbstractDataTable
         return $actions->add(Action::delete());
     }
 
-    protected function createDataProvider(): ?DataProviderInterface
+    public function createDataProvider(): ?DataProviderInterface
     {
         return new ArrayDataProvider([], $this->createRowMapper());
     }
@@ -839,7 +836,8 @@ final class UnscopedActionsDataTable extends AbstractDataTable
 
 final class ProviderHydratedDataTable extends AbstractDataTable
 {
-    public int $providerCalls = 0;
+    /** @var \ArrayObject<string, int> shared with the bound copy the runtime calls */
+    public \ArrayObject $providerCalls;
 
     /**
      * @param list<InlineBook> $items
@@ -848,6 +846,7 @@ final class ProviderHydratedDataTable extends AbstractDataTable
         private readonly array $items,
         private readonly string $mode = 'default',
     ) {
+        $this->providerCalls = new \ArrayObject(['count' => 0]);
     }
 
     public function configureDataTable(DataTable $table): DataTable
@@ -878,9 +877,9 @@ final class ProviderHydratedDataTable extends AbstractDataTable
         );
     }
 
-    protected function createDataProvider(): ?DataProviderInterface
+    public function createDataProvider(): ?DataProviderInterface
     {
-        ++$this->providerCalls;
+        ++$this->providerCalls['count'];
 
         return new ArrayDataProvider($this->items, $this->createRowMapper());
     }

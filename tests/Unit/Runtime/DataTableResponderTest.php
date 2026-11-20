@@ -10,8 +10,8 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableResponder;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -24,10 +24,12 @@ use Symfony\Component\HttpFoundation\Request;
 #[CoversClass(DataTableResponder::class)]
 final class DataTableResponderTest extends TestCase
 {
+    use BuildsRuntime;
+
     #[Test]
     public function it_returns_the_response_of_a_datatables_request(): void
     {
-        $response = (new DataTableResponder())->respond($this->table(), new Request(query: ['draw' => 3]));
+        $response = $this->responder()->respond($this->table(), new Request(query: ['draw' => 3]));
 
         $this->assertNotNull($response);
         $this->assertSame(
@@ -39,7 +41,7 @@ final class DataTableResponderTest extends TestCase
     #[Test]
     public function it_returns_null_when_the_request_carries_no_datatables_payload(): void
     {
-        $this->assertNull((new DataTableResponder())->respond($this->table(), new Request()));
+        $this->assertNull($this->responder()->respond($this->table(), new Request()));
     }
 
     #[Test]
@@ -47,9 +49,8 @@ final class DataTableResponderTest extends TestCase
     {
         $profiler = new DataTableProfiler();
         $table    = $this->table();
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(profiler: $profiler));
 
-        (new DataTableResponder())->respond($table, new Request(query: ['draw' => 3]));
+        $this->responder($profiler)->respond($table, new Request(query: ['draw' => 3]));
 
         $queries = $profiler->getAjaxQueries();
 
@@ -70,12 +71,17 @@ final class DataTableResponderTest extends TestCase
         }, \E_USER_DEPRECATED);
 
         try {
-            (new DataTableResponder())->respond($this->table(), new Request(query: ['draw' => 3]));
+            $this->responder()->respond($this->table(), new Request(query: ['draw' => 3]));
         } finally {
             restore_error_handler();
         }
 
         $this->assertSame([], array_values(array_filter($deprecations, static fn (string $message): bool => !str_contains($message, 'without an authorization checker'))));
+    }
+
+    private function responder(?DataTableProfiler $profiler = null): DataTableResponder
+    {
+        return new DataTableResponder(self::buildRuntime(profiler: $profiler));
     }
 
     private function table(): ConfigurableDataTable

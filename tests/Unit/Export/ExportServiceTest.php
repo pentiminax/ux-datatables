@@ -24,6 +24,7 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use Pentiminax\UX\DataTables\Tests\Support\RecordingExporter;
@@ -43,13 +44,14 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 #[CoversClass(ExportService::class)]
 final class ExportServiceTest extends TestCase
 {
+    use BuildsRuntime;
     use CollectsDeprecations;
 
     #[Test]
     public function it_exports_exportable_columns_in_table_order(): void
     {
         $csv     = new RecordingExporter();
-        $service = new ExportService(new ExporterRegistry([$csv]), columnResolver: new ColumnResolver(new AuthorizationChecker()));
+        $service = new ExportService(new ExporterRegistry([$csv]), columnResolver: new ColumnResolver(new AuthorizationChecker()), runtime: self::buildRuntime());
 
         $response = $service->export($this->table(), $this->exportRequest());
         $this->send($response);
@@ -103,7 +105,7 @@ final class ExportServiceTest extends TestCase
             static fn (string $id): string => ['order.total' => 'Total', 'export.boolean.true' => 'Yes'][$id] ?? $id,
         );
 
-        $this->send((new ExportService(new ExporterRegistry([$csv]), columnResolver: new ColumnResolver(new AuthorizationChecker()), translator: $translator))
+        $this->send((new ExportService(new ExporterRegistry([$csv]), columnResolver: new ColumnResolver(new AuthorizationChecker()), runtime: self::buildRuntime(), translator: $translator))
             ->export($this->priceTable(Button::csv(serverSide: true)), $this->exportRequest()));
 
         $this->assertSame(['Total (EUR)', 'active'], array_map(
@@ -118,7 +120,7 @@ final class ExportServiceTest extends TestCase
     {
         $csv = new RecordingExporter();
 
-        $this->send((new ExportService(new ExporterRegistry([$csv]), columnResolver: new ColumnResolver(new AuthorizationChecker())))
+        $this->send((new ExportService(new ExporterRegistry([$csv]), columnResolver: new ColumnResolver(new AuthorizationChecker()), runtime: self::buildRuntime()))
             ->export($this->priceTable(Button::csv(serverSide: true)->rawValues()), $this->exportRequest()));
 
         $this->assertSame([['price' => 2500, 'active' => true]], $csv->rows);
@@ -132,7 +134,7 @@ final class ExportServiceTest extends TestCase
     public function it_skips_hidden_columns(): void
     {
         $csv     = new RecordingExporter();
-        $service = new ExportService(new ExporterRegistry([$csv]), columnResolver: new ColumnResolver(new AuthorizationChecker()));
+        $service = new ExportService(new ExporterRegistry([$csv]), columnResolver: new ColumnResolver(new AuthorizationChecker()), runtime: self::buildRuntime());
 
         $table = new ConfigurableDataTable(
             [TextColumn::new('email'), TextColumn::new('name')->visible(false)],
@@ -164,7 +166,8 @@ final class ExportServiceTest extends TestCase
 
         $service = new ExportService(
             new ExporterRegistry([$csv]),
-            new ColumnResolver(permissionChecker: new AuthorizationChecker($inner)),
+            new ColumnResolver(permissionChecker: $checker = new AuthorizationChecker($inner)),
+            self::buildRuntime(checker: $checker),
         );
 
         $table = new ConfigurableDataTable(
@@ -188,7 +191,7 @@ final class ExportServiceTest extends TestCase
     {
         $csv     = new RecordingExporter();
         $xlsx    = new RecordingExporter(ExportFormat::XLSX);
-        $service = new ExportService(new ExporterRegistry([$csv, $xlsx]), columnResolver: new ColumnResolver(new AuthorizationChecker()));
+        $service = new ExportService(new ExporterRegistry([$csv, $xlsx]), columnResolver: new ColumnResolver(new AuthorizationChecker()), runtime: self::buildRuntime());
 
         $table = new ConfigurableDataTable(
             [TextColumn::new('email')],
@@ -226,7 +229,7 @@ final class ExportServiceTest extends TestCase
 
         $this->expectException(BadRequestHttpException::class);
 
-        (new ExportService(new ExporterRegistry([new RecordingExporter()]), columnResolver: new ColumnResolver(new AuthorizationChecker())))->export($table, $request);
+        (new ExportService(new ExporterRegistry([new RecordingExporter()]), columnResolver: new ColumnResolver(new AuthorizationChecker()), runtime: self::buildRuntime()))->export($table, $request);
     }
 
     /**
@@ -237,7 +240,7 @@ final class ExportServiceTest extends TestCase
     public function it_exports_when_the_payload_includes_a_checkbox_column_without_name_or_data(): void
     {
         $csv     = new RecordingExporter();
-        $service = new ExportService(new ExporterRegistry([$csv]), columnResolver: new ColumnResolver(new AuthorizationChecker()));
+        $service = new ExportService(new ExporterRegistry([$csv]), columnResolver: new ColumnResolver(new AuthorizationChecker()), runtime: self::buildRuntime());
 
         $response = $service->export($this->table(), Request::create('/datatables/ajax/export', 'POST', [
             'draw'      => 4,
@@ -268,8 +271,8 @@ final class ExportServiceTest extends TestCase
             'tenantIds' => ['1', '2'],
         ])));
 
-        $this->assertSame('1', $table->pending);
-        $this->assertSame(['1', '2'], $table->tenantIds);
+        $this->assertSame('1', $table->captured->pending);
+        $this->assertSame(['1', '2'], $table->captured->tenantIds);
     }
 
     #[Test]
@@ -355,7 +358,7 @@ final class ExportServiceTest extends TestCase
     #[Test]
     public function it_rejects_a_format_whose_writer_is_unavailable(): void
     {
-        $service = new ExportService(new ExporterRegistry([new RecordingExporter(available: false)]), columnResolver: new ColumnResolver(new AuthorizationChecker()));
+        $service = new ExportService(new ExporterRegistry([new RecordingExporter(available: false)]), columnResolver: new ColumnResolver(new AuthorizationChecker()), runtime: self::buildRuntime());
 
         $this->expectException(BadRequestHttpException::class);
         $this->expectExceptionMessage('openspout/openspout');
@@ -369,17 +372,17 @@ final class ExportServiceTest extends TestCase
         $csv   = new RecordingExporter();
         $table = $this->priceTable(Button::csv(serverSide: true));
 
-        $service = new ExportService(new ExporterRegistry([$csv]), columnResolver: new ColumnResolver(new AuthorizationChecker()));
+        $service = new ExportService(new ExporterRegistry([$csv]), columnResolver: new ColumnResolver(new AuthorizationChecker()), runtime: self::buildRuntime());
         $this->send($service->export($table, $this->exportRequest()));
         $this->send($service->export($table, $this->exportRequest()));
 
         $this->assertSame('order.total (EUR)', $csv->columns[0]->getTitle());
-        $this->assertSame('order.total', array_values($table->getConfiguredDataTable()->getColumns())[0]->getTitle());
+        $this->assertSame('order.total', array_values(self::definitionOf($table)->table->getColumns())[0]->getTitle());
     }
 
     private function service(): ExportService
     {
-        return new ExportService(new ExporterRegistry([new RecordingExporter()]), columnResolver: new ColumnResolver(new AuthorizationChecker()));
+        return new ExportService(new ExporterRegistry([new RecordingExporter()]), columnResolver: new ColumnResolver(new AuthorizationChecker()), runtime: self::buildRuntime());
     }
 
     private function send(StreamedResponse $response): void
@@ -466,12 +469,12 @@ final class ExportServiceTest extends TestCase
  */
 final class QueryScopedExportTable extends AbstractDataTable
 {
-    public ?string $pending = null;
+    public \stdClass $captured;
 
-    /**
-     * @var list<string>|null
-     */
-    public ?array $tenantIds = null;
+    public function __construct()
+    {
+        $this->captured = new \stdClass();
+    }
 
     public function configureColumns(): iterable
     {
@@ -483,7 +486,7 @@ final class QueryScopedExportTable extends AbstractDataTable
         return $table->buttons([Button::csv(serverSide: true)]);
     }
 
-    protected function createDataProvider(): DataProviderInterface
+    public function createDataProvider(): DataProviderInterface
     {
         return new class($this) implements DataProviderInterface {
             public function supports(\Pentiminax\UX\DataTables\Enum\DataSourceFeature $feature): bool
@@ -514,7 +517,7 @@ final class QueryScopedExportTable extends AbstractDataTable
         $request = $this->getHttpRequest();
         $pending = $request?->query->get('pending');
 
-        $this->pending   = \is_string($pending) ? $pending : null;
-        $this->tenantIds = array_values(array_filter($request?->query->all('tenantIds') ?? [], \is_string(...)));
+        $this->captured->pending   = \is_string($pending) ? $pending : null;
+        $this->captured->tenantIds = array_values(array_filter($request?->query->all('tenantIds') ?? [], \is_string(...)));
     }
 }

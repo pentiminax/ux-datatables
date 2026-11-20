@@ -38,11 +38,10 @@ final class RenderedPayloadFixtureTest extends KernelTestCase
         static::bootKernel();
         $container = static::getContainer();
         $table     = new PayloadFixtureDataTable();
-        $table->setDataTableInfrastructure($container->get('datatables.infrastructure'));
 
         $rendered     = '';
         $deprecations = $this->deprecationsOf(function () use ($table, $container, &$rendered): void {
-            $rendered = $container->get('datatables.twig_extension')->renderDataTable($table);
+            $rendered = $container->get('datatables.twig_runtime')->renderDataTable($table);
         });
 
         $this->assertSame([], array_values(array_filter($deprecations, static fn (string $m): bool => str_contains($m, 'pentiminax/ux-datatables'))));
@@ -72,12 +71,12 @@ final class RenderedPayloadFixtureTest extends KernelTestCase
         static::bootKernel();
         $container = static::getContainer();
         $table     = $createTable($container);
-        $extension = $container->get('datatables.twig_extension');
+        $extension = $container->get('datatables.twig_runtime');
 
-        $configured = $this->describe($table->getConfiguredDataTable());
+        $configured = $this->describe($container->get('datatables.runtime')->definition($table)->table);
         $first      = $extension->renderDataTable($table);
 
-        $this->assertSame($configured, $this->describe($table->getConfiguredDataTable()));
+        $this->assertSame($configured, $this->describe($container->get('datatables.runtime')->definition($table)->table));
         $this->assertSame($first, $extension->renderDataTable($table));
     }
 
@@ -87,16 +86,16 @@ final class RenderedPayloadFixtureTest extends KernelTestCase
         static::bootKernel();
         $container = static::getContainer();
         $table     = $container->get(HarnessServerSideDataTable::class);
-        $extension = $container->get('datatables.twig_extension');
+        $extension = $container->get('datatables.twig_runtime');
 
-        $configured = $this->describe($table->getConfiguredDataTable());
+        $configured = $this->describe($container->get('datatables.runtime')->definition($table)->table);
         $first      = $extension->renderDataTable($table);
 
         $response = $container->get(DataTableResponder::class)->respond($table, new Request(query: ['draw' => 1, 'start' => 0, 'length' => 10]));
         $this->assertSame(3, json_decode((string) $response?->getContent(), true, 512, \JSON_THROW_ON_ERROR)['recordsTotal']);
 
         $this->assertSame($first, $extension->renderDataTable($table));
-        $this->assertSame($configured, $this->describe($table->getConfiguredDataTable()));
+        $this->assertSame($configured, $this->describe($container->get('datatables.runtime')->definition($table)->table));
     }
 
     /**
@@ -106,7 +105,6 @@ final class RenderedPayloadFixtureTest extends KernelTestCase
     {
         yield 'inline rows, bulk and row actions, filters' => [static function (ContainerInterface $container): AbstractDataTable {
             $table = new PayloadFixtureDataTable();
-            $table->setDataTableInfrastructure($container->get('datatables.infrastructure'));
 
             return $table;
         }];

@@ -7,11 +7,13 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ActionsAlignment;
 use Pentiminax\UX\DataTables\Enum\ActionsPosition;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -24,6 +26,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(AbstractDataTable::class)]
 final class AbstractDataTableActionsTest extends TestCase
 {
+    use BuildsRuntime;
+
     /**
      * The single text column of each fixture leaves the actions column at index 1
      * when appended, and at index 0 when prepended.
@@ -54,7 +58,7 @@ final class AbstractDataTableActionsTest extends TestCase
     #[DataProvider('centeredActionsColumnProvider')]
     public function it_applies_the_actions_column_class_name(AbstractDataTable $table): void
     {
-        $column = $table->getColumnByName('actions');
+        $column = $this->columnNamed($table, 'actions');
 
         $this->assertInstanceOf(ActionColumn::class, $column);
         $this->assertSame('dt-center', $column->getClassName());
@@ -82,7 +86,7 @@ final class AbstractDataTableActionsTest extends TestCase
             ->columnControl(['colvisDropdown'])
             ->add(Action::detail()));
 
-        $column = $table->getColumnByName('actions');
+        $column = $this->columnNamed($table, 'actions');
 
         $this->assertInstanceOf(ActionColumn::class, $column);
         $this->assertSame(['colvisDropdown'], $column->getColumnControl());
@@ -94,7 +98,7 @@ final class AbstractDataTableActionsTest extends TestCase
     {
         $table = self::tableWith(static fn (Actions $actions): Actions => $actions->add(Action::detail()));
 
-        $column = $table->getColumnByName('actions');
+        $column = $this->columnNamed($table, 'actions');
 
         $this->assertInstanceOf(ActionColumn::class, $column);
         $this->assertNull($column->getColumnControl());
@@ -104,7 +108,7 @@ final class AbstractDataTableActionsTest extends TestCase
     #[Test]
     public function it_keeps_explicit_action_entity_class(): void
     {
-        $column = (new ExplicitActionEntityClassTestTable())->getColumnByName('actions');
+        $column = $this->columnNamed(new ExplicitActionEntityClassTestTable(), 'actions');
 
         $this->assertInstanceOf(ActionColumn::class, $column);
         $this->assertSame('App\\Entity\\ExplicitBook', $column->jsonSerialize()['actions'][0]['entityClass']);
@@ -142,7 +146,7 @@ final class AbstractDataTableActionsTest extends TestCase
 
         $this->assertInstanceOf(ActionColumn::class, $columns[0]);
         $this->assertSame('actions', $columns[0]->getName());
-        $this->assertNull($table->getColumnByName('actions_before'));
+        $this->assertNull($this->columnNamed($table, 'actions_before'));
     }
 
     /**
@@ -162,11 +166,22 @@ final class AbstractDataTableActionsTest extends TestCase
     }
 
     /**
-     * @return list<\Pentiminax\UX\DataTables\Contracts\ColumnInterface>
+     * @return list<ColumnInterface>
      */
     private function columnsOf(AbstractDataTable $table): array
     {
-        return array_values($table->getConfiguredDataTable()->getColumns());
+        return array_values(self::definitionOf($table)->table->getColumns());
+    }
+
+    private function columnNamed(AbstractDataTable $table, string $name): ?ColumnInterface
+    {
+        foreach ($this->columnsOf($table) as $column) {
+            if ($column->getName() === $name) {
+                return $column;
+            }
+        }
+
+        return null;
     }
 }
 

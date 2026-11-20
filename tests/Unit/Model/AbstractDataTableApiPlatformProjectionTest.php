@@ -8,7 +8,6 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
-use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
@@ -19,14 +18,13 @@ use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
-use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
-use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
-use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsApiPlatformProviderFactory;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Request;
 use Twig\Environment;
 use Twig\Loader\ArrayLoader;
 
@@ -39,15 +37,16 @@ use Twig\Loader\ArrayLoader;
 final class AbstractDataTableApiPlatformProjectionTest extends TestCase
 {
     use BuildsApiPlatformProviderFactory;
+    use BuildsRuntime;
 
     #[Test]
     public function it_renders_projected_rows_through_the_table_row_mapper(): void
     {
-        $table = $this->table();
+        $call = $this->runtime()->handle(new ProjectedApiBooksDataTable(), $this->httpRequest());
 
-        $this->assertInstanceOf(ApiPlatformCollectionProvider::class, $table->getResolvedDataProvider());
+        $this->assertInstanceOf(ApiPlatformCollectionProvider::class, $call->dataProvider());
 
-        $result = $table->fetchDataTableResult($this->request());
+        $result = $call->fetchData($this->request());
 
         $this->assertSame(2, $result->recordsTotal);
         $this->assertSame([
@@ -56,7 +55,7 @@ final class AbstractDataTableApiPlatformProjectionTest extends TestCase
         ], iterator_to_array($result->data, false));
     }
 
-    private function table(): AbstractDataTable
+    private function runtime(): DataTableRuntime
     {
         $stateProvider = new class implements ProviderInterface {
             public function provide(Operation $operation, array $uriVariables = [], array $context = []): object|array|null
@@ -68,21 +67,20 @@ final class AbstractDataTableApiPlatformProjectionTest extends TestCase
         $resolver = $this->createStub(ApiResourceCollectionUrlResolver::class);
         $resolver->method('resolveCollectionUrl')->willReturn('/api/books');
 
-        $table = new ProjectedApiBooksDataTable();
-        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), urlResolver: $resolver),
-            runtimeFactory: new DataTableRuntimeFactory(
-                new AuthorizationChecker(),
-                autoDataProviderFactory: new AutoDataProviderFactory(
-                    apiPlatformProviderFactory: $this->buildApiPlatformProviderFactory(stateProvider: $stateProvider),
-                ),
-                templateColumnRenderer: new TemplateColumnRenderer(new Environment(new ArrayLoader([
-                    'datatable/columns/book_badge.html.twig' => '<b>{{ row.label }}</b> from {{ source.title }}',
-                ]))),
+        return self::buildRuntime(
+            autoDataProviderFactory: new AutoDataProviderFactory(
+                apiPlatformProviderFactory: $this->buildApiPlatformProviderFactory(stateProvider: $stateProvider),
             ),
-        ));
+            collectionUrlResolver: $resolver,
+            templateColumnRenderer: new TemplateColumnRenderer(new Environment(new ArrayLoader([
+                'datatable/columns/book_badge.html.twig' => '<b>{{ row.label }}</b> from {{ source.title }}',
+            ]))),
+        );
+    }
 
-        return $table;
+    private function httpRequest(): Request
+    {
+        return new Request(query: ['draw' => 1, 'start' => 0, 'length' => 10]);
     }
 
     private function request(): DataTableRequest
@@ -135,7 +133,7 @@ final class ProjectedApiBooksDataTable extends AbstractDataTable
             ->template('datatable/columns/book_badge.html.twig');
     }
 
-    protected function projectPage(array $items): ?array
+    public function projectPage(array $items): ?array
     {
         return array_map(
             static fn (ProjectedApiBook $book): ProjectedApiBookRow => new ProjectedApiBookRow($book->id, 'BOOK:'.$book->title),
