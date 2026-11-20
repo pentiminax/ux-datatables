@@ -7,4 +7,3 @@ export interface ConfirmRequest {
     adapterKey?: string | null;
 }
 export declare function confirmAction(request: ConfirmRequest): Promise<boolean>;
-export declare function confirmBulkAction(...args: Parameters<typeof confirmAction>): Promise<boolean>;

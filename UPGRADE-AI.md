@@ -411,5 +411,10 @@ call to a removed method.
 22. Check the platform: PHP 8.3 or later, Symfony 7.4 or 8.x, `api-platform/core` 4.0 or later and
     `symfony/mercure` 0.8 or later when used. Update `composer.json` and run `composer update`;
     Composer refuses older API Platform and Mercure versions through a `conflict` entry.
+23. Replace imports of the removed frontend modules `functions/filterFeature.js`,
+    `functions/filterLayout.js`, `functions/bulkActionsFeature.js` and
+    `functions/bulkActionsLayout.js` with `installFilterBar()` (`functions/filters.js`) or
+    `installBulkActionBar()` (`bulk/BulkActionBar.js`), and `confirmBulkAction()` with
+    `confirmAction()`.
 
 </upgrade-prompt>
