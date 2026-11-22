@@ -38,7 +38,7 @@ final class PayloadFixtureDataTable extends AbstractDataTable
             ->buttons([ButtonType::COPY, ButtonType::CSV])
             ->select(SelectStyle::MULTI, withCheckbox: true)
             ->responsive()
-    ->styleFramework(StyleFramework::DataTables)
+            ->styleFramework(StyleFramework::DataTables)
             ->language(Language::FR)
             ->mercure(['/books']);
     }
