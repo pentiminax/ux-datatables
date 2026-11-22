@@ -13,12 +13,12 @@ final class PrefixedHarnessAppKernel extends TestHarnessAppKernel
 {
     public function getCacheDir(): string
     {
-        return sys_get_temp_dir().'/ux_datatables_harness_prefixed/'.substr(md5(__DIR__), 0, 8).'/cache';
+        return KernelTempDir::of('ux_datatables_harness_prefixed').'/cache';
     }
 
     public function getLogDir(): string
     {
-        return sys_get_temp_dir().'/ux_datatables_harness_prefixed/'.substr(md5(__DIR__), 0, 8).'/log';
+        return KernelTempDir::of('ux_datatables_harness_prefixed').'/log';
     }
 
     protected function configureRoutes(RoutingConfigurator $routes): void

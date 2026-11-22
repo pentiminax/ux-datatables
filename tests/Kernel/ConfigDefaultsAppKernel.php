@@ -79,11 +79,11 @@ final class ConfigDefaultsAppKernel extends Kernel
 
     public function getCacheDir(): string
     {
-        return sys_get_temp_dir().'/ux_datatables_config_defaults/'.substr(md5(__DIR__), 0, 8).'/cache/'.$this->environment;
+        return KernelTempDir::of('ux_datatables_config_defaults').'/cache/'.$this->environment;
     }
 
     public function getLogDir(): string
     {
-        return sys_get_temp_dir().'/ux_datatables_config_defaults/'.substr(md5(__DIR__), 0, 8).'/log';
+        return KernelTempDir::of('ux_datatables_config_defaults').'/log';
     }
 }

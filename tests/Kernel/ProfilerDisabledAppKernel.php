@@ -57,11 +57,11 @@ class ProfilerDisabledAppKernel extends Kernel
 
     public function getCacheDir(): string
     {
-        return sys_get_temp_dir().'/ux_datatables/'.substr(md5(__DIR__), 0, 8).'/profiler_disabled_cache/'.$this->environment;
+        return KernelTempDir::of('ux_datatables').'/profiler_disabled_cache/'.$this->environment;
     }
 
     public function getLogDir(): string
     {
-        return sys_get_temp_dir().'/ux_datatables/'.substr(md5(__DIR__), 0, 8).'/profiler_disabled_log';
+        return KernelTempDir::of('ux_datatables').'/profiler_disabled_log';
     }
 }

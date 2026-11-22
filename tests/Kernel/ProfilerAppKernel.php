@@ -64,11 +64,11 @@ class ProfilerAppKernel extends Kernel
      */
     public function getCacheDir(): string
     {
-        return sys_get_temp_dir().'/ux_datatables/profiler_cache/'.substr(md5($this->getProjectDir()), 0, 8).'/'.$this->environment;
+        return KernelTempDir::of('ux_datatables').'/profiler_cache/'.$this->environment;
     }
 
     public function getLogDir(): string
     {
-        return sys_get_temp_dir().'/ux_datatables/profiler_log';
+        return KernelTempDir::of('ux_datatables').'/profiler_log';
     }
 }
