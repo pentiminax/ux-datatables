@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Kernel;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Pentiminax\UX\DataTables\PentiminaxDataTablesBundle;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessActionsDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessClientSideDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessHydratedDataTable;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessScopedAccountsDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessServerSideDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessUnscopedBulkDataTable;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
@@ -69,11 +71,15 @@ class TestHarnessAppKernel extends Kernel
             'strict_variables' => true,
         ]);
 
-        foreach ([HarnessServerSideDataTable::class, HarnessClientSideDataTable::class, HarnessActionsDataTable::class, HarnessUnscopedBulkDataTable::class, HarnessHydratedDataTable::class] as $dataTableClass) {
+        foreach ([HarnessServerSideDataTable::class, HarnessClientSideDataTable::class, HarnessActionsDataTable::class, HarnessUnscopedBulkDataTable::class, HarnessHydratedDataTable::class, HarnessScopedAccountsDataTable::class] as $dataTableClass) {
             $builder->register($dataTableClass, $dataTableClass)
                 ->setAutoconfigured(true)
+                ->setAutowired(true)
                 ->setPublic(true);
         }
+
+        $builder->register('doctrine', HarnessDoctrineRegistry::class);
+        $builder->register(EntityManagerInterface::class)->setFactory([new Reference('doctrine'), 'getManager']);
 
         $container->services()->alias('test.datatables.ajax_registry', 'datatables.ajax.registry')->public();
 
