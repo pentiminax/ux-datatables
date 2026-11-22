@@ -60,7 +60,7 @@ describe('datatable_core alias', () => {
         const { enabled: _aliasEnabled, ...alias } = controllers.datatable_core
 
         expect(alias).toEqual(datatable)
-        expect(existsSync(resolve(process.cwd(), alias.main))).toBe(true)
+        expect(existsSync(resolve(import.meta.dirname, '..', alias.main))).toBe(true)
     })
 
     it('stays disabled by default, so only one controller registers', () => {
