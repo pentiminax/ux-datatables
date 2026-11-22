@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
+use Pentiminax\UX\DataTables\Enum\StyleFramework;
 use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
 use Pentiminax\UX\DataTables\Filter\TextFilter;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
@@ -37,6 +38,7 @@ final class PayloadFixtureDataTable extends AbstractDataTable
             ->buttons([ButtonType::COPY, ButtonType::CSV])
             ->select(SelectStyle::MULTI, withCheckbox: true)
             ->responsive()
+    ->styleFramework(StyleFramework::DataTables)
             ->language(Language::FR)
             ->mercure(['/books']);
     }

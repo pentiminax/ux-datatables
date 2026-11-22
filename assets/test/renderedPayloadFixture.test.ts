@@ -8,6 +8,7 @@ import { packageLoaders } from '../src/functions/packageLoaders.js'
 import { type RowActionName, rowActionUrl } from '../src/functions/rowActionUrl.js'
 import type { FilterDefinition } from '../src/functions/filters.js'
 import type { DataTableView } from '../src/types/dataTableView.js'
+import type { StyleFramework } from '../src/types/styleFramework.js'
 import fixture from '../../tests/Fixtures/rendered-payload.json'
 
 /**
@@ -40,7 +41,6 @@ type UnexercisedKey =
     | 'recordUrl'
     | 'serverSide'
     | 'showHeaderResetButton'
-    | 'styleFramework'
     | 'summaryLabels'
     | 'urlState'
 type FixtureKey = keyof typeof fixture
@@ -54,6 +54,7 @@ const everyUnexercisedKeyDeclared: [StaleKey] extends [never] ? true : StaleKey 
 // JSON modules widen string literals: the filter and action `type` unions are restored by hand.
 const view: DataTableView = {
     ...fixture,
+    styleFramework: fixture.styleFramework as StyleFramework,
     columns: fixture.columns.map((column) => ({
         ...column,
         actions: column.actions?.map((action) => ({
@@ -120,7 +121,7 @@ describe('rendered payload fixture', () => {
     it('initializes a table from the pinned payload and keeps its sections', async () => {
         const table = document.createElement('table')
         table.setAttribute('data-controller', 'datatable')
-        table.setAttribute('data-datatable-view-value', JSON.stringify({ ...view, styleFramework: 'dt' }))
+        table.setAttribute('data-datatable-view-value', JSON.stringify(view))
         document.body.appendChild(table)
 
         await vi.waitFor(() => expect(payloads).toHaveLength(1))
@@ -142,7 +143,7 @@ describe('rendered payload fixture', () => {
     it('renders the CUSTOM action, loads the bundled catalog and reads the row action URLs', async () => {
         const table = document.createElement('table')
         table.setAttribute('data-controller', 'datatable')
-        table.setAttribute('data-datatable-view-value', JSON.stringify({ ...view, styleFramework: 'dt' }))
+        table.setAttribute('data-datatable-view-value', JSON.stringify(view))
         document.body.appendChild(table)
 
         await vi.waitFor(() => expect(payloads).toHaveLength(1))
