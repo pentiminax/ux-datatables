@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Fixtures\DataTable;
 
-use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
-use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
@@ -28,10 +26,6 @@ use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountAccount;
 #[AsDataTable(entityClass: CountAccount::class)]
 final class HarnessScopedAccountsDataTable extends AbstractDataTable
 {
-    public function __construct(private readonly EntityManagerInterface $em)
-    {
-    }
-
     public function configureDataTable(DataTable $table): DataTable
     {
         return $table->serverSide();
@@ -60,16 +54,8 @@ final class HarnessScopedAccountsDataTable extends AbstractDataTable
         }));
     }
 
-    protected function createDataProvider(): DataProviderInterface
+    protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
     {
-        $scope = static fn (QueryBuilder $qb): QueryBuilder => $qb->andWhere("e.name <> 'hidden'");
-
-        return new DoctrineDataProvider(
-            em: $this->em,
-            entityClass: CountAccount::class,
-            configureBaseQueryBuilder: $scope,
-            configureQueryBuilder: $scope,
-            rowMapper: $this->createRowMapper(),
-        );
+        return $qb->andWhere("e.name <> 'hidden'");
     }
 }

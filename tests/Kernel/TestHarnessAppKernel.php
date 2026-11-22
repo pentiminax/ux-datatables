@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Kernel;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\PentiminaxDataTablesBundle;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessActionsDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessClientSideDataTable;
@@ -17,7 +18,9 @@ use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Bundle\MercureBundle\MercureBundle;
 use Symfony\Bundle\TwigBundle\TwigBundle;
 use Symfony\Component\Config\Loader\LoaderInterface;
+use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\Kernel;
@@ -35,12 +38,22 @@ class TestHarnessAppKernel extends Kernel
 
     public function getCacheDir(): string
     {
-        return sys_get_temp_dir().'/ux_datatables_harness/'.substr(md5(__DIR__), 0, 8).'/cache';
+        return KernelTempDir::of('ux_datatables_harness').'/cache';
     }
 
     public function getLogDir(): string
     {
-        return sys_get_temp_dir().'/ux_datatables_harness/'.substr(md5(__DIR__), 0, 8).'/log';
+        return KernelTempDir::of('ux_datatables_harness').'/log';
+    }
+
+    protected function build(ContainerBuilder $container): void
+    {
+        $container->addCompilerPass(new class implements CompilerPassInterface {
+            public function process(ContainerBuilder $container): void
+            {
+                $container->setDefinition('datatables.mercure.publisher', new Definition(NullMercurePublisher::class));
+            }
+        });
     }
 
     protected function configureContainer(ContainerConfigurator $container, LoaderInterface $loader, ContainerBuilder $builder): void
@@ -74,12 +87,11 @@ class TestHarnessAppKernel extends Kernel
         foreach ([HarnessServerSideDataTable::class, HarnessClientSideDataTable::class, HarnessActionsDataTable::class, HarnessUnscopedBulkDataTable::class, HarnessHydratedDataTable::class, HarnessScopedAccountsDataTable::class] as $dataTableClass) {
             $builder->register($dataTableClass, $dataTableClass)
                 ->setAutoconfigured(true)
-                ->setAutowired(true)
                 ->setPublic(true);
         }
 
         $builder->register('doctrine', HarnessDoctrineRegistry::class);
-        $builder->register(EntityManagerInterface::class)->setFactory([new Reference('doctrine'), 'getManager']);
+        $builder->register('doctrine.orm.entity_manager', EntityManagerInterface::class)->setFactory([new Reference('doctrine'), 'getManager']);
 
         $container->services()->alias('test.datatables.ajax_registry', 'datatables.ajax.registry')->public();
 
