@@ -33,12 +33,12 @@ class TestHarnessAppKernel extends Kernel
 
     public function getCacheDir(): string
     {
-        return sys_get_temp_dir().'/ux_datatables_harness/cache';
+        return sys_get_temp_dir().'/ux_datatables_harness/'.substr(md5(__DIR__), 0, 8).'/cache';
     }
 
     public function getLogDir(): string
     {
-        return sys_get_temp_dir().'/ux_datatables_harness/log';
+        return sys_get_temp_dir().'/ux_datatables_harness/'.substr(md5(__DIR__), 0, 8).'/log';
     }
 
     protected function configureContainer(ContainerConfigurator $container, LoaderInterface $loader, ContainerBuilder $builder): void

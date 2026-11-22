@@ -85,11 +85,11 @@ class TwigAppKernel extends Kernel
 
     public function getCacheDir(): string
     {
-        return sys_get_temp_dir().'/ux_datatables/cache/'.$this->environment;
+        return sys_get_temp_dir().'/ux_datatables/'.substr(md5(__DIR__), 0, 8).'/cache/'.$this->environment;
     }
 
     public function getLogDir(): string
     {
-        return sys_get_temp_dir().'/ux_datatables/log';
+        return sys_get_temp_dir().'/ux_datatables/'.substr(md5(__DIR__), 0, 8).'/log';
     }
 }

@@ -15,12 +15,12 @@ final class NoFormAppKernel extends TestHarnessAppKernel
 {
     public function getCacheDir(): string
     {
-        return sys_get_temp_dir().'/ux_datatables_harness_no_form/cache';
+        return sys_get_temp_dir().'/ux_datatables_harness_no_form/'.substr(md5(__DIR__), 0, 8).'/cache';
     }
 
     public function getLogDir(): string
     {
-        return sys_get_temp_dir().'/ux_datatables_harness_no_form/log';
+        return sys_get_temp_dir().'/ux_datatables_harness_no_form/'.substr(md5(__DIR__), 0, 8).'/log';
     }
 
     protected function build(ContainerBuilder $container): void
