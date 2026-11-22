@@ -1,4 +1,7 @@
+import { existsSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import packageJson from '../package.json'
 
 // The files are rendered by PackageCatalog (see PackageCatalogTest), as ux-datatables:install writes them.
 const kits = [
@@ -50,19 +53,18 @@ describe.each(kits)('generated $framework loaders', ({ framework, file }) => {
 })
 
 describe('datatable_core alias', () => {
-    it('is the same controller class the datatable identifier registers', async () => {
-        const { default: Controller } = await import('../src/core.js')
-        const { Application } = await import('@hotwired/stimulus')
-        const app = Application.start()
+    const { controllers } = packageJson.symfony
 
-        app.register('datatable', Controller)
-        app.register('datatable_core', Controller)
+    it('loads the same module as datatable, with the same autoimports and fetch mode', () => {
+        const { enabled: _datatableEnabled, ...datatable } = controllers.datatable
+        const { enabled: _aliasEnabled, ...alias } = controllers.datatable_core
 
-        const modules = app.router.modules
-        expect(modules.map((module) => module.identifier)).toEqual(['datatable', 'datatable_core'])
-        expect(modules[1].definition.controllerConstructor.prototype).toBeInstanceOf(
-            modules[0].definition.controllerConstructor.__proto__
-        )
-        app.stop()
+        expect(alias).toEqual(datatable)
+        expect(existsSync(resolve(import.meta.dirname, '..', alias.main))).toBe(true)
+    })
+
+    it('stays disabled by default, so only one controller registers', () => {
+        expect(controllers.datatable.enabled).toBe(true)
+        expect(controllers.datatable_core.enabled).toBe(false)
     })
 })

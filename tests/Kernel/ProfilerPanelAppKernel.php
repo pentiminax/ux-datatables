@@ -30,12 +30,12 @@ class ProfilerPanelAppKernel extends Kernel
 
     public function getCacheDir(): string
     {
-        return sys_get_temp_dir().'/ux_datatables/profiler_panel_cache/'.$this->environment;
+        return KernelTempDir::of('ux_datatables').'/profiler_panel_cache/'.$this->environment;
     }
 
     public function getLogDir(): string
     {
-        return sys_get_temp_dir().'/ux_datatables/profiler_panel_log';
+        return KernelTempDir::of('ux_datatables').'/profiler_panel_log';
     }
 
     protected function configureContainer(ContainerConfigurator $container): void

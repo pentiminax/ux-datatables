@@ -170,6 +170,7 @@
             ]
         }
     ],
+    "styleFramework": "dt",
     "mercure": {
         "hubUrl": "http://localhost:3000/.well-known/mercure",
         "topics": [
