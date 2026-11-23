@@ -110,7 +110,7 @@
     "datatables.net-searchbuilder-dt": "^2.1.1",
     "datatables.net-select-bs5": "^4.1.1",
     "datatables.net-select-dt": "^4.1.1",
-    "jsdom": "^30.1.2",
+    "jsdom": "^31.0.1",
     "jszip": "^3.10.2",
     "lucide": "^1.61.0",
     "pdfmake": "^0.3.14",
