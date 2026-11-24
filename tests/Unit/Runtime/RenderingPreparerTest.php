@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\ChoiceColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
@@ -519,6 +520,21 @@ final class RenderingPreparerTest extends TestCase
             'editFormSubmit' => '/p/ux_datatables_ajax_edit_form_submit',
         ], $withActionsPayload->getView()['rowActionUrls']);
         $this->assertArrayNotHasKey('rowActionUrls', $withoutActionsPayload->getView());
+    }
+
+    #[Test]
+    public function it_generates_the_row_action_urls_for_a_boolean_column_rendered_as_a_switch(): void
+    {
+        $urlGenerator = $this->createStub(UrlGeneratorInterface::class);
+        $urlGenerator->method('generate')->willReturnCallback(static fn (string $route): string => '/p/'.$route);
+
+        $preparer = new RenderingPreparer(new AuthorizationChecker(), new ColumnResolver(new AuthorizationChecker()), urlGenerator: $urlGenerator);
+
+        $table = (new DataTable('Test'))
+            ->setDataTableClass(self::TABLE_CLASS)
+            ->add(BooleanColumn::new('active')->renderAsSwitch());
+
+        $this->assertSame('/p/ux_datatables_ajax_edit', self::prepare($preparer, $table, null)->getView()['rowActionUrls']['toggle']);
     }
 
     #[Test]

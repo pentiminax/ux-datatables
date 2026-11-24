@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Runtime;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\ColumnTranslator;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
