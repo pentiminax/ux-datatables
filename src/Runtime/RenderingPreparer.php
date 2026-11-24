@@ -7,7 +7,6 @@ namespace Pentiminax\UX\DataTables\Runtime;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
-use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\ColumnTranslator;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
@@ -196,10 +195,10 @@ final class RenderingPreparer
             unset($extensions['select']);
         }
 
-        $hasRowActions = $this->rendersActionUrls($table);
-        $filters       = $this->translatedFilters($table->getFilters());
-        $hasFilters    = null !== $filters && !$filters->isEmpty();
-        $emptyState    = $table->getEmptyState();
+        $requirements = TableRequirements::of($table);
+        $filters      = $this->translatedFilters($table->getFilters());
+        $hasFilters   = null !== $filters && !$filters->isEmpty();
+        $emptyState   = $table->getEmptyState();
 
         return new PreparedDataTable(
             id: $table->getId(),
@@ -231,10 +230,10 @@ final class RenderingPreparer
                 'position' => $bulkActions['position'],
             ],
             declaresBulkActions: $table->hasBulkActions(),
-            rowActionUrls: $hasRowActions ? $this->rowActionUrls() : null,
+            rowActionUrls: $requirements->servesRowActions ? $this->rowActionUrls() : null,
             emptyState: null === $emptyState ? null : $emptyState + ['labels' => $this->translateLabels(self::EMPTY_STATE_LABEL_KEYS) ?? []],
             recordUrl: null !== $table->getRecordUrlResolver(),
-            actionLabels: $hasRowActions ? $this->translateLabels(self::ACTION_LABEL_KEYS) : null,
+            actionLabels: $requirements->rendersRowActions ? $this->translateLabels(self::ACTION_LABEL_KEYS) : null,
             summaryLabels: $this->summaryLabels($columns),
             forwardedQuery: $forwardedQuery,
             filters: $hasFilters ? $filters->jsonSerialize() : null,
@@ -445,17 +444,6 @@ final class RenderingPreparer
         }
 
         return array_map(fn (string $key): string => $this->translator->trans($key, domain: FilterLabels::DOMAIN), $keys);
-    }
-
-    private function rendersActionUrls(DataTable $table): bool
-    {
-        foreach ($table->getColumns() as $column) {
-            if ($column instanceof ActionsProvidingColumnInterface || ($column instanceof BooleanColumn && $column->isRenderedAsSwitch())) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**

@@ -293,6 +293,13 @@ carries no `rowActionUrls`: a delete, toggle, detail or edit click fails with a
 since 1.5.1 carries the URLs. Purge HTTP or page caches that hold pages rendered before 1.5.1, and
 import the bundle's routes so the row action URLs can be generated.
 
+### Link-only row actions get no `rowActionUrls`
+
+A table whose row actions all target a URL or a route (`linkToUrl()`, `linkToRoute()`) no longer
+receives `rowActionUrls` in its rendered payload, because nothing calls a bundle endpoint. It still
+receives the action labels. Nothing to do, unless custom JavaScript reads `rowActionUrls` for such
+a table.
+
 ### Entity tables are server-side by default
 
 An entity table (`#[AsDataTable(entityClass: ...)]`) that never calls `serverSide()`, `ajax()` or
