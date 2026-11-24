@@ -17,6 +17,7 @@ use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\DataTableRequest\Column as RequestColumn;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns as RequestColumns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureTableConfigResolver;
@@ -97,7 +98,13 @@ final class DataTableRuntime
 
         $this->renderingPreparer->prepareBeforeDataHydration($definition);
 
-        $this->renderingPreparer->assertMutationsScoped($definition, static fn (): ?DataProviderInterface => $call->dataProvider());
+        if ($definition->requirements->has(DataSourceFeature::RowScope)) {
+            $provider = $call->dataProvider();
+
+            if (null !== $provider) {
+                $this->featureGuard->assertSatisfied($definition, $provider);
+            }
+        }
 
         $hydratedRows = match (true) {
             DataSourceMode::ClientHydrated === $optIns->dataSourceMode => $this->hydrateClientSideRows($call),

@@ -12,7 +12,6 @@ use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\ColumnTranslator;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
-use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\TemplateAwareColumnInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Model\BulkActions;
@@ -119,24 +118,6 @@ final class RenderingPreparer
         }
 
         $this->featureGuard->assertSatisfied($definition);
-    }
-
-    /**
-     * @param \Closure():?DataProviderInterface $provider read only when the table has actions served by the bundle
-     *
-     * @throws \LogicException when the table's actions run on a data provider that cannot check the row scope
-     */
-    public function assertMutationsScoped(TableDefinition $definition, \Closure $provider): void
-    {
-        if (!$definition->requirements->servesRowActions && !$definition->table->hasBulkActions()) {
-            return;
-        }
-
-        $dataProvider = $provider();
-
-        if (null !== $dataProvider) {
-            $this->featureGuard->assertSatisfied($definition, $dataProvider);
-        }
     }
 
     /**
