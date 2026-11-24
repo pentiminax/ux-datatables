@@ -22,6 +22,7 @@ use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Pentiminax\UX\DataTables\Runtime\ResolvedOptIns;
 use Pentiminax\UX\DataTables\Runtime\TableContext;
 use Pentiminax\UX\DataTables\Runtime\TableDefinition;
+use Pentiminax\UX\DataTables\Runtime\TableRequirements;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsApiPlatformProviderFactory;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -162,11 +163,12 @@ final class AutoDataProviderFactoryTest extends TestCase
         $hooks ??= new ConfigurableDataTable([]);
         $definition = new TableDefinition(
             class: $hooks::class,
-            table: new DataTable('movies'),
+            table: $table = new DataTable('movies'),
             columns: [],
             filters: new Filters(),
             asDataTable: $asDataTable,
             optIns: new ResolvedOptIns(apiPlatform: $apiPlatform ?: null),
+            requirements: TableRequirements::of($table),
         );
 
         return (new AutoDataProviderFactory($em, $apiPlatformProviderFactory))->create(

@@ -30,6 +30,7 @@ final readonly class TableDefinition
         public Filters $filters,
         public ?AsDataTable $asDataTable,
         public ResolvedOptIns $optIns,
+        public TableRequirements $requirements,
     ) {
     }
 

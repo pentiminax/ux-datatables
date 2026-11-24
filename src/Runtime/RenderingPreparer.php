@@ -11,7 +11,6 @@ use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\ColumnTranslator;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
-use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\TemplateAwareColumnInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Model\BulkActions;
@@ -108,31 +107,16 @@ final class RenderingPreparer
      *
      * @throws \LogicException when the table opts into API Platform with no collection to read
      */
-    public function prepareBeforeDataHydration(DataTable $table, ResolvedOptIns $optIns): void
+    public function prepareBeforeDataHydration(TableDefinition $definition): void
     {
+        $table  = $definition->table;
+        $optIns = $definition->optIns;
+
         if (DataSourceMode::ApiPlatformUnavailable === $optIns->dataSourceMode) {
             throw new \LogicException(\sprintf('Table "%s" opts into API Platform but "%s" exposes no collection operation, or API Platform is not installed. Expose a collection operation or remove the apiPlatform opt-in.', $table->getDataTableClass() ?? $table->getId(), $optIns->entityClass ?? 'no entity class'));
         }
 
-        $this->featureGuard->assertConfigurable($table, $optIns);
-    }
-
-    /**
-     * @param \Closure():?DataProviderInterface $provider read only when the table has actions served by the bundle
-     *
-     * @throws \LogicException when the table's actions run on a data provider that cannot check the row scope
-     */
-    public function assertMutationsScoped(DataTable $table, \Closure $provider): void
-    {
-        if (!DataSourceFeatureGuard::hasRowActions($table) && !$table->hasBulkActions()) {
-            return;
-        }
-
-        $dataProvider = $provider();
-
-        if (null !== $dataProvider) {
-            $this->featureGuard->assertMutationsScoped($table, $dataProvider);
-        }
+        $this->featureGuard->assertSatisfied($definition);
     }
 
     /**
@@ -143,8 +127,9 @@ final class RenderingPreparer
      *
      * @throws \LogicException when the table polls without an Ajax source, or the payload sets a key twice
      */
-    public function prepareAfterDataHydration(DataTable $table, ResolvedOptIns $optIns, ?array $rows, ?string $bulkRowIdField, \Closure $mercure): PreparedDataTable
+    public function prepareAfterDataHydration(TableDefinition $definition, ResolvedOptIns $optIns, ?array $rows, ?string $bulkRowIdField, \Closure $mercure): PreparedDataTable
     {
+        $table             = $definition->table;
         $dataTableClass    = $table->getDataTableClass();
         $configuredColumns = $this->translatedColumns($table->getColumns());
         $columns           = array_values($this->columnResolver->filterStaticPermissions($configuredColumns, $dataTableClass));
@@ -211,10 +196,10 @@ final class RenderingPreparer
             unset($extensions['select']);
         }
 
-        $hasRowActions = $this->rendersActionUrls($table);
-        $filters       = $this->translatedFilters($table->getFilters());
-        $hasFilters    = null !== $filters && !$filters->isEmpty();
-        $emptyState    = $table->getEmptyState();
+        $requirements = $definition->requirements;
+        $filters      = $this->translatedFilters($table->getFilters());
+        $hasFilters   = null !== $filters && !$filters->isEmpty();
+        $emptyState   = $table->getEmptyState();
 
         return new PreparedDataTable(
             id: $table->getId(),
@@ -246,10 +231,10 @@ final class RenderingPreparer
                 'position' => $bulkActions['position'],
             ],
             declaresBulkActions: $table->hasBulkActions(),
-            rowActionUrls: $hasRowActions ? $this->rowActionUrls() : null,
+            rowActionUrls: $requirements->servesRowActions ? $this->rowActionUrls() : null,
             emptyState: null === $emptyState ? null : $emptyState + ['labels' => $this->translateLabels(self::EMPTY_STATE_LABEL_KEYS) ?? []],
             recordUrl: null !== $table->getRecordUrlResolver(),
-            actionLabels: $hasRowActions ? $this->translateLabels(self::ACTION_LABEL_KEYS) : null,
+            actionLabels: $requirements->rendersRowActions ? $this->translateLabels(self::ACTION_LABEL_KEYS) : null,
             summaryLabels: $this->summaryLabels($columns),
             forwardedQuery: $forwardedQuery,
             filters: $hasFilters ? $filters->jsonSerialize() : null,
@@ -460,17 +445,6 @@ final class RenderingPreparer
         }
 
         return array_map(fn (string $key): string => $this->translator->trans($key, domain: FilterLabels::DOMAIN), $keys);
-    }
-
-    private function rendersActionUrls(DataTable $table): bool
-    {
-        foreach ($table->getColumns() as $column) {
-            if ($column instanceof ActionsProvidingColumnInterface || ($column instanceof BooleanColumn && $column->isRenderedAsSwitch())) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**

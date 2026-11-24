@@ -17,6 +17,7 @@ use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\DataTableRequest\Column as RequestColumn;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns as RequestColumns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureTableConfigResolver;
@@ -95,9 +96,15 @@ final class DataTableRuntime
 
         $optIns = $definition->optIns;
 
-        $this->renderingPreparer->prepareBeforeDataHydration($definition->table, $optIns);
+        $this->renderingPreparer->prepareBeforeDataHydration($definition);
 
-        $this->renderingPreparer->assertMutationsScoped($definition->table, static fn (): ?DataProviderInterface => $call->dataProvider());
+        if ($definition->requirements->has(DataSourceFeature::RowScope)) {
+            $provider = $call->dataProvider();
+
+            if (null !== $provider) {
+                $this->featureGuard->assertSatisfied($definition, $provider);
+            }
+        }
 
         $hydratedRows = match (true) {
             DataSourceMode::ClientHydrated === $optIns->dataSourceMode => $this->hydrateClientSideRows($call),
@@ -111,7 +118,7 @@ final class DataTableRuntime
 
         // Resolved last, so a table failing both reports the preparer's own error first.
         return $this->renderingPreparer->prepareAfterDataHydration(
-            $definition->table,
+            $definition,
             $optIns,
             rows: $hydratedRows,
             bulkRowIdField: $bulkRowIdField,

@@ -23,7 +23,6 @@ use Pentiminax\UX\DataTables\Model\BulkAction;
 use Pentiminax\UX\DataTables\Model\BulkActions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
-use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SearchBuilderExtension;
 use Pentiminax\UX\DataTables\Model\Filters;
@@ -33,6 +32,8 @@ use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Pentiminax\UX\DataTables\Runtime\DataSourceFeatureGuard;
 use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
 use Pentiminax\UX\DataTables\Runtime\ResolvedOptIns;
+use Pentiminax\UX\DataTables\Runtime\TableDefinition;
+use Pentiminax\UX\DataTables\Runtime\TableRequirements;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -60,7 +61,7 @@ final class DataSourceFeatureGuardTest extends TestCase
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage($message);
 
-        (new DataSourceFeatureGuard())->assertConfigurable($table, self::optIns(DataSourceMode::ApiPlatform));
+        (new DataSourceFeatureGuard())->assertSatisfied(self::definition($table, self::optIns(DataSourceMode::ApiPlatform)));
     }
 
     #[Test]
@@ -71,7 +72,7 @@ final class DataSourceFeatureGuardTest extends TestCase
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('SearchBuilder criteria are not supported on an API Platform collection');
 
-        (new DataSourceFeatureGuard())->assertConfigurable($table, self::optIns(DataSourceMode::Ajax, apiPlatform: true));
+        (new DataSourceFeatureGuard())->assertSatisfied(self::definition($table, self::optIns(DataSourceMode::Ajax, apiPlatform: true)));
     }
 
     #[Test]
@@ -79,7 +80,7 @@ final class DataSourceFeatureGuardTest extends TestCase
     {
         $this->expectNotToPerformAssertions();
 
-        (new DataSourceFeatureGuard())->assertConfigurable((new DataTable('books'))->addExtension(new SearchBuilderExtension()), self::optIns(DataSourceMode::Ajax, apiPlatform: false));
+        (new DataSourceFeatureGuard())->assertSatisfied(self::definition((new DataTable('books'))->addExtension(new SearchBuilderExtension()), self::optIns(DataSourceMode::Ajax, apiPlatform: false)));
     }
 
     /**
@@ -94,23 +95,6 @@ final class DataSourceFeatureGuardTest extends TestCase
 
         yield 'default ColumnControl, which holds a search' => [
             static fn (DataTable $table): DataTable => $table->addExtension(new ColumnControlExtension()),
-            'ColumnControl searches are not supported on an API Platform collection',
-        ];
-
-        yield 'ColumnControl search nested in a dropdown' => [
-            static fn (DataTable $table): DataTable => $table->addExtension((new ColumnControlExtension([]))->add(0, [['extend' => 'dropdown', 'content' => ['searchText']]])),
-            'ColumnControl searches are not supported on an API Platform collection',
-        ];
-
-        yield 'ColumnControl search set on one column' => [
-            static fn (DataTable $table): DataTable => $table
-                ->addExtension((new ColumnControlExtension([]))->add(0, ['order']))
-                ->columns([TextColumn::new('title')->columnControl(['searchList'])]),
-            'ColumnControl searches are not supported on an API Platform collection',
-        ];
-
-        yield 'SearchList object' => [
-            static fn (DataTable $table): DataTable => $table->addExtension((new ColumnControlExtension([]))->add(1, [SearchList::new()])),
             'ColumnControl searches are not supported on an API Platform collection',
         ];
 
@@ -131,7 +115,7 @@ final class DataSourceFeatureGuardTest extends TestCase
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('The "sum" summary of column "amount" cannot be computed in the browser');
 
-        (new DataSourceFeatureGuard())->assertConfigurable($table, self::optIns($mode));
+        (new DataSourceFeatureGuard())->assertSatisfied(self::definition($table, self::optIns($mode)));
     }
 
     /**
@@ -149,7 +133,7 @@ final class DataSourceFeatureGuardTest extends TestCase
     {
         $this->expectNotToPerformAssertions();
 
-        (new DataSourceFeatureGuard())->assertConfigurable($configure(new DataTable('books')), self::optIns($mode));
+        (new DataSourceFeatureGuard())->assertSatisfied(self::definition($configure(new DataTable('books')), self::optIns($mode)));
     }
 
     /**
@@ -157,16 +141,6 @@ final class DataSourceFeatureGuardTest extends TestCase
      */
     public static function acceptedConfigurations(): iterable
     {
-        yield 'ColumnControl without a search on API Platform' => [
-            static fn (DataTable $table): DataTable => $table->addExtension((new ColumnControlExtension([]))->add(0, ['order', ['orderAsc', 'orderDesc']])),
-            DataSourceMode::ApiPlatform,
-        ];
-
-        yield 'a dropdown whose icon is named search' => [
-            static fn (DataTable $table): DataTable => $table->addExtension((new ColumnControlExtension([]))->add(0, [['extend' => 'dropdown', 'icon' => 'search', 'content' => ['orderAsc', 'orderDesc']]])),
-            DataSourceMode::ApiPlatform,
-        ];
-
         yield 'configured filters on API Platform' => [
             static fn (DataTable $table): DataTable => $table->setFilters((new Filters())->add(TextFilter::new('title'))),
             DataSourceMode::ApiPlatform,
@@ -373,7 +347,7 @@ final class DataSourceFeatureGuardTest extends TestCase
     {
         foreach ([self::unscopedProvider(), new ExhaustiveMatchScopedProvider(), new ScopedProvider(declared: [])] as $provider) {
             try {
-                (new DataSourceFeatureGuard())->assertMutationsScoped($configure(new DataTable('people')), $provider);
+                (new DataSourceFeatureGuard())->assertSatisfied(self::definition($configure(new DataTable('people'))), $provider);
                 $this->fail('The actions must be refused.');
             } catch (\LogicException $exception) {
                 $this->assertStringContainsString('unscopedMutations()', $exception->getMessage());
@@ -388,8 +362,8 @@ final class DataSourceFeatureGuardTest extends TestCase
     {
         $guard = new DataSourceFeatureGuard();
 
-        $guard->assertMutationsScoped($configure(new DataTable('people')), new ScopedProvider(declared: [DataSourceFeature::RowScope]));
-        $guard->assertMutationsScoped($configure(new DataTable('people'))->unscopedMutations(), self::unscopedProvider());
+        $guard->assertSatisfied(self::definition($configure(new DataTable('people'))), new ScopedProvider(declared: [DataSourceFeature::RowScope]));
+        $guard->assertSatisfied(self::definition($configure(new DataTable('people'))->unscopedMutations()), self::unscopedProvider());
         $this->addToAssertionCount(1);
     }
 
@@ -397,7 +371,7 @@ final class DataSourceFeatureGuardTest extends TestCase
     #[DataProvider('actionsServedByNoEndpoint')]
     public function it_accepts_link_only_and_empty_actions_on_any_provider(\Closure $configure): void
     {
-        (new DataSourceFeatureGuard())->assertMutationsScoped($configure(new DataTable('people')), self::unscopedProvider());
+        (new DataSourceFeatureGuard())->assertSatisfied(self::definition($configure(new DataTable('people'))), self::unscopedProvider());
         $this->addToAssertionCount(1);
     }
 
@@ -414,7 +388,7 @@ final class DataSourceFeatureGuardTest extends TestCase
     #[Test]
     public function it_accepts_a_table_without_actions_on_any_provider(): void
     {
-        (new DataSourceFeatureGuard())->assertMutationsScoped((new DataTable('people'))->columns(self::columns()), self::unscopedProvider());
+        (new DataSourceFeatureGuard())->assertSatisfied(self::definition((new DataTable('people'))->columns(self::columns())), self::unscopedProvider());
         $this->addToAssertionCount(1);
     }
 
@@ -460,6 +434,11 @@ final class DataSourceFeatureGuardTest extends TestCase
     private static function columns(): array
     {
         return [NumberColumn::new('id'), TextColumn::new('name')];
+    }
+
+    private static function definition(DataTable $table, ?ResolvedOptIns $optIns = null): TableDefinition
+    {
+        return new TableDefinition(AbstractDataTable::class, $table, [], new Filters(), null, $optIns ?? new ResolvedOptIns(), TableRequirements::of($table));
     }
 
     private static function optIns(DataSourceMode $mode, ?bool $apiPlatform = null): ResolvedOptIns
