@@ -7,7 +7,6 @@ namespace Pentiminax\UX\DataTables\Runtime;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
-use Pentiminax\UX\DataTables\DataProvider\ApiPlatformCollectionProvider;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
@@ -39,49 +38,27 @@ final class DataSourceFeatureGuard
     }
 
     /**
-     * Render-time check, from the mode alone: it builds no provider, which
-     * {@see self::assertMutationsScoped()} does for a table with actions served by the bundle.
+     * Configure-time check of a table's requirements against its data source's capability.
      *
-     * @throws \LogicException when the table configures a feature its mode cannot apply
-     */
-    public function assertConfigurable(DataTable $table, ResolvedOptIns $optIns): void
-    {
-        $mode = $optIns->dataSourceMode;
-
-        if (DataSourceMode::ClientHydrated === $mode || DataSourceMode::Inline === $mode) {
-            $this->assertBrowserCanSummarize($table);
-
-            return;
-        }
-
-        if (DataSourceMode::ApiPlatform !== $mode && !(DataSourceMode::Ajax === $mode && $optIns->optsIntoApiPlatform())) {
-            return;
-        }
-
-        $requirements = TableRequirements::of($table);
-
-        foreach (self::QUERY_FEATURES as $feature) {
-            if (\in_array($feature, ApiPlatformCollectionProvider::SUPPORTED_FEATURES, true)) {
-                continue;
-            }
-
-            if ($requirements->has($feature)) {
-                throw new \LogicException(\sprintf('%s are not supported on an API Platform collection, because it cannot apply them to every matching row. Remove them or read the table through Doctrine.', $feature->label()));
-            }
-        }
-    }
-
-    /**
-     * Refuses row actions and bulk actions on a data provider that cannot check the row scope,
-     * unless the table opts out with unscopedMutations().
+     * Without a provider it reads the capability the mode alone gives and checks the query
+     * features, which builds nothing. With one it checks the row scope only: query features are
+     * refused per request by {@see self::assertRequestSupported()}.
      *
-     * @throws \LogicException when the provider cannot check the row scope and the table did not opt out
+     * @throws \LogicException when the table requires what its data source cannot apply
      */
-    public function assertMutationsScoped(DataTable $table, DataProviderInterface $provider): void
+    public function assertSatisfied(TableDefinition $definition, ?DataProviderInterface $provider = null): void
     {
-        if (!self::hasMutations($table) || null !== DataSourceCapability::rowScopeChecker($provider) || $table->allowsUnscopedMutations()) {
+        if (null === $provider) {
+            $this->assertModeSatisfies($definition);
+
             return;
         }
+
+        if (!$definition->requirements->has(DataSourceFeature::RowScope) || null !== DataSourceCapability::rowScopeChecker($provider)) {
+            return;
+        }
+
+        $table = $definition->table;
 
         throw new \LogicException(\sprintf('Table "%s" has row actions or bulk actions, but its data provider %s cannot check the row scope. Call unscopedMutations() on the table when the scope is enforced elsewhere, or implement IdentifierDataProviderInterface and declare DataSourceFeature::RowScope in supports().', $table->getDataTableClass() ?? $table->getId(), self::providerName($provider)));
     }
@@ -117,23 +94,32 @@ final class DataSourceFeatureGuard
         }
     }
 
-    /**
-     * Whether a column renders an action served by the bundle's Ajax endpoints: delete, edit, a
-     * collapsible detail or a boolean switch. An action that targets a URL or a route never calls them.
-     */
-    public static function hasRowActions(DataTable $table): bool
-    {
-        return TableRequirements::of($table)->servesRowActions;
-    }
-
     public static function unsupported(DataSourceFeature $feature, DataProviderInterface $provider): BadRequestHttpException
     {
         return new BadRequestHttpException(\sprintf('%s are not supported by %s. Use a DoctrineDataProvider or a custom DataProviderInterface for this table.', $feature->label(), self::providerName($provider)));
     }
 
-    private static function hasMutations(DataTable $table): bool
+    private function assertModeSatisfies(TableDefinition $definition): void
     {
-        return self::hasRowActions($table) || $table->hasBulkActions();
+        $mode = $definition->optIns->dataSourceMode;
+
+        if (DataSourceMode::ClientHydrated === $mode || DataSourceMode::Inline === $mode) {
+            $this->assertBrowserCanSummarize($definition->table);
+
+            return;
+        }
+
+        $capability = $definition->optIns->knownCapability();
+
+        if (null === $capability) {
+            return;
+        }
+
+        foreach (self::QUERY_FEATURES as $feature) {
+            if (!\in_array($feature, $capability, true) && $definition->requirements->has($feature)) {
+                throw new \LogicException(\sprintf('%s are not supported on an API Platform collection, because it cannot apply them to every matching row. Remove them or read the table through Doctrine.', $feature->label()));
+            }
+        }
     }
 
     /**

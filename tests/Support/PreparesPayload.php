@@ -6,11 +6,15 @@ namespace Pentiminax\UX\DataTables\Tests\Support;
 
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
 use Pentiminax\UX\DataTables\Runtime\PreparedDataTable;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Runtime\ResolvedOptIns;
+use Pentiminax\UX\DataTables\Runtime\TableDefinition;
+use Pentiminax\UX\DataTables\Runtime\TableRequirements;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 
 trait PreparesPayload
@@ -25,7 +29,7 @@ trait PreparesPayload
 
     private static function prepareWith(RenderingPreparer $preparer, DataTable $table, ResolvedOptIns $optIns): PreparedDataTable
     {
-        $preparer->prepareBeforeDataHydration($table, $optIns);
+        $preparer->prepareBeforeDataHydration(new TableDefinition(AbstractDataTable::class, $table, [], new Filters(), null, $optIns, TableRequirements::of($table)));
 
         return $preparer->prepareAfterDataHydration($table, $optIns, rows: null, bulkRowIdField: null, mercure: static fn (): null => null);
     }

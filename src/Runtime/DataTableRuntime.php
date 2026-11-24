@@ -95,9 +95,9 @@ final class DataTableRuntime
 
         $optIns = $definition->optIns;
 
-        $this->renderingPreparer->prepareBeforeDataHydration($definition->table, $optIns);
+        $this->renderingPreparer->prepareBeforeDataHydration($definition);
 
-        $this->renderingPreparer->assertMutationsScoped($definition->table, static fn (): ?DataProviderInterface => $call->dataProvider());
+        $this->renderingPreparer->assertMutationsScoped($definition, static fn (): ?DataProviderInterface => $call->dataProvider());
 
         $hydratedRows = match (true) {
             DataSourceMode::ClientHydrated === $optIns->dataSourceMode => $this->hydrateClientSideRows($call),

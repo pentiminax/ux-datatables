@@ -101,7 +101,7 @@ final class DataTableCall
         $dataProvider = $this->runtime->createDataProvider($this);
 
         if (null !== $dataProvider && $this->isHandled()) {
-            $this->runtime->guard()->assertMutationsScoped($this->definition->table, $dataProvider);
+            $this->runtime->guard()->assertSatisfied($this->definition, $dataProvider);
             $this->runtime->guard()->assertRequestSupported($this->request, $dataProvider, $this->definition->table, $this->definition->columns);
         }
 

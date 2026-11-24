@@ -109,13 +109,16 @@ final class RenderingPreparer
      *
      * @throws \LogicException when the table opts into API Platform with no collection to read
      */
-    public function prepareBeforeDataHydration(DataTable $table, ResolvedOptIns $optIns): void
+    public function prepareBeforeDataHydration(TableDefinition $definition): void
     {
+        $table  = $definition->table;
+        $optIns = $definition->optIns;
+
         if (DataSourceMode::ApiPlatformUnavailable === $optIns->dataSourceMode) {
             throw new \LogicException(\sprintf('Table "%s" opts into API Platform but "%s" exposes no collection operation, or API Platform is not installed. Expose a collection operation or remove the apiPlatform opt-in.', $table->getDataTableClass() ?? $table->getId(), $optIns->entityClass ?? 'no entity class'));
         }
 
-        $this->featureGuard->assertConfigurable($table, $optIns);
+        $this->featureGuard->assertSatisfied($definition);
     }
 
     /**
@@ -123,16 +126,16 @@ final class RenderingPreparer
      *
      * @throws \LogicException when the table's actions run on a data provider that cannot check the row scope
      */
-    public function assertMutationsScoped(DataTable $table, \Closure $provider): void
+    public function assertMutationsScoped(TableDefinition $definition, \Closure $provider): void
     {
-        if (!DataSourceFeatureGuard::hasRowActions($table) && !$table->hasBulkActions()) {
+        if (!$definition->requirements->servesRowActions && !$definition->table->hasBulkActions()) {
             return;
         }
 
         $dataProvider = $provider();
 
         if (null !== $dataProvider) {
-            $this->featureGuard->assertMutationsScoped($table, $dataProvider);
+            $this->featureGuard->assertSatisfied($definition, $dataProvider);
         }
     }
 

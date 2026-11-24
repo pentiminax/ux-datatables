@@ -6,6 +6,8 @@ namespace Pentiminax\UX\DataTables\Runtime;
 
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\DataProvider\ApiPlatformCollectionProvider;
+use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Model\DataTable;
 
@@ -62,6 +64,19 @@ final readonly class ResolvedOptIns
     public function optsIntoApiPlatform(): bool
     {
         return true === $this->apiPlatform;
+    }
+
+    /**
+     * The features the data source supports, when the opt-ins alone tell: an API Platform collection,
+     * read through its mode or through an Ajax URL opted into the Hydra adapter. Null until a provider exists.
+     *
+     * @return list<DataSourceFeature>|null
+     */
+    public function knownCapability(): ?array
+    {
+        return DataSourceMode::ApiPlatform === $this->dataSourceMode || (DataSourceMode::Ajax === $this->dataSourceMode && $this->optsIntoApiPlatform())
+            ? ApiPlatformCollectionProvider::SUPPORTED_FEATURES
+            : null;
     }
 
     private static function firstText(?string ...$values): ?string

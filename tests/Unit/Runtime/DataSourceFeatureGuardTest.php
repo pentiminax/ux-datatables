@@ -32,6 +32,8 @@ use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Pentiminax\UX\DataTables\Runtime\DataSourceFeatureGuard;
 use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
 use Pentiminax\UX\DataTables\Runtime\ResolvedOptIns;
+use Pentiminax\UX\DataTables\Runtime\TableDefinition;
+use Pentiminax\UX\DataTables\Runtime\TableRequirements;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -59,7 +61,7 @@ final class DataSourceFeatureGuardTest extends TestCase
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage($message);
 
-        (new DataSourceFeatureGuard())->assertConfigurable($table, self::optIns(DataSourceMode::ApiPlatform));
+        (new DataSourceFeatureGuard())->assertSatisfied(self::definition($table, self::optIns(DataSourceMode::ApiPlatform)));
     }
 
     #[Test]
@@ -70,7 +72,7 @@ final class DataSourceFeatureGuardTest extends TestCase
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('SearchBuilder criteria are not supported on an API Platform collection');
 
-        (new DataSourceFeatureGuard())->assertConfigurable($table, self::optIns(DataSourceMode::Ajax, apiPlatform: true));
+        (new DataSourceFeatureGuard())->assertSatisfied(self::definition($table, self::optIns(DataSourceMode::Ajax, apiPlatform: true)));
     }
 
     #[Test]
@@ -78,7 +80,7 @@ final class DataSourceFeatureGuardTest extends TestCase
     {
         $this->expectNotToPerformAssertions();
 
-        (new DataSourceFeatureGuard())->assertConfigurable((new DataTable('books'))->addExtension(new SearchBuilderExtension()), self::optIns(DataSourceMode::Ajax, apiPlatform: false));
+        (new DataSourceFeatureGuard())->assertSatisfied(self::definition((new DataTable('books'))->addExtension(new SearchBuilderExtension()), self::optIns(DataSourceMode::Ajax, apiPlatform: false)));
     }
 
     /**
@@ -113,7 +115,7 @@ final class DataSourceFeatureGuardTest extends TestCase
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('The "sum" summary of column "amount" cannot be computed in the browser');
 
-        (new DataSourceFeatureGuard())->assertConfigurable($table, self::optIns($mode));
+        (new DataSourceFeatureGuard())->assertSatisfied(self::definition($table, self::optIns($mode)));
     }
 
     /**
@@ -131,7 +133,7 @@ final class DataSourceFeatureGuardTest extends TestCase
     {
         $this->expectNotToPerformAssertions();
 
-        (new DataSourceFeatureGuard())->assertConfigurable($configure(new DataTable('books')), self::optIns($mode));
+        (new DataSourceFeatureGuard())->assertSatisfied(self::definition($configure(new DataTable('books')), self::optIns($mode)));
     }
 
     /**
@@ -345,7 +347,7 @@ final class DataSourceFeatureGuardTest extends TestCase
     {
         foreach ([self::unscopedProvider(), new ExhaustiveMatchScopedProvider(), new ScopedProvider(declared: [])] as $provider) {
             try {
-                (new DataSourceFeatureGuard())->assertMutationsScoped($configure(new DataTable('people')), $provider);
+                (new DataSourceFeatureGuard())->assertSatisfied(self::definition($configure(new DataTable('people'))), $provider);
                 $this->fail('The actions must be refused.');
             } catch (\LogicException $exception) {
                 $this->assertStringContainsString('unscopedMutations()', $exception->getMessage());
@@ -360,8 +362,8 @@ final class DataSourceFeatureGuardTest extends TestCase
     {
         $guard = new DataSourceFeatureGuard();
 
-        $guard->assertMutationsScoped($configure(new DataTable('people')), new ScopedProvider(declared: [DataSourceFeature::RowScope]));
-        $guard->assertMutationsScoped($configure(new DataTable('people'))->unscopedMutations(), self::unscopedProvider());
+        $guard->assertSatisfied(self::definition($configure(new DataTable('people'))), new ScopedProvider(declared: [DataSourceFeature::RowScope]));
+        $guard->assertSatisfied(self::definition($configure(new DataTable('people'))->unscopedMutations()), self::unscopedProvider());
         $this->addToAssertionCount(1);
     }
 
@@ -369,7 +371,7 @@ final class DataSourceFeatureGuardTest extends TestCase
     #[DataProvider('actionsServedByNoEndpoint')]
     public function it_accepts_link_only_and_empty_actions_on_any_provider(\Closure $configure): void
     {
-        (new DataSourceFeatureGuard())->assertMutationsScoped($configure(new DataTable('people')), self::unscopedProvider());
+        (new DataSourceFeatureGuard())->assertSatisfied(self::definition($configure(new DataTable('people'))), self::unscopedProvider());
         $this->addToAssertionCount(1);
     }
 
@@ -386,7 +388,7 @@ final class DataSourceFeatureGuardTest extends TestCase
     #[Test]
     public function it_accepts_a_table_without_actions_on_any_provider(): void
     {
-        (new DataSourceFeatureGuard())->assertMutationsScoped((new DataTable('people'))->columns(self::columns()), self::unscopedProvider());
+        (new DataSourceFeatureGuard())->assertSatisfied(self::definition((new DataTable('people'))->columns(self::columns())), self::unscopedProvider());
         $this->addToAssertionCount(1);
     }
 
@@ -432,6 +434,11 @@ final class DataSourceFeatureGuardTest extends TestCase
     private static function columns(): array
     {
         return [NumberColumn::new('id'), TextColumn::new('name')];
+    }
+
+    private static function definition(DataTable $table, ?ResolvedOptIns $optIns = null): TableDefinition
+    {
+        return new TableDefinition(AbstractDataTable::class, $table, [], new Filters(), null, $optIns ?? new ResolvedOptIns(), TableRequirements::of($table));
     }
 
     private static function optIns(DataSourceMode $mode, ?bool $apiPlatform = null): ResolvedOptIns
