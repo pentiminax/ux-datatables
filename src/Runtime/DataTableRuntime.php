@@ -118,7 +118,7 @@ final class DataTableRuntime
 
         // Resolved last, so a table failing both reports the preparer's own error first.
         return $this->renderingPreparer->prepareAfterDataHydration(
-            $definition->table,
+            $definition,
             $optIns,
             rows: $hydratedRows,
             bulkRowIdField: $bulkRowIdField,

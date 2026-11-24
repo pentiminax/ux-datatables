@@ -127,8 +127,9 @@ final class RenderingPreparer
      *
      * @throws \LogicException when the table polls without an Ajax source, or the payload sets a key twice
      */
-    public function prepareAfterDataHydration(DataTable $table, ResolvedOptIns $optIns, ?array $rows, ?string $bulkRowIdField, \Closure $mercure): PreparedDataTable
+    public function prepareAfterDataHydration(TableDefinition $definition, ResolvedOptIns $optIns, ?array $rows, ?string $bulkRowIdField, \Closure $mercure): PreparedDataTable
     {
+        $table             = $definition->table;
         $dataTableClass    = $table->getDataTableClass();
         $configuredColumns = $this->translatedColumns($table->getColumns());
         $columns           = array_values($this->columnResolver->filterStaticPermissions($configuredColumns, $dataTableClass));
@@ -195,7 +196,7 @@ final class RenderingPreparer
             unset($extensions['select']);
         }
 
-        $requirements = TableRequirements::of($table);
+        $requirements = $definition->requirements;
         $filters      = $this->translatedFilters($table->getFilters());
         $hasFilters   = null !== $filters && !$filters->isEmpty();
         $emptyState   = $table->getEmptyState();

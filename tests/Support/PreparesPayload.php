@@ -29,9 +29,10 @@ trait PreparesPayload
 
     private static function prepareWith(RenderingPreparer $preparer, DataTable $table, ResolvedOptIns $optIns): PreparedDataTable
     {
-        $preparer->prepareBeforeDataHydration(new TableDefinition(AbstractDataTable::class, $table, [], new Filters(), null, $optIns, TableRequirements::of($table)));
+        $definition = new TableDefinition(AbstractDataTable::class, $table, [], new Filters(), null, $optIns, TableRequirements::of($table));
+        $preparer->prepareBeforeDataHydration($definition);
 
-        return $preparer->prepareAfterDataHydration($table, $optIns, rows: null, bulkRowIdField: null, mercure: static fn (): null => null);
+        return $preparer->prepareAfterDataHydration($definition, $optIns, rows: null, bulkRowIdField: null, mercure: static fn (): null => null);
     }
 
     private static function optionOf(PreparedDataTable $prepared, string $name): mixed
