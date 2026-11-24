@@ -116,6 +116,8 @@ final class TableRequirementsTest extends TestCase
         yield 'row action switch' => [static fn (DataTable $table): DataTable => $table->columns([BooleanColumn::new('active')->renderAsSwitch()])];
         yield 'delete' => [static fn (DataTable $table): DataTable => $table->columns([ActionColumn::fromActions('actions', 'Actions', (new Actions())->add(Action::delete()))])];
         yield 'collapsible detail' => [static fn (DataTable $table): DataTable => $table->columns([ActionColumn::fromActions('actions', 'Actions', (new Actions())->add(Action::detail()->collapsible('detail.html.twig')))])];
+        yield 'delete linked to a route' => [static fn (DataTable $table): DataTable => $table->columns([ActionColumn::fromActions('actions', 'Actions', (new Actions())->add(Action::delete()->linkToUrl('/books')))])];
+        yield 'collapsible detail linked to a url' => [static fn (DataTable $table): DataTable => $table->columns([ActionColumn::fromActions('actions', 'Actions', (new Actions())->add(Action::detail()->collapsible('detail.html.twig')->linkToUrl('/books')))])];
     }
 
     #[Test]

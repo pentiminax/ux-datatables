@@ -295,10 +295,11 @@ import the bundle's routes so the row action URLs can be generated.
 
 ### Link-only row actions get no `rowActionUrls`
 
-A table whose row actions all target a URL or a route (`linkToUrl()`, `linkToRoute()`) no longer
-receives `rowActionUrls` in its rendered payload, because nothing calls a bundle endpoint. It still
-receives the action labels. Nothing to do, unless custom JavaScript reads `rowActionUrls` for such
-a table.
+A table whose row actions are all link actions (edit, detail or custom, with `linkToUrl()` or
+`linkToRoute()`, not collapsible) or `asAjaxRequest()` actions no longer receives `rowActionUrls`
+in its rendered payload, because nothing calls a bundle endpoint. It still receives the action
+labels. A bundle-served delete, a collapsible detail or a boolean switch still gets them. Nothing
+to do, unless custom JavaScript reads `rowActionUrls` for such a table.
 
 ### Entity tables are server-side by default
 

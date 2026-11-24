@@ -86,7 +86,7 @@ final readonly class TableRequirements
             }
 
             foreach ($column->getActions()?->getActions() ?? [] as $action) {
-                if ($action->hasTarget()) {
+                if ($action->hasTarget() && !$action->isCollapsible() && (ActionType::Edit === $action->getType() || $action->isAjaxRequest())) {
                     continue;
                 }
 
