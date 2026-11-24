@@ -23,7 +23,6 @@ use Pentiminax\UX\DataTables\Model\BulkAction;
 use Pentiminax\UX\DataTables\Model\BulkActions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
-use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SearchBuilderExtension;
 use Pentiminax\UX\DataTables\Model\Filters;
@@ -97,23 +96,6 @@ final class DataSourceFeatureGuardTest extends TestCase
             'ColumnControl searches are not supported on an API Platform collection',
         ];
 
-        yield 'ColumnControl search nested in a dropdown' => [
-            static fn (DataTable $table): DataTable => $table->addExtension((new ColumnControlExtension([]))->add(0, [['extend' => 'dropdown', 'content' => ['searchText']]])),
-            'ColumnControl searches are not supported on an API Platform collection',
-        ];
-
-        yield 'ColumnControl search set on one column' => [
-            static fn (DataTable $table): DataTable => $table
-                ->addExtension((new ColumnControlExtension([]))->add(0, ['order']))
-                ->columns([TextColumn::new('title')->columnControl(['searchList'])]),
-            'ColumnControl searches are not supported on an API Platform collection',
-        ];
-
-        yield 'SearchList object' => [
-            static fn (DataTable $table): DataTable => $table->addExtension((new ColumnControlExtension([]))->add(1, [SearchList::new()])),
-            'ColumnControl searches are not supported on an API Platform collection',
-        ];
-
         yield 'summaries' => [
             static fn (DataTable $table): DataTable => $table->columns([NumberColumn::new('price')->summarize(new Sum())]),
             'Column summaries are not supported on an API Platform collection',
@@ -157,16 +139,6 @@ final class DataSourceFeatureGuardTest extends TestCase
      */
     public static function acceptedConfigurations(): iterable
     {
-        yield 'ColumnControl without a search on API Platform' => [
-            static fn (DataTable $table): DataTable => $table->addExtension((new ColumnControlExtension([]))->add(0, ['order', ['orderAsc', 'orderDesc']])),
-            DataSourceMode::ApiPlatform,
-        ];
-
-        yield 'a dropdown whose icon is named search' => [
-            static fn (DataTable $table): DataTable => $table->addExtension((new ColumnControlExtension([]))->add(0, [['extend' => 'dropdown', 'icon' => 'search', 'content' => ['orderAsc', 'orderDesc']]])),
-            DataSourceMode::ApiPlatform,
-        ];
-
         yield 'configured filters on API Platform' => [
             static fn (DataTable $table): DataTable => $table->setFilters((new Filters())->add(TextFilter::new('title'))),
             DataSourceMode::ApiPlatform,

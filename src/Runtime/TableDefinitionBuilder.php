@@ -79,6 +79,7 @@ final class TableDefinitionBuilder
             filters: $definition->filters,
             asDataTable: $definition->asDataTable,
             optIns: ResolvedOptIns::resolve($table, $definition->asDataTable, $this->collectionUrlResolver),
+            requirements: $definition->requirements,
         );
     }
 
@@ -140,7 +141,7 @@ final class TableDefinitionBuilder
             return [$columns, $filters];
         });
 
-        return new TableDefinition($class, $configured, $columns, $filters, $asDataTable, $optIns);
+        return new TableDefinition($class, $configured, $columns, $filters, $asDataTable, $optIns, TableRequirements::of($configured));
     }
 
     /**

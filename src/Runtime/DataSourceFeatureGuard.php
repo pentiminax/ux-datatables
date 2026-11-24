@@ -5,18 +5,13 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Runtime;
 
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
-use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
-use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ApiPlatformCollectionProvider;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
-use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
-use Pentiminax\UX\DataTables\Model\Extensions\SearchBuilderExtension;
 use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Query\Filter\SearchBuilderFilter;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
@@ -63,12 +58,14 @@ final class DataSourceFeatureGuard
             return;
         }
 
+        $requirements = TableRequirements::of($table);
+
         foreach (self::QUERY_FEATURES as $feature) {
             if (\in_array($feature, ApiPlatformCollectionProvider::SUPPORTED_FEATURES, true)) {
                 continue;
             }
 
-            if ($this->configures($table, $feature)) {
+            if ($requirements->has($feature)) {
                 throw new \LogicException(\sprintf('%s are not supported on an API Platform collection, because it cannot apply them to every matching row. Remove them or read the table through Doctrine.', $feature->label()));
             }
         }
@@ -126,27 +123,7 @@ final class DataSourceFeatureGuard
      */
     public static function hasRowActions(DataTable $table): bool
     {
-        foreach ($table->getColumns() as $column) {
-            if ($column instanceof BooleanColumn && $column->isRenderedAsSwitch()) {
-                return true;
-            }
-
-            if (!$column instanceof ActionsProvidingColumnInterface) {
-                continue;
-            }
-
-            foreach ($column->getActions()?->getActions() ?? [] as $action) {
-                if ($action->hasTarget()) {
-                    continue;
-                }
-
-                if (ActionType::Delete === $action->getType() || ActionType::Edit === $action->getType() || ($action->isCollapsible() && ActionType::Detail === $action->getType())) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        return TableRequirements::of($table)->servesRowActions;
     }
 
     public static function unsupported(DataSourceFeature $feature, DataProviderInterface $provider): BadRequestHttpException
@@ -178,18 +155,6 @@ final class DataSourceFeatureGuard
         }
     }
 
-    private function configures(DataTable $table, DataSourceFeature $feature): bool
-    {
-        $extensions = $table->getExtensionsCollection()->all();
-
-        return match ($feature) {
-            DataSourceFeature::SearchBuilder     => ($extensions['searchBuilder'] ?? null) instanceof SearchBuilderExtension,
-            DataSourceFeature::ColumnControl     => ($extensions['columnControl'] ?? null) instanceof ColumnControlExtension && $this->offersColumnControlSearch($extensions['columnControl'], $table->getColumns()),
-            DataSourceFeature::ConfiguredFilters => [] !== ($table->getFilters()?->getFilters() ?? []),
-            DataSourceFeature::Summaries         => [] !== ColumnResolver::filterSummarized($table->getColumns()),
-        };
-    }
-
     /**
      * @param list<AbstractColumn> $columns
      */
@@ -214,58 +179,6 @@ final class DataSourceFeatureGuard
             $value = $request->filters[$filter->getName()] ?? null;
 
             if (null !== $value && '' !== $value && [] !== $value) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @param array<mixed> $columns
-     */
-    private function offersColumnControlSearch(ColumnControlExtension $extension, array $columns): bool
-    {
-        if ($this->containsSearchControl($extension->jsonSerialize())) {
-            return true;
-        }
-
-        foreach ($columns as $column) {
-            if ($this->containsSearchControl($column->getColumnControl())) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Content descriptors nest (a group or a dropdown holds a `content` list) and come as names,
-     * `extend` arrays, or objects such as SearchList that serialize to one. Every ColumnControl search
-     * type starts with "search"; `searchClear` only clears one, and other keys (icon, text) are
-     * labels.
-     */
-    private function containsSearchControl(mixed $content): bool
-    {
-        if ($content instanceof \JsonSerializable) {
-            return $this->containsSearchControl($content->jsonSerialize());
-        }
-
-        if (\is_string($content)) {
-            return str_starts_with($content, 'search') && 'searchClear' !== $content;
-        }
-
-        if (!\is_array($content)) {
-            return false;
-        }
-
-        if (!array_is_list($content)) {
-            return $this->containsSearchControl($content['extend'] ?? null)
-                || $this->containsSearchControl($content['content'] ?? null);
-        }
-
-        foreach ($content as $item) {
-            if ($this->containsSearchControl($item)) {
                 return true;
             }
         }
