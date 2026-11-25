@@ -34,22 +34,4 @@ final class RequestQueryHydrator
             }
         }
     }
-
-    /**
-     * The `query` field of a JSON body, narrowed to the names a table declared as forwarded.
-     *
-     * @param list<string> $names
-     *
-     * @return array<string, mixed>
-     */
-    public static function forwardedFromBody(Request $request, array $names): array
-    {
-        $body = json_decode($request->getContent(), true);
-
-        if ([] === $names || !\is_array($body) || !\is_array($body['query'] ?? null)) {
-            return [];
-        }
-
-        return array_intersect_key($body['query'], array_flip($names));
-    }
 }
