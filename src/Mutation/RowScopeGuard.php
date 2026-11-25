@@ -14,7 +14,6 @@ use Pentiminax\UX\DataTables\Runtime\DataSourceCapability;
 use Pentiminax\UX\DataTables\Runtime\DataTableCall;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Keeps single-row Ajax actions inside the permanent scope of their table, as bulk actions are.
@@ -26,7 +25,6 @@ final class RowScopeGuard
     public function __construct(
         private readonly EntityLocator $locator,
         private readonly DataTableRuntime $runtime,
-        private readonly ?RequestStack $requestStack = null,
     ) {
     }
 
@@ -47,11 +45,7 @@ final class RowScopeGuard
             return $ids;
         }
 
-        $call = $this->runtime->handle($table->table, $request);
-
-        $checker = DataSourceCapability::rowScopeChecker($call->dataProvider()) ?? throw new MutationNotAllowedException();
-
-        return $checker->filterIdentifiersInScope($call->request->withoutPagination(), $ids, $field);
+        return $this->filterInScope($this->runtime->handle($table->table, $request), $field, $ids);
     }
 
     /**
@@ -67,6 +61,18 @@ final class RowScopeGuard
         return $this->checkerOf($table, $this->runtime->open($table->table));
     }
 
+    /**
+     * @param list<int|string> $ids
+     *
+     * @return list<int|string>
+     */
+    private function filterInScope(DataTableCall $call, string $field, array $ids): array
+    {
+        $checker = DataSourceCapability::rowScopeChecker($call->dataProvider()) ?? throw new MutationNotAllowedException();
+
+        return $checker->filterIdentifiersInScope($call->request->withoutPagination(), $ids, $field);
+    }
+
     private function checkerOf(ResolvedDataTable $table, DataTableCall $open): ?IdentifierDataProviderInterface
     {
         if ($table->definition->table->allowsUnscopedMutations()) {
@@ -80,11 +86,13 @@ final class RowScopeGuard
     /**
      * Ties a toggle on a related entity to the table row it was rendered in.
      *
+     * @param \Closure():DataTableCall $call binds the table to the request; run only once the row scope can be checked
+     *
      * @throws EntityNotFoundException when the row is out of scope or does not hold that related id
      */
-    public function assertRelatedRowOwns(ResolvedDataTable $table, int|string $rowId, string $idPath, int|string $targetId): void
+    public function assertRelatedRowOwns(ResolvedDataTable $table, \Closure $call, int|string $rowId, string $idPath, int|string $targetId): void
     {
-        $this->assertInScope($table, $rowId);
+        $this->assertInScope($table, $call, $rowId);
 
         $row = $this->locator->locate($table->requireEntityClass(), $rowId)->entity;
 
@@ -94,10 +102,12 @@ final class RowScopeGuard
     }
 
     /**
+     * @param \Closure():DataTableCall $call binds the table to the request; run only once the row scope can be checked
+     *
      * @throws EntityNotFoundException     when the row is outside the table scope, whether or not it exists
-     * @throws MutationNotAllowedException when the entity has no identifier field, there is no current request, or the scope cannot be checked
+     * @throws MutationNotAllowedException when the entity has no identifier field or the scope cannot be checked
      */
-    public function assertInScope(ResolvedDataTable $table, int|string $id): void
+    public function assertInScope(ResolvedDataTable $table, \Closure $call, int|string $id): void
     {
         $entityClass = $table->requireEntityClass();
         $field       = $this->locator->manager($entityClass)->getClassMetadata($entityClass)->getIdentifier()[0] ?? null;
@@ -110,12 +120,9 @@ final class RowScopeGuard
             return;
         }
 
-        $request = $this->requestStack?->getCurrentRequest() ?? throw new MutationNotAllowedException();
+        $this->scopeChecker($table);
 
-        $names = $table->definition->table->getForwardedQueryParameters();
-        RequestQueryHydrator::hydrate($request, RequestQueryHydrator::forwardedFromBody($request, $names));
-
-        if ([] === $this->keepInScope($table, $request, $field, [$id])) {
+        if ([] === $this->filterInScope($call(), $field, [$id])) {
             throw new EntityNotFoundException();
         }
     }

@@ -176,7 +176,6 @@ return static function (ContainerConfigurator $container): void {
     $services->set('datatables.mutation.row_scope_guard', RowScopeGuard::class)
         ->arg(0, service('datatables.mutation.locator'))
         ->arg(1, service('datatables.runtime'))
-        ->arg(2, service('request_stack')->nullOnInvalid())
         ->private();
 
     $services->set('datatables.ajax.row_action_gate', RowActionGate::class)
@@ -186,6 +185,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(3, service('datatables.mutation.row_scope_guard'))
         ->arg(4, service('datatables.mutation.locator'))
         ->arg(5, service('datatables.security.authorization_checker'))
+        ->arg(6, service('datatables.runtime'))
         ->private();
 
     $services->set('datatables.mutation.mutator', EntityMutator::class)

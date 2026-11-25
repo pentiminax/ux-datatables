@@ -67,14 +67,6 @@ final class RowActionGateTest extends TestCase
     use BuildsRuntime;
     use CollectsDeprecations;
 
-    private static function requestStack(): \Symfony\Component\HttpFoundation\RequestStack
-    {
-        $stack = new \Symfony\Component\HttpFoundation\RequestStack();
-        $stack->push(new Request());
-
-        return $stack;
-    }
-
     private const SECRET = 'test-secret';
 
     private EntityManagerInterface $em;
@@ -387,9 +379,10 @@ final class RowActionGateTest extends TestCase
             new MutationTokenValidator($csrfManager),
             $this->registry,
             new BooleanMutationContextResolver($this->registry, $checker),
-            new RowScopeGuard($locator, self::buildRuntime(definitions: $this->definitions), self::requestStack()),
+            new RowScopeGuard($locator, self::buildRuntime(definitions: $this->definitions)),
             $locator,
             $checker,
+            self::buildRuntime(definitions: $this->definitions),
         );
 
         return $gate->authorize($request, $rowAction);

@@ -21,7 +21,7 @@ final class AjaxEditController
 
     public function __invoke(Request $request, #[MapRequestPayload] AjaxEditRequestDto $payload): Response
     {
-        $row = $this->gate->authorize($request, RowActionRequest::toggle($payload->dataTable, $payload->field, $payload->id, $payload->rowId));
+        $row = $this->gate->authorize($request, RowActionRequest::toggle($payload->dataTable, $payload->field, $payload->id, $payload->rowId, $payload->query));
 
         $this->mutator->toggleRow($row, $payload->newValue);
 

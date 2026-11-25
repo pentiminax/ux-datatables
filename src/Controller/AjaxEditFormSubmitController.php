@@ -21,7 +21,7 @@ final class AjaxEditFormSubmitController
 
     public function __invoke(Request $request, #[MapRequestPayload] AjaxEditFormRequestDto $payload): Response
     {
-        $row = $this->gate->authorize($request, RowActionRequest::editFormSubmit($payload->dataTable, $payload->id));
+        $row = $this->gate->authorize($request, RowActionRequest::editFormSubmit($payload->dataTable, $payload->id, $payload->query));
 
         return $this->service->submitForm($row, $payload->formData)->toJsonResponse();
     }

@@ -11,6 +11,7 @@ use Pentiminax\UX\DataTables\EventListener\MutationExceptionListener;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\RowScopeGuard;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
@@ -44,6 +45,7 @@ trait BuildsRowActionGate
         CsrfTokenManagerInterface $csrfTokenManager,
         RowScopeGuard $scopeGuard,
         ?AuthorizationChecker $permissionChecker = null,
+        ?DataTableRuntime $runtime = null,
     ): RowActionGate {
         $locator = new EntityLocator($doctrine);
         $permissionChecker ??= new AuthorizationChecker(new TestAuthorizationChecker());
@@ -55,6 +57,7 @@ trait BuildsRowActionGate
             $scopeGuard,
             $locator,
             $permissionChecker,
+            $runtime ?? TestRuntime::make(),
         );
     }
 }
