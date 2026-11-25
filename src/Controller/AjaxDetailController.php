@@ -21,7 +21,7 @@ final class AjaxDetailController
 
     public function __invoke(Request $request, #[MapRequestPayload] AjaxEntityQueryDto $payload): Response
     {
-        $row = $this->gate->authorize($request, RowActionRequest::detail($payload->dataTable, $payload->id));
+        $row = $this->gate->authorize($request, RowActionRequest::detail($payload->dataTable, $payload->id, $payload->query));
 
         return $this->service->render($row)->toJsonResponse();
     }

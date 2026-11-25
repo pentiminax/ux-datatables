@@ -11,7 +11,10 @@ use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContext;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
+use Pentiminax\UX\DataTables\Mutation\RequestQueryHydrator;
 use Pentiminax\UX\DataTables\Mutation\RowScopeGuard;
+use Pentiminax\UX\DataTables\Runtime\DataTableCall;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Symfony\Component\HttpFoundation\Request;
@@ -28,6 +31,7 @@ final class RowActionGate
         private readonly RowScopeGuard $scopeGuard,
         private readonly EntityLocator $locator,
         private readonly AuthorizationChecker $permissionChecker,
+        private readonly DataTableRuntime $runtime,
     ) {
     }
 
@@ -46,7 +50,7 @@ final class RowActionGate
         }
 
         if (RowActionKind::Toggle === $rowAction->kind) {
-            return $this->authorizeToggle($rowAction);
+            return $this->authorizeToggle($request, $rowAction);
         }
 
         $table  = $this->registry->resolveAction($rowAction->dataTable);
@@ -56,7 +60,7 @@ final class RowActionGate
             throw new MutationNotAllowedException();
         }
 
-        $this->scopeGuard->assertInScope($table, $rowAction->id);
+        $this->scopeGuard->assertInScope($table, $this->scopeCall($request, $table, $rowAction), $rowAction->id);
 
         $context = $this->locator->locate($table->requireEntityClass(), $rowAction->id);
 
@@ -72,12 +76,12 @@ final class RowActionGate
         );
     }
 
-    private function authorizeToggle(RowActionRequest $rowAction): AuthorizedRow
+    private function authorizeToggle(Request $request, RowActionRequest $rowAction): AuthorizedRow
     {
         $toggle = $this->toggleResolver->resolve($rowAction->dataTable, (string) $rowAction->field);
         $table  = $toggle->table ?? throw new \LogicException('The boolean mutation context must carry its resolved table.');
 
-        $this->assertToggleInScope($table, $toggle, $rowAction);
+        $this->assertToggleInScope($request, $table, $toggle, $rowAction);
 
         $context = $this->locator->locate($toggle->entityClass, $rowAction->id);
 
@@ -95,14 +99,14 @@ final class RowActionGate
         );
     }
 
-    private function assertToggleInScope(ResolvedDataTable $table, BooleanMutationContext $toggle, RowActionRequest $rowAction): void
+    private function assertToggleInScope(Request $request, ResolvedDataTable $table, BooleanMutationContext $toggle, RowActionRequest $rowAction): void
     {
         if (null === $table->entityClass) {
             throw new EntityNotFoundException();
         }
 
         if ($toggle->entityClass === $table->entityClass) {
-            $this->scopeGuard->assertInScope($table, $rowAction->id);
+            $this->scopeGuard->assertInScope($table, $this->scopeCall($request, $table, $rowAction), $rowAction->id);
 
             return;
         }
@@ -111,7 +115,22 @@ final class RowActionGate
             throw new EntityNotFoundException();
         }
 
-        $this->scopeGuard->assertRelatedRowOwns($table, $rowAction->rowId, $toggle->toggleIdField, $rowAction->id);
+        $this->scopeGuard->assertRelatedRowOwns($table, $this->scopeCall($request, $table, $rowAction), $rowAction->rowId, $toggle->toggleIdField, $rowAction->id);
+    }
+
+    /**
+     * The table bound to a copy of the request carrying the forwarded parameters it declares, so
+     * its query builder reads them while the incoming request stays untouched.
+     */
+    private function scopeCall(Request $request, ResolvedDataTable $table, RowActionRequest $rowAction): DataTableCall
+    {
+        $names     = $table->definition->table->getForwardedQueryParameters();
+        $scoped    = $request->duplicate();
+        $forwarded = array_intersect_key($rowAction->query, array_flip($names));
+
+        RequestQueryHydrator::hydrate($scoped, $forwarded);
+
+        return $this->runtime->handle($table->table, $scoped);
     }
 
     private function resolveAction(ResolvedDataTable $table, RowActionKind $kind): Action

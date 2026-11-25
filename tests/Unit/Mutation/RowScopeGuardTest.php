@@ -49,9 +49,9 @@ use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
-use Pentiminax\UX\DataTables\Mutation\RequestQueryHydrator;
 use Pentiminax\UX\DataTables\Mutation\RowScopeGuard;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
+use Pentiminax\UX\DataTables\Runtime\DataTableCall;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Pentiminax\UX\DataTables\Runtime\TableDefinitionBuilder;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
@@ -70,7 +70,6 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\PropertyAccess\PropertyAccess;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Twig\Environment;
@@ -88,14 +87,6 @@ final class RowScopeGuardTest extends TestCase
     use BuildsRowActionGate;
     use BuildsRuntime;
     use CollectsDeprecations;
-
-    private static function requestStack(): RequestStack
-    {
-        $stack = new RequestStack();
-        $stack->push(new Request());
-
-        return $stack;
-    }
 
     private const SECRET = 'test-secret';
 
@@ -127,14 +118,14 @@ final class RowScopeGuardTest extends TestCase
     {
         foreach ([3, '3', 999] as $id) {
             try {
-                $this->guard()->assertInScope($this->resolved(), $id);
+                $this->guard()->assertInScope($this->resolved(), $this->callOf($this->resolved()), $id);
                 $this->fail('Out-of-scope id must be rejected.');
             } catch (EntityNotFoundException $exception) {
                 $this->assertSame('Entity not found.', $exception->getMessage());
             }
         }
 
-        $this->guard()->assertInScope($this->resolved(), 1);
+        $this->guard()->assertInScope($this->resolved(), $this->callOf($this->resolved()), 1);
         $this->addToAssertionCount(1);
     }
 
@@ -145,7 +136,7 @@ final class RowScopeGuardTest extends TestCase
 
         $this->expectException(MutationNotAllowedException::class);
 
-        $this->guard()->assertInScope($table, 1);
+        $this->guard()->assertInScope($table, $this->callOf($table), 1);
     }
 
     #[Test]
@@ -182,7 +173,8 @@ final class RowScopeGuardTest extends TestCase
 
         $this->expectException(MutationNotAllowedException::class);
 
-        $this->guard()->assertInScope($this->resolvedOf(new ScopedAccountDataTable($provider)), 1);
+        $table = $this->resolvedOf(new ScopedAccountDataTable($provider));
+        $this->guard()->assertInScope($table, $this->callOf($table), 1);
     }
 
     #[Test]
@@ -190,16 +182,8 @@ final class RowScopeGuardTest extends TestCase
     {
         $table = $this->resolvedOf(new ScopedAccountDataTable($this->createStub(DataProviderInterface::class), unscopedMutations: true));
 
-        $this->guard()->assertInScope($table, 3);
+        $this->guard()->assertInScope($table, $this->callOf($table), 3);
         $this->assertSame([3, 999], $this->guard()->keepInScope($table, new Request(), 'id', [3, 999]));
-    }
-
-    #[Test]
-    public function it_refuses_a_row_without_a_current_request(): void
-    {
-        $this->expectException(MutationNotAllowedException::class);
-
-        (new RowScopeGuard($this->locator(), $this->runtime()))->assertInScope($this->resolved(), 1);
     }
 
     #[Test]
@@ -216,13 +200,13 @@ final class RowScopeGuardTest extends TestCase
 
         $this->expectException(MutationNotAllowedException::class);
 
-        (new RowScopeGuard(new EntityLocator($doctrine), $this->runtime()))->assertInScope($this->resolved(), 1);
+        (new RowScopeGuard(new EntityLocator($doctrine), $this->runtime()))->assertInScope($this->resolved(), $this->callOf($this->resolved()), 1);
     }
 
     #[Test]
     public function it_raises_nothing_for_the_doctrine_provider(): void
     {
-        $this->assertSame([], $this->scopeDeprecationsOf(fn () => $this->guard()->assertInScope($this->resolved(), 1)));
+        $this->assertSame([], $this->scopeDeprecationsOf(fn () => $this->guard()->assertInScope($this->resolved(), $this->callOf($this->resolved()), 1)));
     }
 
     #[Test]
@@ -260,84 +244,87 @@ final class RowScopeGuardTest extends TestCase
     #[Test]
     public function it_replays_forwarded_query_parameters_on_delete_and_toggle(): void
     {
-        $stack = $this->forwardingRequestStack(['hidden' => 'hidden', 'search' => ['value' => 'ignored']]);
-        $guard = new RowScopeGuard($this->locator(), $this->runtime(), $stack);
+        $query = ['hidden' => 'hidden', 'search' => ['value' => 'ignored']];
         $token = $this->forwardingToken();
+        $guard = $this->guard();
 
         $delete = new AjaxDeleteController($this->mutator(), $this->gate($this->forwardingRegistry(), $guard));
-        $delete($stack->getCurrentRequest(), new AjaxEntityQueryDto($token, 1));
+        $delete($this->request(), new AjaxEntityQueryDto($token, 1, $query));
         $this->assertNull($this->em->find(CountAccount::class, 1));
 
         $toggle = new AjaxEditController($this->mutator(), $this->gate($this->forwardingRegistry(), $guard));
-        $toggle($stack->getCurrentRequest(), new AjaxEditRequestDto($token, 2, 'active', false));
+        $toggle($this->request(), new AjaxEditRequestDto($token, 2, 'active', false, query: $query));
         $this->assertFalse($this->em->find(CountAccount::class, 2)->active);
     }
 
     #[Test]
     public function it_replays_forwarded_query_parameters_on_detail(): void
     {
-        $stack = $this->forwardingRequestStack(['hidden' => 'hidden']);
-        $guard = new RowScopeGuard($this->locator(), $this->runtime(), $stack);
+        $query = ['hidden' => 'hidden'];
         $token = $this->forwardingToken();
 
         $twig    = new Environment(new ArrayLoader(['detail.html.twig' => '{{ entity.name }}']));
         $service = new DetailRowService($twig);
-        $detail  = new AjaxDetailController($service, $this->gate($this->forwardingRegistry(), $guard));
+        $detail  = new AjaxDetailController($service, $this->gate($this->forwardingRegistry(), $this->guard()));
 
-        $this->assertSame('Beta', json_decode($detail($stack->getCurrentRequest(), new AjaxEntityQueryDto($token, 2))->getContent(), true)['html']);
+        $this->assertSame('Beta', json_decode($detail($this->request(), new AjaxEntityQueryDto($token, 2, $query))->getContent(), true)['html']);
 
         $this->expectException(EntityNotFoundException::class);
-        $detail($stack->getCurrentRequest(), new AjaxEntityQueryDto($token, 3));
+        $detail($this->request(), new AjaxEntityQueryDto($token, 3, $query));
     }
 
     #[Test]
     public function it_replays_forwarded_query_parameters_on_the_edit_form_view_and_submit(): void
     {
-        $stack   = $this->forwardingRequestStack(['hidden' => 'hidden']);
-        $guard   = new RowScopeGuard($this->locator(), $this->runtime(), $stack);
+        $query   = ['hidden' => 'hidden'];
+        $guard   = $this->guard();
         $service = $this->forwardingEditFormService($guard);
         $token   = $this->forwardingToken();
         $view    = new AjaxEditFormController($service, $this->gate($this->forwardingRegistry(), $guard));
         $submit  = new AjaxEditFormSubmitController($service, $this->gate($this->forwardingRegistry(), $guard));
-        $request = $stack->getCurrentRequest();
+        $request = $this->request();
 
-        $this->assertSame(200, $view($request, new AjaxEntityQueryDto($token, 1))->getStatusCode());
-        $this->assertSame(200, $submit($request, new AjaxEditFormRequestDto($token, 1, ['name' => 'Renamed']))->getStatusCode());
+        $this->assertSame(200, $view($request, new AjaxEntityQueryDto($token, 1, $query))->getStatusCode());
+        $this->assertSame(200, $submit($request, new AjaxEditFormRequestDto($token, 1, ['name' => 'Renamed'], $query))->getStatusCode());
 
         $this->assertNotNull($this->em->find(CountAccount::class, 3));
         $this->expectException(EntityNotFoundException::class);
-        $view($request, new AjaxEntityQueryDto($token, 3));
+        $view($request, new AjaxEntityQueryDto($token, 3, $query));
     }
 
     #[Test]
-    public function it_still_hides_a_row_outside_the_scope_of_the_forwarded_parameters(): void
+    public function it_excludes_every_row_when_the_payload_forwards_nothing(): void
     {
-        $stack = $this->forwardingRequestStack(['hidden' => 'hidden']);
-        $guard = new RowScopeGuard($this->locator(), $this->runtime(), $stack);
-        $table = $this->forwardingRegistry()->resolveAction($this->forwardingToken());
+        $delete = new AjaxDeleteController($this->mutator(), $this->gate($this->forwardingRegistry(), $this->guard()));
 
         $this->expectException(EntityNotFoundException::class);
-        $guard->assertInScope($table, 3);
+        $delete($this->request(), new AjaxEntityQueryDto($this->forwardingToken(), 1));
     }
 
     #[Test]
-    public function it_excludes_every_row_when_the_body_forwards_nothing(): void
+    public function it_ignores_a_forwarded_parameter_the_table_did_not_declare(): void
     {
-        $guard = new RowScopeGuard($this->locator(), $this->runtime(), $this->forwardingRequestStack([]));
-        $table = $this->forwardingRegistry()->resolveAction($this->forwardingToken());
+        $delete = new AjaxDeleteController($this->mutator(), $this->gate($this->forwardingRegistry(), $this->guard()));
 
-        $this->expectException(EntityNotFoundException::class);
-        $guard->assertInScope($table, 1);
+        try {
+            $delete($this->request(), new AjaxEntityQueryDto($this->forwardingToken(), 1, ['hidden' => 'hidden', 'extra' => 'Alpha']));
+        } catch (EntityNotFoundException) {
+            $this->fail('A declared parameter must scope the row.');
+        }
+
+        $this->assertNull($this->em->find(CountAccount::class, 1));
     }
 
     #[Test]
-    public function it_ignores_undeclared_names_and_a_missing_query_field(): void
+    public function it_leaves_the_incoming_request_unmodified(): void
     {
-        $request = Request::create('/', 'POST', content: json_encode(['query' => ['hidden' => 'a', 'search' => ['value' => 'x']]], \JSON_THROW_ON_ERROR));
+        $request = $this->request();
+        $delete  = new AjaxDeleteController($this->mutator(), $this->gate($this->forwardingRegistry(), $this->guard()));
 
-        $this->assertSame(['hidden' => 'a'], RequestQueryHydrator::forwardedFromBody($request, ['hidden', 'absent']));
-        $this->assertSame([], RequestQueryHydrator::forwardedFromBody(Request::create('/', 'POST', content: '{}'), ['hidden']));
-        $this->assertSame([], RequestQueryHydrator::forwardedFromBody(Request::create('/', 'POST', content: 'nope'), ['hidden']));
+        $delete($request, new AjaxEntityQueryDto($this->forwardingToken(), 1, ['hidden' => 'hidden']));
+
+        $this->assertSame([], $request->query->all());
+        $this->assertSame([], $request->request->all());
     }
 
     private function forwardingRegistry(): AjaxDataTableRegistry
@@ -376,20 +363,6 @@ final class RowScopeGuardTest extends TestCase
         return $this->forwardingRegistry()->getActionToken(ForwardedScopeAccountDataTable::class) ?? '';
     }
 
-    /**
-     * @param array<string, mixed> $query
-     */
-    private function forwardingRequestStack(array $query): RequestStack
-    {
-        $request = Request::create('/datatables/ajax/delete', 'POST', content: json_encode(['query' => $query], \JSON_THROW_ON_ERROR));
-        $request->headers->set(MutationTokenValidator::HEADER, 'valid-token');
-
-        $stack = new RequestStack();
-        $stack->push($request);
-
-        return $stack;
-    }
-
     private function request(): Request
     {
         $request = new Request();
@@ -404,6 +377,11 @@ final class RowScopeGuardTest extends TestCase
     private function scopeDeprecationsOf(callable $call): array
     {
         return $this->withoutAuthorizationFallback($this->deprecationsOf($call));
+    }
+
+    private function callOf(ResolvedDataTable $table): DataTableCall
+    {
+        return $this->runtime()->handle($table->table, new Request());
     }
 
     private function resolved(): ResolvedDataTable
@@ -436,7 +414,7 @@ final class RowScopeGuardTest extends TestCase
 
     private function guard(): RowScopeGuard
     {
-        return new RowScopeGuard($this->locator(), $this->runtime(), self::requestStack());
+        return new RowScopeGuard($this->locator(), $this->runtime());
     }
 
     private function mutator(): EntityMutator
@@ -457,7 +435,7 @@ final class RowScopeGuardTest extends TestCase
         $csrf = $this->createStub(CsrfTokenManagerInterface::class);
         $csrf->method('isTokenValid')->willReturn(true);
 
-        return $this->rowActionGate($registry, $doctrine, $csrf, $guard);
+        return $this->rowActionGate($registry, $doctrine, $csrf, $guard, runtime: $this->runtime());
     }
 
     private function provider(): DoctrineDataProvider
@@ -543,7 +521,9 @@ final class ForwardedScopeAccountDataTable extends AbstractDataTable
     {
         $scope = fn (QueryBuilder $qb): QueryBuilder => $qb
             ->andWhere('e.name <> :hidden')
-            ->setParameter('hidden', $this->getHttpRequest()?->query->get('hidden'));
+            ->andWhere('e.name <> :extra')
+            ->setParameter('hidden', $this->getHttpRequest()?->query->get('hidden'))
+            ->setParameter('extra', $this->getHttpRequest()?->query->get('extra', 'none'));
 
         return new DoctrineDataProvider(
             em: $this->em,

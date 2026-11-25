@@ -22,7 +22,7 @@ final class AjaxDeleteController
 
     public function __invoke(Request $request, #[MapRequestPayload] AjaxEntityQueryDto $payload): Response
     {
-        $row = $this->gate->authorize($request, RowActionRequest::delete($payload->dataTable, $payload->id));
+        $row = $this->gate->authorize($request, RowActionRequest::delete($payload->dataTable, $payload->id, $payload->query));
 
         $this->mutator->deleteRow($row);
 
