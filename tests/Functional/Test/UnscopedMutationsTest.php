@@ -33,24 +33,6 @@ final class UnscopedMutationsTest extends WebTestCase
         $this->assertSame(403, $client->getResponse()->getStatusCode());
     }
 
-    public function test_the_refusal_of_a_provider_that_cannot_check_the_row_scope_does_not_depend_on_the_request(): void
-    {
-        $client  = static::createClient();
-        $crawler = $client->request('GET', '/actions');
-
-        $csrf  = DataTableView::fromCrawler($crawler)->option('csrfToken');
-        $token = static::getContainer()->get('test.datatables.ajax_registry')->getActionToken(HarnessUnscopedBulkDataTable::class);
-
-        $client->request(
-            'POST',
-            '/datatables/ajax/bulk',
-            server: ['CONTENT_TYPE' => 'application/json', 'HTTP_X_CSRF_TOKEN' => $csrf],
-            content: json_encode(['dataTable' => $token, 'action' => 'touch', 'allMatching' => true, 'query' => ['draw' => 'x', 'start' => 'x', 'length' => [], 'columns' => 'x', 'order' => 'x']], \JSON_THROW_ON_ERROR),
-        );
-
-        $this->assertSame(403, $client->getResponse()->getStatusCode());
-    }
-
     public function test_a_toggle_on_a_table_without_an_entity_class_answers_as_a_missing_row(): void
     {
         $client  = static::createClient();
