@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Ajax;
 
+use Pentiminax\UX\DataTables\Contracts\ExecutableActionInterface;
 use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\BulkAction;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContext;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
@@ -53,12 +55,10 @@ final class RowActionGate
             return $this->authorizeToggle($request, $rowAction);
         }
 
-        $table  = $this->registry->resolveAction($rowAction->dataTable);
-        $action = $this->resolveAction($table, $rowAction->kind);
-
-        if (!$this->permissionChecker->canExecuteAction($table->dataTableClass, $action)) {
-            throw new MutationNotAllowedException();
-        }
+        [$table, $action] = $this->authorizeAction(
+            $rowAction->dataTable,
+            fn (ResolvedDataTable $table): ?Action => $this->findRowAction($table, $rowAction->kind),
+        );
 
         $this->scopeGuard->assertInScope($table, fn (): DataTableCall => $this->scopeCall($request, $table, $rowAction), $rowAction->id);
 
@@ -74,6 +74,55 @@ final class RowActionGate
             context: $context,
             id: $rowAction->id,
         );
+    }
+
+    /**
+     * Runs CSRF, table and action lookup, then the static permission, all before the row scope
+     * capability is resolved and before any entity is loaded.
+     *
+     * @throws MutationNotAllowedException when the action is absent or a permission denies it
+     */
+    public function authorizeBulk(Request $request, BulkActionRequest $bulk): AuthorizedBulk
+    {
+        $this->tokenValidator->validate($request);
+
+        [$table, $action] = $this->authorizeAction(
+            $bulk->dataTable,
+            static fn (ResolvedDataTable $table): ?BulkAction => $table->findBulkAction($bulk->action),
+        );
+
+        $this->scopeGuard->scopeChecker($table);
+
+        return new AuthorizedBulk(
+            table: $table,
+            action: $action,
+            bind: function () use ($request, $table, $bulk): DataTableCall {
+                $displayed = $request->duplicate();
+
+                RequestQueryHydrator::hydrate($displayed, $bulk->query);
+
+                return $this->runtime->handle($table->table, $displayed);
+            },
+        );
+    }
+
+    /**
+     * @template T of ExecutableActionInterface
+     *
+     * @param \Closure(ResolvedDataTable):?T $find
+     *
+     * @return array{ResolvedDataTable, T}
+     */
+    private function authorizeAction(string $dataTable, \Closure $find): array
+    {
+        $table  = $this->registry->resolveAction($dataTable);
+        $action = $find($table) ?? throw new MutationNotAllowedException();
+
+        if (!$this->permissionChecker->canExecuteAction($table->dataTableClass, $action)) {
+            throw new MutationNotAllowedException();
+        }
+
+        return [$table, $action];
     }
 
     private function authorizeToggle(Request $request, RowActionRequest $rowAction): AuthorizedRow
@@ -139,15 +188,13 @@ final class RowActionGate
         return $this->runtime->handle($table->table, $scoped);
     }
 
-    private function resolveAction(ResolvedDataTable $table, RowActionKind $kind): Action
+    private function findRowAction(ResolvedDataTable $table, RowActionKind $kind): ?Action
     {
-        $action = match ($kind) {
+        return match ($kind) {
             RowActionKind::Delete => $table->findAction(ActionType::Delete),
             RowActionKind::Detail => $table->findAction(ActionType::Detail, collapsible: true),
             default               => $table->findAction(ActionType::Edit),
         };
-
-        return $action ?? throw new MutationNotAllowedException();
     }
 
     private function isRowGranted(RowActionKind $kind, ResolvedDataTable $table, Action $action, object $entity): bool

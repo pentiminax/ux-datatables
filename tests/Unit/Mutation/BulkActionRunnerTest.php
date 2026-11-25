@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Events;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
+use Pentiminax\UX\DataTables\Ajax\AuthorizedBulk;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
@@ -30,14 +31,17 @@ use Pentiminax\UX\DataTables\Model\BulkActions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\Mutation\BulkActionContext;
+use Pentiminax\UX\DataTables\Mutation\BulkActionResult;
 use Pentiminax\UX\DataTables\Mutation\BulkActionRunner;
 use Pentiminax\UX\DataTables\Mutation\BulkRecords;
 use Pentiminax\UX\DataTables\Mutation\BulkSelection;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
+use Pentiminax\UX\DataTables\Mutation\RequestQueryHydrator;
 use Pentiminax\UX\DataTables\Mutation\RowScopeGuard;
 use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
+use Pentiminax\UX\DataTables\Runtime\DataTableCall;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Pentiminax\UX\DataTables\Runtime\TableDefinitionBuilder;
 use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
@@ -1003,19 +1007,24 @@ final class BulkActionRunnerTest extends TestCase
         ?MercurePublisherInterface $publisher = null,
         ?MercureTopicResolver $topicResolver = null,
         ?EntityManagerInterface $em = null,
-    ): BulkActionRunner {
+    ): AuthorizingBulkRunner {
         $registry = $this->createStub(ManagerRegistry::class);
         $registry->method('getManagerForClass')->willReturn($em ?? $this->em);
 
         $runtime = $this->runtime($em ?? $this->em, $permissionChecker);
 
-        return new BulkActionRunner(
-            new EntityLocator($registry),
-            $permissionChecker ?? new AuthorizationChecker(),
-            $flusher           ?? new MutationFlusher(),
-            $publisher         ?? $this->createStub(MercurePublisherInterface::class),
-            $topicResolver     ?? $this->createStub(MercureTopicResolver::class),
-            new RowScopeGuard(new EntityLocator($registry), $runtime),
+        $guard = new RowScopeGuard(new EntityLocator($registry), $runtime);
+
+        return new AuthorizingBulkRunner(
+            new BulkActionRunner(
+                new EntityLocator($registry),
+                $permissionChecker ?? new AuthorizationChecker(),
+                $flusher           ?? new MutationFlusher(),
+                $publisher         ?? $this->createStub(MercurePublisherInterface::class),
+                $topicResolver     ?? $this->createStub(MercureTopicResolver::class),
+                $guard,
+            ),
+            $guard,
             $runtime,
         );
     }
@@ -1284,5 +1293,32 @@ final class CountLineDataTable extends AbstractDataTable
     public function configureBulkActions(BulkActions $actions): BulkActions
     {
         return $actions->add($this->action);
+    }
+}
+
+/**
+ * Binds a bulk run the way {@see \Pentiminax\UX\DataTables\Ajax\RowActionGate::authorizeBulk()} does.
+ */
+final class AuthorizingBulkRunner
+{
+    public function __construct(
+        private readonly BulkActionRunner $runner,
+        private readonly RowScopeGuard $guard,
+        private readonly DataTableRuntime $runtime,
+    ) {
+    }
+
+    public function run(ResolvedDataTable $table, BulkAction $action, BulkSelection $selection, Request $request): BulkActionResult
+    {
+        $this->guard->scopeChecker($table);
+
+        $bulk = new AuthorizedBulk($table, $action, function () use ($table, $selection, $request): DataTableCall {
+            $displayed = $request->duplicate();
+            RequestQueryHydrator::hydrate($displayed, $selection->query);
+
+            return $this->runtime->handle($table->table, $displayed);
+        });
+
+        return $this->runner->run($bulk, $selection);
     }
 }

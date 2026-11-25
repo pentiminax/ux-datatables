@@ -13,7 +13,6 @@ use Pentiminax\UX\DataTables\RowMapper\RowIdNormalizer;
 use Pentiminax\UX\DataTables\Runtime\DataSourceCapability;
 use Pentiminax\UX\DataTables\Runtime\DataTableCall;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
-use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Keeps single-row Ajax actions inside the permanent scope of their table, as bulk actions are.
@@ -29,23 +28,23 @@ final class RowScopeGuard
     }
 
     /**
-     * The ids the table's permanent scope contains. A provider that cannot answer is refused,
-     * unless the table declares unscopedMutations(), which keeps every id.
+     * The ids the table's permanent scope contains. The table keeps every id when it declares
+     * unscopedMutations(); a provider that cannot answer is refused otherwise.
      *
-     * @param list<int|string> $ids
+     * @param \Closure():DataTableCall $call binds the table to the displayed request; run only when the scope is checked
+     * @param list<int|string>         $ids
      *
      * @return list<int|string>
      *
      * @throws MutationNotAllowedException when the scope cannot be checked
      */
-    public function keepInScope(ResolvedDataTable $table, Request $request, string $field, array $ids): array
+    public function keepInScope(ResolvedDataTable $table, \Closure $call, string $field, array $ids): array
     {
-        // Refused before the request is read, so a refusal never depends on the request.
-        if (null === $this->scopeChecker($table)) {
+        if ($table->definition->table->allowsUnscopedMutations()) {
             return $ids;
         }
 
-        return $this->filterInScope($this->runtime->handle($table->table, $request), $field, $ids);
+        return $this->filterInScope($call(), $field, $ids);
     }
 
     /**

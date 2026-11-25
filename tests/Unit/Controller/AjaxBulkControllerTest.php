@@ -37,6 +37,7 @@ use Pentiminax\UX\DataTables\Runtime\TableDefinitionBuilder;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRowActionGate;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsRuntime;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -53,6 +54,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 #[CoversClass(AjaxBulkController::class)]
 final class AjaxBulkControllerTest extends TestCase
 {
+    use BuildsRowActionGate;
     use BuildsRuntime;
 
     private const TOKEN_SECRET = 'test-secret';
@@ -227,26 +229,22 @@ final class AjaxBulkControllerTest extends TestCase
         }
 
         return new AjaxBulkController(
-            $this->runner($registry, $permissionChecker),
-            new MutationTokenValidator($csrfTokenManager),
-            $this->registry($dataTable),
-            $permissionChecker,
+            $this->runner($registry),
+            $this->rowActionGate($this->registry($dataTable), $registry, $csrfTokenManager, new RowScopeGuard(new EntityLocator($registry), self::buildRuntime()), $permissionChecker),
         );
     }
 
-    private function runner(ManagerRegistry $registry, AuthorizationChecker $permissionChecker): BulkActionRunner
+    private function runner(ManagerRegistry $registry): BulkActionRunner
     {
         $locator = new EntityLocator($registry);
-        $runtime = self::buildRuntime();
 
         return new BulkActionRunner(
             $locator,
-            $permissionChecker,
+            new AuthorizationChecker(new TestAuthorizationChecker()),
             new MutationFlusher(),
             new NullMercurePublisher(),
             new MercureTopicResolver(\Pentiminax\UX\DataTables\Tests\Support\TestRuntime::make()),
-            new RowScopeGuard($locator, $runtime),
-            $runtime,
+            new RowScopeGuard($locator, self::buildRuntime()),
         );
     }
 
