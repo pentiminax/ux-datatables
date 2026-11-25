@@ -10,6 +10,7 @@ use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Ajax\AuthorizedRow;
+use Pentiminax\UX\DataTables\Ajax\BulkActionRequest;
 use Pentiminax\UX\DataTables\Ajax\RowActionGate;
 use Pentiminax\UX\DataTables\Ajax\RowActionKind;
 use Pentiminax\UX\DataTables\Ajax\RowActionRequest;
@@ -27,6 +28,8 @@ use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
+use Pentiminax\UX\DataTables\Model\BulkAction;
+use Pentiminax\UX\DataTables\Model\BulkActions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
@@ -159,6 +162,27 @@ final class RowActionGateTest extends TestCase
         $this->assertSame(1, $authorized->context->entity->id);
         $this->assertNull($authorized->field);
         $this->assertNull($authorized->entityClass);
+    }
+
+    #[Test]
+    public function it_binds_the_displayed_query_for_a_bulk_action_without_modifying_the_incoming_request(): void
+    {
+        $request = new Request();
+        $request->headers->set(MutationTokenValidator::HEADER, 'valid-token');
+
+        $authorized = $this->gate()->authorizeBulk($request, new BulkActionRequest(
+            dataTable: $this->token(GateAccountDataTable::class),
+            action: 'touch',
+            query: ['draw' => '7', 'length' => '25'],
+        ));
+
+        $displayed = $authorized->call()->request;
+
+        $this->assertSame(7, $displayed?->draw);
+        $this->assertSame(25, $displayed->length);
+        $this->assertSame($authorized->call(), $authorized->call());
+        $this->assertSame([], $request->query->all());
+        $this->assertSame([], $request->request->all());
     }
 
     #[Test]
@@ -350,6 +374,11 @@ final class RowActionGateTest extends TestCase
             $request->headers->set(MutationTokenValidator::HEADER, 'valid-token');
         }
 
+        return $this->gate()->authorize($request, $rowAction);
+    }
+
+    private function gate(): RowActionGate
+    {
         $doctrine = $this->createStub(ManagerRegistry::class);
         $doctrine->method('getManagerForClass')->willReturn($this->em);
         $locator = new EntityLocator($doctrine);
@@ -375,7 +404,7 @@ final class RowActionGateTest extends TestCase
             }
         });
 
-        $gate = new RowActionGate(
+        return new RowActionGate(
             new MutationTokenValidator($csrfManager),
             $this->registry,
             new BooleanMutationContextResolver($this->registry, $checker),
@@ -384,8 +413,6 @@ final class RowActionGateTest extends TestCase
             $checker,
             self::buildRuntime(definitions: $this->definitions),
         );
-
-        return $gate->authorize($request, $rowAction);
     }
 
     private function request(RowActionKind $kind, string $table, int $id): RowActionRequest
@@ -470,6 +497,11 @@ final class GateAccountDataTable extends GateDataTable
             ->add(Action::delete())
             ->add(Action::edit())
             ->add(Action::detail()->collapsible('detail.html.twig'));
+    }
+
+    public function configureBulkActions(BulkActions $actions): BulkActions
+    {
+        return $actions->add(BulkAction::new('touch')->handler(static fn () => null));
     }
 }
 
