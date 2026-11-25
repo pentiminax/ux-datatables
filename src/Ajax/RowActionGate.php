@@ -60,7 +60,7 @@ final class RowActionGate
             throw new MutationNotAllowedException();
         }
 
-        $this->scopeGuard->assertInScope($table, $this->scopeCall($request, $table, $rowAction), $rowAction->id);
+        $this->scopeGuard->assertInScope($table, fn (): DataTableCall => $this->scopeCall($request, $table, $rowAction), $rowAction->id);
 
         $context = $this->locator->locate($table->requireEntityClass(), $rowAction->id);
 
@@ -106,7 +106,7 @@ final class RowActionGate
         }
 
         if ($toggle->entityClass === $table->entityClass) {
-            $this->scopeGuard->assertInScope($table, $this->scopeCall($request, $table, $rowAction), $rowAction->id);
+            $this->scopeGuard->assertInScope($table, fn (): DataTableCall => $this->scopeCall($request, $table, $rowAction), $rowAction->id);
 
             return;
         }
@@ -115,7 +115,13 @@ final class RowActionGate
             throw new EntityNotFoundException();
         }
 
-        $this->scopeGuard->assertRelatedRowOwns($table, $this->scopeCall($request, $table, $rowAction), $rowAction->rowId, $toggle->toggleIdField, $rowAction->id);
+        $this->scopeGuard->assertRelatedRowOwns(
+            table: $table,
+            call: fn (): DataTableCall => $this->scopeCall($request, $table, $rowAction),
+            rowId: $rowAction->rowId,
+            idPath: $toggle->toggleIdField,
+            targetId: $rowAction->id,
+        );
     }
 
     /**

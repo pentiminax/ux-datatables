@@ -86,9 +86,11 @@ final class RowScopeGuard
     /**
      * Ties a toggle on a related entity to the table row it was rendered in.
      *
+     * @param \Closure():DataTableCall $call binds the table to the request; run only once the row scope can be checked
+     *
      * @throws EntityNotFoundException when the row is out of scope or does not hold that related id
      */
-    public function assertRelatedRowOwns(ResolvedDataTable $table, DataTableCall $call, int|string $rowId, string $idPath, int|string $targetId): void
+    public function assertRelatedRowOwns(ResolvedDataTable $table, \Closure $call, int|string $rowId, string $idPath, int|string $targetId): void
     {
         $this->assertInScope($table, $call, $rowId);
 
@@ -100,10 +102,12 @@ final class RowScopeGuard
     }
 
     /**
+     * @param \Closure():DataTableCall $call binds the table to the request; run only once the row scope can be checked
+     *
      * @throws EntityNotFoundException     when the row is outside the table scope, whether or not it exists
      * @throws MutationNotAllowedException when the entity has no identifier field or the scope cannot be checked
      */
-    public function assertInScope(ResolvedDataTable $table, DataTableCall $call, int|string $id): void
+    public function assertInScope(ResolvedDataTable $table, \Closure $call, int|string $id): void
     {
         $entityClass = $table->requireEntityClass();
         $field       = $this->locator->manager($entityClass)->getClassMetadata($entityClass)->getIdentifier()[0] ?? null;
@@ -116,7 +120,9 @@ final class RowScopeGuard
             return;
         }
 
-        if ([] === $this->filterInScope($call, $field, [$id])) {
+        $this->scopeChecker($table);
+
+        if ([] === $this->filterInScope($call(), $field, [$id])) {
             throw new EntityNotFoundException();
         }
     }

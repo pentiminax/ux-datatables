@@ -118,14 +118,14 @@ final class RowScopeGuardTest extends TestCase
     {
         foreach ([3, '3', 999] as $id) {
             try {
-                $this->guard()->assertInScope($this->resolved(), $this->callOf($this->resolved()), $id);
+                $this->guard()->assertInScope($this->resolved(), fn () => $this->callOf($this->resolved()), $id);
                 $this->fail('Out-of-scope id must be rejected.');
             } catch (EntityNotFoundException $exception) {
                 $this->assertSame('Entity not found.', $exception->getMessage());
             }
         }
 
-        $this->guard()->assertInScope($this->resolved(), $this->callOf($this->resolved()), 1);
+        $this->guard()->assertInScope($this->resolved(), fn () => $this->callOf($this->resolved()), 1);
         $this->addToAssertionCount(1);
     }
 
@@ -136,7 +136,7 @@ final class RowScopeGuardTest extends TestCase
 
         $this->expectException(MutationNotAllowedException::class);
 
-        $this->guard()->assertInScope($table, $this->callOf($table), 1);
+        $this->guard()->assertInScope($table, fn () => $this->callOf($table), 1);
     }
 
     #[Test]
@@ -174,7 +174,7 @@ final class RowScopeGuardTest extends TestCase
         $this->expectException(MutationNotAllowedException::class);
 
         $table = $this->resolvedOf(new ScopedAccountDataTable($provider));
-        $this->guard()->assertInScope($table, $this->callOf($table), 1);
+        $this->guard()->assertInScope($table, fn () => $this->callOf($table), 1);
     }
 
     #[Test]
@@ -182,7 +182,7 @@ final class RowScopeGuardTest extends TestCase
     {
         $table = $this->resolvedOf(new ScopedAccountDataTable($this->createStub(DataProviderInterface::class), unscopedMutations: true));
 
-        $this->guard()->assertInScope($table, $this->callOf($table), 3);
+        $this->guard()->assertInScope($table, fn () => $this->callOf($table), 3);
         $this->assertSame([3, 999], $this->guard()->keepInScope($table, new Request(), 'id', [3, 999]));
     }
 
@@ -200,13 +200,13 @@ final class RowScopeGuardTest extends TestCase
 
         $this->expectException(MutationNotAllowedException::class);
 
-        (new RowScopeGuard(new EntityLocator($doctrine), $this->runtime()))->assertInScope($this->resolved(), $this->callOf($this->resolved()), 1);
+        (new RowScopeGuard(new EntityLocator($doctrine), $this->runtime()))->assertInScope($this->resolved(), fn () => $this->callOf($this->resolved()), 1);
     }
 
     #[Test]
     public function it_raises_nothing_for_the_doctrine_provider(): void
     {
-        $this->assertSame([], $this->scopeDeprecationsOf(fn () => $this->guard()->assertInScope($this->resolved(), $this->callOf($this->resolved()), 1)));
+        $this->assertSame([], $this->scopeDeprecationsOf(fn () => $this->guard()->assertInScope($this->resolved(), fn () => $this->callOf($this->resolved()), 1)));
     }
 
     #[Test]
@@ -309,10 +309,24 @@ final class RowScopeGuardTest extends TestCase
         try {
             $delete($this->request(), new AjaxEntityQueryDto($this->forwardingToken(), 1, ['hidden' => 'hidden', 'extra' => 'Alpha']));
         } catch (EntityNotFoundException) {
-            $this->fail('A declared parameter must scope the row.');
+            $this->fail('An undeclared parameter must not narrow the scope.');
         }
 
         $this->assertNull($this->em->find(CountAccount::class, 1));
+    }
+
+    #[Test]
+    public function it_skips_the_scope_check_of_an_opted_out_table_whatever_the_forwarded_parameters(): void
+    {
+        $table   = new ScopedAccountDataTable($this->provider(), unscopedMutations: true, forwarded: ['length']);
+        $locator = $this->createStub(ContainerInterface::class);
+        $locator->method('get')->willReturn($table);
+        $registry = new AjaxDataTableRegistry($locator, new AjaxDataTableTokenManager(self::SECRET), [ScopedAccountDataTable::class => 'scoped'], new AuthorizationChecker(), $this->definitions);
+
+        $delete = new AjaxDeleteController($this->mutator(), $this->gate($registry, $this->guard()));
+        $delete($this->request(), new AjaxEntityQueryDto($registry->getActionToken(ScopedAccountDataTable::class) ?? '', 3, ['length' => 'abc']));
+
+        $this->assertNull($this->em->find(CountAccount::class, 3));
     }
 
     #[Test]
@@ -462,13 +476,13 @@ final class RowScopeGuardTest extends TestCase
 #[AsDataTable(entityClass: CountAccount::class)]
 class ScopedAccountDataTable extends AbstractDataTable
 {
-    public function __construct(private readonly DataProviderInterface $dataProvider, private readonly bool $unscopedMutations = false)
+    public function __construct(private readonly DataProviderInterface $dataProvider, private readonly bool $unscopedMutations = false, private readonly array $forwarded = [])
     {
     }
 
     public function configureDataTable(DataTable $table): DataTable
     {
-        return $table->serverSide()->unscopedMutations($this->unscopedMutations);
+        return $table->serverSide()->unscopedMutations($this->unscopedMutations)->forwardQueryParameters($this->forwarded);
     }
 
     public function configureColumns(): iterable
