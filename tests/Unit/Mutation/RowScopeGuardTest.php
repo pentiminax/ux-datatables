@@ -183,7 +183,7 @@ final class RowScopeGuardTest extends TestCase
         $table = $this->resolvedOf(new ScopedAccountDataTable($this->createStub(DataProviderInterface::class), unscopedMutations: true));
 
         $this->guard()->assertInScope($table, fn () => $this->callOf($table), 3);
-        $this->assertSame([3, 999], $this->guard()->keepInScope($table, new Request(), 'id', [3, 999]));
+        $this->assertSame([3, 999], $this->guard()->keepInScope($table, fn () => $this->callOf($table), 'id', [3, 999]));
     }
 
     #[Test]

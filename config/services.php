@@ -202,7 +202,6 @@ return static function (ContainerConfigurator $container): void {
         ->arg(3, service(MercurePublisherInterface::class))
         ->arg(4, service('datatables.mercure.topic_resolver'))
         ->arg(5, service('datatables.mutation.row_scope_guard'))
-        ->arg(6, service('datatables.runtime'))
         ->private();
 
     $services->alias(BulkActionRunner::class, 'datatables.mutation.bulk_action_runner')
@@ -234,9 +233,7 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.controller.ajax_bulk', AjaxBulkController::class)
         ->arg(0, service('datatables.mutation.bulk_action_runner'))
-        ->arg(1, service('datatables.security.mutation_token_validator'))
-        ->arg(2, service('datatables.ajax.registry'))
-        ->arg(3, service('datatables.security.authorization_checker'))
+        ->arg(1, service('datatables.ajax.row_action_gate'))
         ->tag('controller.service_arguments')
         ->public();
 

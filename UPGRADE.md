@@ -255,6 +255,13 @@ $project = $this->requestStack->getCurrentRequest()?->query->get('project');
 $project = $this->getHttpRequest()?->query->get('project');
 ```
 
+### Bulk actions expose the displayed request through `getHttpRequest()` only
+
+During a bulk action, the DataTables request the table was displaying (search, columns, order and
+forwarded parameters) reaches the table through `getHttpRequest()`, in `customizeQueryBuilder()` or
+`createDataProvider()`. The incoming request on the `RequestStack` is no longer hydrated with it, so
+a provider that reads it from the stack must switch, as shown for row actions above.
+
 ### A payload key set twice throws
 
 Options, extensions and bundle keys share one payload. A key set twice, for example an option and

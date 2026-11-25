@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Events;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
+use Pentiminax\UX\DataTables\Ajax\AuthorizedBulk;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
@@ -30,14 +31,17 @@ use Pentiminax\UX\DataTables\Model\BulkActions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\Mutation\BulkActionContext;
+use Pentiminax\UX\DataTables\Mutation\BulkActionResult;
 use Pentiminax\UX\DataTables\Mutation\BulkActionRunner;
 use Pentiminax\UX\DataTables\Mutation\BulkRecords;
 use Pentiminax\UX\DataTables\Mutation\BulkSelection;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
+use Pentiminax\UX\DataTables\Mutation\RequestQueryHydrator;
 use Pentiminax\UX\DataTables\Mutation\RowScopeGuard;
 use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
+use Pentiminax\UX\DataTables\Runtime\DataTableCall;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Pentiminax\UX\DataTables\Runtime\TableDefinitionBuilder;
 use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
@@ -414,8 +418,9 @@ final class BulkActionRunnerTest extends TestCase
         $result = $this->runner()->run(
             $this->resolved($action, provider: $provider),
             $action,
-            new BulkSelection(allMatching: true, query: $this->dataTablesQuery()),
+            new BulkSelection(allMatching: true),
             $this->postRequest(),
+            query: $this->dataTablesQuery(),
         );
 
         $this->assertSame(2, $result->processed);
@@ -440,7 +445,7 @@ final class BulkActionRunnerTest extends TestCase
 
         $this->expectException(MutationNotAllowedException::class);
 
-        $this->runner()->run($this->resolved($action, provider: $provider), $action, new BulkSelection(allMatching: true, query: $query), $this->postRequest());
+        $this->runner()->run($this->resolved($action, provider: $provider), $action, new BulkSelection(allMatching: true), $this->postRequest(), query: $query);
     }
 
     #[Test]
@@ -453,8 +458,9 @@ final class BulkActionRunnerTest extends TestCase
         $this->runner()->run(
             $this->resolved($action, provider: new IdentifierlessProvider()),
             $action,
-            new BulkSelection(ids: [1], query: $this->dataTablesQuery()),
+            new BulkSelection(ids: [1]),
             $this->postRequest(),
+            query: $this->dataTablesQuery(),
         );
     }
 
@@ -590,8 +596,9 @@ final class BulkActionRunnerTest extends TestCase
         $result = $this->runner()->run(
             $table,
             $action,
-            new BulkSelection(allMatching: true, query: $this->dataTablesQuery()),
+            new BulkSelection(allMatching: true),
             $this->postRequest(),
+            query: $this->dataTablesQuery(),
         );
 
         $this->assertSame(['Alpha', 'Beta', 'Gamma', 'Delta'], $seen);
@@ -643,8 +650,9 @@ final class BulkActionRunnerTest extends TestCase
         $this->runner()->run(
             $this->resolved($action, provider: $provider),
             $action,
-            new BulkSelection(allMatching: true, query: $this->dataTablesQuery(search: 'Beta')),
+            new BulkSelection(allMatching: true),
             $this->postRequest(),
+            query: $this->dataTablesQuery(search: 'Beta'),
         );
 
         $this->assertNotNull($provider->seen);
@@ -694,8 +702,9 @@ final class BulkActionRunnerTest extends TestCase
             $this->runner()->run(
                 $this->resolved($action, provider: $provider, idField: 'name'),
                 $action,
-                new BulkSelection(allMatching: true, query: $this->dataTablesQuery()),
+                new BulkSelection(allMatching: true),
                 $this->postRequest(),
+                query: $this->dataTablesQuery(),
             );
             $this->fail('An empty identifier answer must abort the run.');
         } catch (InvalidBulkSelectionException $exception) {
@@ -718,8 +727,9 @@ final class BulkActionRunnerTest extends TestCase
         $result = $this->runner()->run(
             $this->resolved($action, withProvider: true, idField: 'name'),
             $action,
-            new BulkSelection(allMatching: true, deselectedIds: ['Beta'], query: $this->dataTablesQuery()),
+            new BulkSelection(allMatching: true, deselectedIds: ['Beta']),
             $this->postRequest(),
+            query: $this->dataTablesQuery(),
         );
 
         $this->assertSame(['Alpha', 'Gamma', 'Delta'], $seen);
@@ -746,8 +756,9 @@ final class BulkActionRunnerTest extends TestCase
         $result = $this->runner(em: $em)->run(
             $this->resolvedDocument($em, $action),
             $action,
-            new BulkSelection(allMatching: true, query: $this->dataTablesQuery()),
+            new BulkSelection(allMatching: true),
             $this->postRequest(),
+            query: $this->dataTablesQuery(),
         );
 
         // Collecting the leftover `id` column would look up pk 10/20/99 and mutate only Gamma.
@@ -807,8 +818,9 @@ final class BulkActionRunnerTest extends TestCase
         $result = $this->runner(em: $em)->run(
             $this->resolvedDocument($em, $action, provider: $provider, highlightIdField: 'id'),
             $action,
-            new BulkSelection(allMatching: true, query: $this->dataTablesQuery()),
+            new BulkSelection(allMatching: true),
             $this->postRequest(),
+            query: $this->dataTablesQuery(),
         );
 
         $this->assertSame('id', $provider->seenField);
@@ -833,8 +845,9 @@ final class BulkActionRunnerTest extends TestCase
             $this->runner(em: $em)->run(
                 $this->resolvedDocument($em, $action, highlightIdField: 'reference'),
                 $action,
-                new BulkSelection(allMatching: true, query: $this->dataTablesQuery()),
+                new BulkSelection(allMatching: true),
                 $this->postRequest(),
+                query: $this->dataTablesQuery(),
             );
             $this->fail('An unmapped highlight id field must be refused.');
         } catch (\LogicException $exception) {
@@ -940,8 +953,9 @@ final class BulkActionRunnerTest extends TestCase
         $this->runner()->run(
             $this->resolved($action, withProvider: true),
             $action,
-            new BulkSelection(allMatching: true, deselectedIds: ['2', 4], query: $this->dataTablesQuery()),
+            new BulkSelection(allMatching: true, deselectedIds: ['2', 4]),
             $this->postRequest(),
+            query: $this->dataTablesQuery(),
         );
 
         $this->assertSame(['Alpha', 'Gamma'], $seen);
@@ -958,8 +972,9 @@ final class BulkActionRunnerTest extends TestCase
         $this->runner()->run(
             $this->resolved($action, withProvider: true, currentPageOnly: true),
             $action,
-            new BulkSelection(allMatching: true, query: $this->dataTablesQuery()),
+            new BulkSelection(allMatching: true),
             $this->postRequest(),
+            query: $this->dataTablesQuery(),
         );
     }
 
@@ -974,8 +989,9 @@ final class BulkActionRunnerTest extends TestCase
         $this->runner()->run(
             $this->resolved($action),
             $action,
-            new BulkSelection(allMatching: true, query: $this->dataTablesQuery()),
+            new BulkSelection(allMatching: true),
             $this->postRequest(),
+            query: $this->dataTablesQuery(),
         );
     }
 
@@ -992,8 +1008,9 @@ final class BulkActionRunnerTest extends TestCase
         $this->runner()->run(
             $this->resolved($action, provider: $provider, unscopedMutations: true),
             $action,
-            new BulkSelection(allMatching: true, query: $query),
+            new BulkSelection(allMatching: true),
             $this->postRequest(),
+            query: $query,
         );
     }
 
@@ -1003,19 +1020,24 @@ final class BulkActionRunnerTest extends TestCase
         ?MercurePublisherInterface $publisher = null,
         ?MercureTopicResolver $topicResolver = null,
         ?EntityManagerInterface $em = null,
-    ): BulkActionRunner {
+    ): AuthorizingBulkRunner {
         $registry = $this->createStub(ManagerRegistry::class);
         $registry->method('getManagerForClass')->willReturn($em ?? $this->em);
 
         $runtime = $this->runtime($em ?? $this->em, $permissionChecker);
 
-        return new BulkActionRunner(
-            new EntityLocator($registry),
-            $permissionChecker ?? new AuthorizationChecker(),
-            $flusher           ?? new MutationFlusher(),
-            $publisher         ?? $this->createStub(MercurePublisherInterface::class),
-            $topicResolver     ?? $this->createStub(MercureTopicResolver::class),
-            new RowScopeGuard(new EntityLocator($registry), $runtime),
+        $guard = new RowScopeGuard(new EntityLocator($registry), $runtime);
+
+        return new AuthorizingBulkRunner(
+            new BulkActionRunner(
+                new EntityLocator($registry),
+                $permissionChecker ?? new AuthorizationChecker(),
+                $flusher           ?? new MutationFlusher(),
+                $publisher         ?? $this->createStub(MercurePublisherInterface::class),
+                $topicResolver     ?? $this->createStub(MercureTopicResolver::class),
+                $guard,
+            ),
+            $guard,
             $runtime,
         );
     }
@@ -1284,5 +1306,35 @@ final class CountLineDataTable extends AbstractDataTable
     public function configureBulkActions(BulkActions $actions): BulkActions
     {
         return $actions->add($this->action);
+    }
+}
+
+/**
+ * Binds a bulk run the way {@see \Pentiminax\UX\DataTables\Ajax\RowActionGate::authorizeBulk()} does.
+ */
+final class AuthorizingBulkRunner
+{
+    public function __construct(
+        private readonly BulkActionRunner $runner,
+        private readonly RowScopeGuard $guard,
+        private readonly DataTableRuntime $runtime,
+    ) {
+    }
+
+    /**
+     * @param array<string, mixed> $query the DataTables request the table was displaying
+     */
+    public function run(ResolvedDataTable $table, BulkAction $action, BulkSelection $selection, Request $request, array $query = []): BulkActionResult
+    {
+        $this->guard->scopeChecker($table);
+
+        $bulk = new AuthorizedBulk($table, $action, function () use ($table, $request, $query): DataTableCall {
+            $displayed = $request->duplicate();
+            RequestQueryHydrator::hydrate($displayed, $query);
+
+            return $this->runtime->handle($table->table, $displayed);
+        });
+
+        return $this->runner->run($bulk, $selection);
     }
 }
