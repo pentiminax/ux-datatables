@@ -237,6 +237,24 @@ When the table is rendered without Twig, pass the rows to the runtime:
 $prepared = $runtime->render($table, rows: $users);
 ```
 
+### Row actions expose forwarded query parameters through `getHttpRequest()` only
+
+During a delete, detail, edit or toggle request, the parameters a table declares with
+`forwardQueryParameters()` are read from the payload and reach the table through
+`getHttpRequest()?->query`, in `customizeQueryBuilder()` or `createDataProvider()`. The incoming
+request on the `RequestStack` is no longer hydrated with them, so a provider that reads them from
+the stack must switch.
+
+```php
+// Before (1.x)
+$project = $this->requestStack->getCurrentRequest()?->query->get('project');
+```
+
+```php
+// After (2.0)
+$project = $this->getHttpRequest()?->query->get('project');
+```
+
 ### A payload key set twice throws
 
 Options, extensions and bundle keys share one payload. A key set twice, for example an option and
